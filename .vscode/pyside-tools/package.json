@@ -1,0 +1,61 @@
+{
+  "name": "pyside-tools",
+  "displayName": "PySide6 Tools",
+  "description": "Right-click menu for PySide6 UI/RCC operations",
+  "version": "1.0.0",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "activationEvents": [
+    "onCommand:pyside.compileUI",
+    "onCommand:pyside.compileRCC",
+    "onCommand:pyside.openUI",
+    "onCommand:pyside.createUI"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "pyside.compileUI",
+        "title": "Compile UI (PySide6)"
+      },
+      {
+        "command": "pyside.compileRCC",
+        "title": "Compile RCC (PySide6)"
+      },
+      {
+        "command": "pyside.openUI",
+        "title": "Open UI in Designer"
+      },
+      {
+        "command": "pyside.createUI",
+        "title": "Create New UI File"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "pyside.compileUI",
+          "when": "resourceExtname == .ui",
+          "group": "z_pyside@1"
+        },
+        {
+          "command": "pyside.openUI",
+          "when": "resourceExtname == .ui",
+          "group": "z_pyside@1"
+        },
+        {
+          "command": "pyside.compileRCC",
+          "when": "resourceExtname == .qrc",
+          "group": "z_pyside@1"
+        },
+        {
+          "command": "pyside.createUI",
+          "when": "explorerResourceIsFolder",
+          "group": "z_pyside@1"
+        }
+      ]
+    }
+  },
+  "main": "./extension.js"
+}

@@ -1,0 +1,4 @@
+﻿时间,错误,详情
+2026-04-16 17:24:30,LogService.log_production() missing 1 required positional argument: 'total',
+2026-04-16 17:24:34,LogService.log_production() missing 1 required positional argument: 'total',
+2026-04-16 17:24:39,LogService.log_production() missing 1 required positional argument: 'total',

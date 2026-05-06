@@ -1,0 +1,259 @@
+# app/views/main_window.py
+
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QCloseEvent, QIcon
+from PySide6.QtSerialPort import QSerialPortInfo
+from PySide6.QtWidgets import (
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QSplitter,
+)
+
+from app.controllers.main_controller import MainController
+from app.core.config_manager import ConfigManager
+from app.core.resource_manager import ResourceManager
+from app.models.parameter_manager import ParameterManager
+from app.services.ui.models import LabelItem, UIData
+from app.services.ui.ui_service import UIService
+from app.views.ui_generated.form import Ui_MainWindow
+from app.views.widgets.piece_chart import PieceChart
+from app.views.widgets.piece_table import PieceTable
+
+
+class MainWindow(QMainWindow, Ui_MainWindow):
+    def __init__(
+        self,
+        ui_service: UIService,
+        controller: MainController,
+        params: ParameterManager,
+    ):
+        super().__init__()
+        self.setupUi(self)
+        self.setWindowTitle("称重计数 v1.1")
+
+        self.setWindowIcon(
+            QIcon(ResourceManager.get_resource("app/resources/icons/app.ico"))
+        )
+
+        self.ui_service: UIService = ui_service
+        self.controller: MainController = controller
+        self.params: ParameterManager = params
+
+        self.init_port_list()
+        self.init_baud_rate_list()
+
+        self._init_extra_widgets()
+
+        self.load_settings()
+
+        self._load_params_to_ui()
+
+        self._bind_ui_service_signals()
+        self._bind_ui_signals()
+
+        # Proactively refresh the bottom status labels once after init
+        self.ui_service.refresh()
+
+    def _init_extra_widgets(self) -> None:
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        self.pieceTable = PieceTable()
+        self.pieceChart = PieceChart()
+
+        self.splitter.addWidget(self.pieceTable)
+        self.splitter.addWidget(self.pieceChart)
+
+        self.rightPanel.layout().addWidget(self.splitter)
+
+        self.lbl_parse = QLabel()
+        self.lbl_comm = QLabel()
+        self.lbl_exception = QLabel()
+
+        for lbl in [self.lbl_parse, self.lbl_comm, self.lbl_exception]:
+            lbl.setMargin(5)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+        status_bar = self.statusBar()
+        status_bar.setStyleSheet("QStatusBar::item { border: none; }")
+        status_bar.addWidget(self.lbl_parse, 1)
+        status_bar.addWidget(self.lbl_comm, 1)
+        status_bar.addWidget(self.lbl_exception, 1)
+
+    def _bind_ui_service_signals(self) -> None:
+        self.ui_service.ui_changed.connect(self._on_ui_changed)
+
+    def _on_ui_changed(self, data: UIData) -> None:
+        try:
+            # --- status bar ---
+            status = data.status
+            self._update_status_item(status.parse, self.lbl_parse)
+            self._update_status_item(status.comm, self.lbl_comm)
+            self._update_status_item(status.exception, self.lbl_exception)
+
+            # --- buttons ---
+            button_state = data.button_state
+            self.btnStart.setEnabled(button_state.start)
+            self.btnStop.setEnabled(button_state.stop)
+            self.btnClear.setEnabled(button_state.clear)
+            self.btnForce.setEnabled(button_state.force)
+
+            # --- actual weight ---
+            self.lblActWeight.setText(data.actual_weight)
+
+            # --- business data ---
+            biz = data.biz
+
+            self.lblDeltaWeight.setText(biz.delta_weight.text)
+            self.lblDeltaWeight.setStyleSheet(biz.delta_weight.style)
+
+            self.lblState.setText(biz.state.text)
+            self.lblState.setStyleSheet(biz.state.style)
+
+            # --- stats ---
+            self.lblAvgWeight.setText(biz.avg_weight)
+            self.lblTolHigh.setText(biz.tol_high)
+            self.lblTolLow.setText(biz.tol_low)
+            self.lblTotalPieces.setText(biz.total_pieces)
+            self.lblLastStableWeight.setText(biz.last_stable_weight)
+            self.lblLastBaseWeight.setText(biz.last_base_weight)
+
+            self.pieceTable.update_table(biz.weights)
+            self.pieceChart.update_chart(biz.weights)
+
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"UI更新时出错: {e}")
+
+    def _update_status_item(self, item: LabelItem, label: QLabel) -> None:
+        label.setText(item.text)
+        label.setStyleSheet(item.style)
+
+    def _bind_ui_signals(self) -> None:
+        self.btnStart.clicked.connect(self.start)
+        self.btnStop.clicked.connect(self.stop)
+        self.btnForce.clicked.connect(self.force_accept)
+        self.btnClear.clicked.connect(self.clear_abnormal)
+        self.btnSaveParams.clicked.connect(self.save_params)
+
+        self.dspnInitialMiniWeight.valueChanged.connect(self._sync_ui_to_params)
+        self.dspnTolerancePercent.valueChanged.connect(self._sync_ui_to_params)
+        self.dspnStabilityThreshold.valueChanged.connect(self._sync_ui_to_params)
+        self.spnMaxBatchPieces.valueChanged.connect(self._sync_ui_to_params)
+        self.spnInitialSinglePieces.valueChanged.connect(self._sync_ui_to_params)
+        self.spnForcePieces.valueChanged.connect(self._sync_ui_to_params)
+        self.spnTargetPieces.valueChanged.connect(self._sync_ui_to_params)
+        self.spnDecimalPlaces.valueChanged.connect(self._sync_ui_to_params)
+
+    def start(self) -> None:
+        port = self.cbPort.currentText()
+        baud_rate = int(self.cbBaudRate.currentText())
+
+        if not port:
+            QMessageBox.warning(self, "提示", "请选择串口")
+            return
+
+        self._sync_ui_to_params()
+        self.controller.start(port, baud_rate)
+
+    def stop(self) -> None:
+        self.controller.stop()
+
+    def force_accept(self) -> None:
+        self.controller.force_accept()
+
+    def clear_abnormal(self) -> None:
+        self.controller.clear_abnormal()
+
+    def save_params(self) -> None:
+        self._sync_ui_to_params()
+        self.save_settings()
+        self.params.save()
+
+    def _load_params_to_ui(self) -> None:
+        self.dspnInitialMiniWeight.setValue(self.params.initial_mini_weight)
+        self.dspnTolerancePercent.setValue(self.params.tolerance_percent)
+        self.dspnStabilityThreshold.setValue(self.params.stability_threshold)
+        self.spnMaxBatchPieces.setValue(self.params.max_batch_pieces)
+        self.spnInitialSinglePieces.setValue(self.params.initial_single_pieces)
+        self.spnForcePieces.setValue(self.params.force_pieces)
+        self.spnTargetPieces.setValue(self.params.target_pieces)
+        self.spnDecimalPlaces.setValue(self.params.decimal_places)
+
+    def _sync_ui_to_params(self) -> None:
+        self.params.initial_mini_weight = float(self.dspnInitialMiniWeight.value())
+        self.params.tolerance_percent = float(self.dspnTolerancePercent.value())
+        self.params.stability_threshold = float(self.dspnStabilityThreshold.value())
+        self.params.max_batch_pieces = int(self.spnMaxBatchPieces.value())
+        self.params.initial_single_pieces = int(self.spnInitialSinglePieces.value())
+        self.params.force_pieces = int(self.spnForcePieces.value())
+        self.params.target_pieces = int(self.spnTargetPieces.value())
+        self.params.decimal_places = int(self.spnDecimalPlaces.value())
+
+    def init_port_list(self) -> None:
+        self.cbPort.clear()
+        ports = QSerialPortInfo.availablePorts()
+        port_names = [port.portName() for port in ports]
+        try:
+            port_names.sort(key=lambda x: int(x.replace("COM", "")))
+        except Exception:
+            port_names.sort()
+        self.cbPort.addItems(port_names)
+
+    def init_baud_rate_list(self) -> None:
+        self.cbBaudRate.clear()
+        baud_rate_list = [
+            "1200",
+            "2400",
+            "4800",
+            "9600",
+            "19200",
+            "38400",
+            "57600",
+            "115200",
+        ]
+        self.cbBaudRate.addItems(baud_rate_list)
+
+    def load_settings(self) -> None:
+        config = ConfigManager()
+        config.load()
+
+        ui_config = config.data.get("ui", {})
+        serial_config = config.data.get("serial", {})
+
+        sizes = ui_config.get("splitter_sizes", [400, 600])
+        if isinstance(sizes, list):
+            try:
+                sizes = [int(x) for x in sizes]
+            except Exception:
+                sizes = [400, 600]
+        self.splitter.setSizes(sizes)
+
+        port = serial_config.get("port", "")
+        baud_rate = serial_config.get("baud_rate", 9600)
+
+        if port:
+            self.cbPort.setCurrentText(port)
+        self.cbBaudRate.setCurrentText(str(baud_rate))
+
+    def save_settings(self) -> None:
+        config = ConfigManager()
+        config.load()
+
+        config.set_value("ui", "splitter_sizes", self.splitter.sizes())
+        config.set_value("serial", "port", self.cbPort.currentText())
+        config.set_value("serial", "baud_rate", int(self.cbBaudRate.currentText()))
+
+        config.save()
+
+    # ============================================================
+    # Close event
+    # ============================================================
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self.hide()
+
+        self._sync_ui_to_params()
+        self.params.save()
+        self.save_settings()
+        self.controller.shutdown()
+
+        event.accept()
