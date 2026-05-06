@@ -44,12 +44,14 @@ app/
 ### Core Algorithms
 
 **WeightStabilityChecker**
+
 - Dual sliding windows (4-frame short, 8-frame long)
 - Triple checks: speed (short-window range), trend (long-window range), standard deviation
 - Lock mechanism with hysteresis unlock (2.5× threshold, 2-frame confirmation)
 - Windows keep updating during lock to prevent stale data on unlock
 
 **PieceCounter**
+
 - Three-state FSM: ZERO → NORMAL → ABNORMAL
 - EMA average weight learning with auto jump detection (50% change, 2-frame confirm)
 - sqrt(n) statistical tolerance model for batch matching
@@ -62,7 +64,7 @@ app/
 ```bash
 pip install uv
 uv sync
-python main.py
+uv run main.py
 ```
 
 ---
@@ -99,13 +101,13 @@ Output: `dist/WeightCounter/`
 
 ## Tech Stack
 
-| Tech | Purpose |
-|------|---------|
-| Python 3.13+ | Language |
-| PySide6 | Qt for Python UI |
-| PyQtGraph | Real-time scatter chart |
-| TOML | Configuration format |
-| PyInstaller | Application packaging |
+| Tech         | Purpose                 |
+| ------------ | ----------------------- |
+| Python 3.13+ | Language                |
+| PySide6      | Qt for Python UI        |
+| PyQtGraph    | Real-time scatter chart |
+| TOML         | Configuration format    |
+| PyInstaller  | Application packaging   |
 
 ---
 
