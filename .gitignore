@@ -11,3 +11,5 @@ log/
 
 # Virtual environments
 .venv
+build/
+dist/
