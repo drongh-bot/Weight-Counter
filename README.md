@@ -4,7 +4,7 @@ Industrial piece-counting desktop application built with **PySide6 + MVVM + Depe
 
 Connects to an electronic scale via serial port, performs real-time weight stability
 detection, automatic piece counting, anomaly detection, and production logging —
-all with live chart and table visualization. test
+all with live chart and table visualization.
 
 ---
 
