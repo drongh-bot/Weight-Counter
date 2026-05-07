@@ -136,7 +136,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnStop.clicked.connect(self.stop)
         self.btnForce.clicked.connect(self.force_accept)
         self.btnClear.clicked.connect(self.clear_abnormal)
-        self.btnSaveParams.clicked.connect(self.save_params)
+        self.btnSaveParams.clicked.connect(self.save_settings)
 
         self.dspnInitialMiniWeight.valueChanged.connect(self._sync_ui_to_params)
         self.dspnTolerancePercent.valueChanged.connect(self._sync_ui_to_params)
@@ -168,7 +168,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def clear_abnormal(self) -> None:
         self.controller.clear_abnormal()
 
-    def save_params(self) -> None:
+    def save_settings(self) -> None:
         """Sync UI → params, then persist all config to disk."""
         self._sync_ui_to_params()
         self.params.set_value("ui", "splitter_sizes", self.splitter.sizes())
@@ -223,8 +223,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.cbBaudRate.addItems(baud_rate_list)
 
     def load_settings(self) -> None:
-        self.params._load_toml()
-
         ui_config = self.params._data.get("ui", {})
         serial_config = self.params._data.get("serial", {})
 
@@ -250,7 +248,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         self.hide()
 
-        self.save_params()
+        self.save_settings()
         self.controller.shutdown()
 
         event.accept()

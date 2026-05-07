@@ -12,13 +12,13 @@ logger = logging.getLogger(__name__)
 
 class ParameterManager:
     """
-    Parameter Manager
+    Parameter Manager — single source of truth for all configuration.
 
     All parameter defaults, loading, and saving are driven uniformly
     through the _DEFAULTS dict. To add a new parameter, simply modify
-    _DEFAULTS and add a type declaration in __init__.
+    _DEFAULTS.
     - No dependency on UI or Controller
-    - Collaborates with ConfigManager to read/write config.toml
+    - Reads/writes config.toml directly
     """
 
     _DEFAULTS: dict[str, dict[str, float | int]] = {
@@ -128,14 +128,15 @@ class ParameterManager:
         for section, defaults in self._DEFAULTS.items():
             section_data = self._data.get(section, {})
             for key, default in defaults.items():
-                setattr(self, key, section_data.get(key, default))
+                setattr(self, key, type(default)(section_data.get(key, default)))
 
     # ============================================================
     # Write Parameters to in-memory data
     # ============================================================
     def _write_to_config(self) -> None:
-        for section, defaults in self._DEFAULTS.items():
-            self._data.setdefault(section, {})
-            sec = self._data[section]
-            for key in defaults:
-                sec[key] = getattr(self, key)
+        with self._lock:
+            for section, defaults in self._DEFAULTS.items():
+                self._data.setdefault(section, {})
+                sec = self._data[section]
+                for key in defaults:
+                    sec[key] = getattr(self, key)
