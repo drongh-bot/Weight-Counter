@@ -189,7 +189,6 @@ class PieceCounter:
 
         # Fixed Configuration Parameters
         self.initial_mini_weight: float = initial_mini_weight
-        self.tolerance_percent: float = tolerance_percent
         self.max_batch_pieces: int = max_batch_pieces
         self.initial_single_pieces: int = initial_single_pieces
         self.decimal_places: int = decimal_places
@@ -229,7 +228,6 @@ class PieceCounter:
         self.state: CounterState = CounterState.ZERO
         self.high: bool = False
         self.low: bool = False
-        self.abnormal_delta: float = 0.0
         self.avg_weight: float = 0.0
         self.abnormal_weight: float = 0.0
 
@@ -245,7 +243,6 @@ class PieceCounter:
         self.state = CounterState.ZERO
         self.high = False
         self.low = False
-        self.abnormal_delta = 0.0
 
         self.avg_weight = 0.0
 
@@ -330,7 +327,6 @@ class PieceCounter:
             self.state = CounterState.ABNORMAL
             self.high = self.delta > 0
             self.low = self.delta < 0
-            self.abnormal_delta = self.delta
             self.abnormal_weight = stable_weight
 
     # ---------------------------------------------------------
@@ -380,7 +376,6 @@ class PieceCounter:
             self.state = CounterState.NORMAL
             self.high = False
             self.low = False
-            self.abnormal_delta = 0.0
             self.abnormal_weight = 0.0
             self.last_stable_weight = stable_weight
             self.last_base_weight = stable_weight
@@ -481,7 +476,6 @@ class PieceCounter:
 
     def set_tolerance_percent(self, tolerance_percent: float) -> None:
         if 0.0 < tolerance_percent < 100.0:
-            self.tolerance_percent = tolerance_percent
             self.tolerance.tolerance_percent = tolerance_percent
             self.thresholds.tolerance_percent = tolerance_percent
             self._sync_all()
