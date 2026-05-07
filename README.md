@@ -92,7 +92,7 @@ decimal_places = 2
 ## Packaging
 
 ```bash
-uv pyinstaller main.spec
+uv run pyinstaller main.spec --clean
 ```
 
 Output: `dist/WeightCounter/`
