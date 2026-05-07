@@ -76,7 +76,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lbl_exception = QLabel()
 
         for lbl in [self.lbl_parse, self.lbl_comm, self.lbl_exception]:
-            lbl.setMargin(5)
+            lbl.setContentsMargins(5, 5, 5, 5)
             lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
         status_bar = self.statusBar()
