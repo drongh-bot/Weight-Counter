@@ -47,28 +47,25 @@ class CsvLogService(QObject):
     def _worker_loop(self) -> None:
         while True:
             try:
-                # prevent get() from blocking indefinitely
-                try:
-                    item = self.queue.get(timeout=1.0)
-                except queue.Empty:
-                    if not self.running:
-                        break  # queue empty and stopped -> safe exit
-                    continue
-
-                # sentinel: immediate exit
-                if item is None:
+                item = self.queue.get(timeout=1.0)
+            except queue.Empty:
+                if not self.running:
                     break
+                continue
 
-                _, timestamp, col1, col2 = item
+            if item is None:
+                self.queue.task_done()
+                break
 
+            timestamp, col1, col2 = item
+
+            try:
                 if self.production_writer:
                     self.production_writer.write(timestamp, col1, col2)
-
-                self.queue.task_done()
-
             except Exception as e:
-                # auto-queued, thread-safe
                 self.error_occurred.emit(f"CSV write failed: {e}")
+            finally:
+                self.queue.task_done()
 
     # ============================================================
     # Utility: current time
@@ -89,9 +86,7 @@ class CsvLogService(QObject):
             return
 
         try:
-            self.queue.put(
-                ("production", self._timestamp(), f"{weight:.3f}", str(total))
-            )
+            self.queue.put((self._timestamp(), f"{weight:.3f}", str(total)))
         except Exception as e:
             self.error_occurred.emit(f"Production write failed: {e}")
 
@@ -105,21 +100,24 @@ class CsvLogService(QObject):
         if not self.running:
             return
 
-        # 2. Stop background thread
+        # 2. Stop accepting new items
         self.running = False
 
-        # 3. Inject sentinel to unblock queue.get()
+        # 3. Wait for all queued items to be written to disk
+        self.queue.join()
+
+        # 4. Inject sentinel to unblock worker and trigger exit
         self.queue.put_nowait(None)
 
-        # 4. Wait for background thread to finish writing remaining logs
-        self.worker.join(timeout=2.0)
+        # 5. Wait for worker thread to exit
+        self.worker.join(timeout=3.0)
 
-        # 5. Close writer
+        # 6. Close writer
         try:
             if self.production_writer:
                 self.production_writer.close()
         except Exception as e:
             logger.error("关闭日志失败: %s", e)
 
-        # 6. Prevent accidental writes after close
+        # 7. Prevent accidental writes after close
         self.production_writer = None
