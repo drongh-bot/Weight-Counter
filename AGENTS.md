@@ -6,9 +6,9 @@ Industrial piece-counting desktop application — PySide6 + MVVM + Dependency In
 
 ```
 app/
-├── core/                  Low-level drivers (serial, logger, sound, config, resources)
+├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
 ├── models/                Pure business logic (PieceCounter, WeightStabilityChecker)
-├── services/              Service layer (serial, checker, counter, sound, log, ui)
+├── services/              Service layer (serial, checker, counter, sound, csv_log, ui)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets

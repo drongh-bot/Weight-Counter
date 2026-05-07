@@ -23,7 +23,7 @@ Serial Port
 
 ```
 app/
-├── core/                  Low-level drivers (serial, logger, sound, config, resources)
+├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
 ├── models/                Pure business logic (PieceCounter, WeightStabilityChecker)
 ├── services/              Service layer (serial, checker, counter, sound, log, ui)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
@@ -80,7 +80,6 @@ tolerance_percent = 10.0
 stability_threshold = 0.02
 max_batch_pieces = 1
 initial_single_pieces = 1
-force_pieces = 0
 target_pieces = 100
 decimal_places = 2
 
