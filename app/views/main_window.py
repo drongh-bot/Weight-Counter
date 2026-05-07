@@ -1,4 +1,5 @@
 # app/views/main_window.py
+import logging
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QCloseEvent, QIcon
@@ -19,6 +20,8 @@ from app.services.ui.ui_service import UIService
 from app.views.ui_generated.form import Ui_MainWindow
 from app.views.widgets.piece_chart import PieceChart
 from app.views.widgets.piece_table import PieceTable
+
+logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -122,6 +125,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.pieceChart.update_chart(biz.weights, biz.decimal_places)
 
         except Exception as e:
+            logger.exception("UI更新失败")
             QMessageBox.critical(self, "错误", f"UI更新时出错: {e}")
 
     def _update_status_item(self, item: LabelItem, label: QLabel) -> None:

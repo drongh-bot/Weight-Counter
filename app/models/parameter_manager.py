@@ -1,7 +1,9 @@
 # app/models/parameter_manager.py
-import sys
+import logging
 
 from app.core.config_manager import ConfigManager
+
+logger = logging.getLogger(__name__)
 
 
 class ParameterManager:
@@ -86,7 +88,7 @@ class ParameterManager:
         try:
             self.config.load()
         except Exception as e:
-            print(f"[ParameterManager] 加载配置失败: {e}", file=sys.stderr)
+            logger.error("加载配置失败: %s", e)
             return
 
         for section, defaults in self._DEFAULTS.items():
@@ -101,7 +103,7 @@ class ParameterManager:
         try:
             self.config.load()
         except Exception as e:
-            print(f"[ParameterManager] 保存配置失败: {e}", file=sys.stderr)
+            logger.error("保存配置失败: %s", e)
             return
 
         for section, defaults in self._DEFAULTS.items():

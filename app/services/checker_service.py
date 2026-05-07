@@ -1,7 +1,11 @@
 # app/services/checker_service.py
+import logging
+
 from PySide6.QtCore import QObject
 
 from app.models.weight_stability_checker import WeightStabilityChecker
+
+logger = logging.getLogger(__name__)
 
 
 class CheckerService(QObject):
@@ -49,6 +53,7 @@ class CheckerService(QObject):
             return weight
 
         except (ValueError, AttributeError):
+            logger.warning("解析失败: %s", raw)
             return None
 
     # ============================================================

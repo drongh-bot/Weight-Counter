@@ -1,4 +1,6 @@
-# app/core/logger.py
+# app/core/csv_writer.py
+from __future__ import annotations
+
 import csv
 import datetime
 import threading
@@ -6,7 +8,7 @@ from pathlib import Path
 from typing import Any, TextIO
 
 
-class Logger:
+class CsvWriter:
     def __init__(
         self, folder_path: Path, header: tuple[str, ...] = ("时间", "列1", "列2")
     ) -> None:
@@ -81,7 +83,7 @@ class Logger:
     # ---------------------------------------------------------
     # Context manager support
     # ---------------------------------------------------------
-    def __enter__(self) -> "Logger":
+    def __enter__(self) -> "CsvWriter":
         self._ensure_file()
         return self
 

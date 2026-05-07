@@ -1,4 +1,5 @@
 # app/controllers/main_controller.py
+import logging
 from enum import Enum, auto
 
 from PySide6.QtCore import QObject
@@ -7,11 +8,13 @@ from app.models.biz_result import BizResult, BizState
 from app.models.parameter_manager import ParameterManager
 from app.services.checker_service import CheckerService
 from app.services.counter_service import CounterService
-from app.services.log_service import LogService
+from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
 from app.services.sound_service import SoundService
 from app.services.ui.models import ButtonState
 from app.services.ui.ui_service import UIService
+
+logger = logging.getLogger(__name__)
 
 
 class PendingAction(Enum):
@@ -28,7 +31,7 @@ class MainController(QObject):
         counter_service: CounterService,
         checker_service: CheckerService,
         sound_service: SoundService,
-        log_service: LogService,
+        csv_log_service: CsvLogService,
         params: ParameterManager,
     ):
         super().__init__()
@@ -38,7 +41,7 @@ class MainController(QObject):
         self.counter_service: CounterService = counter_service
         self.checker_service: CheckerService = checker_service
         self.sound_service: SoundService = sound_service
-        self.log_service: LogService = log_service
+        self.csv_log_service: CsvLogService = csv_log_service
         self.params: ParameterManager = params
 
         self.running: bool = False
@@ -111,7 +114,7 @@ class MainController(QObject):
         if self.counter_service.consume_target_edge():
             self.sound_service.play_alert()
         if result.added and result.weights:
-            self.log_service.log_production(result.weights[-1], result.total_pieces)
+            self.csv_log_service.record_production(result.weights[-1], result.total_pieces)
 
     # ============================================================
     # Event Handling
@@ -164,6 +167,7 @@ class MainController(QObject):
                 comm_ok=False,
                 exception_text=str(e),
             )
+            logger.exception("串口打开失败")
             return False
 
     def stop(self) -> None:
@@ -174,5 +178,5 @@ class MainController(QObject):
 
     def shutdown(self) -> None:
         self.serial_service.close()
-        self.log_service.close()
+        self.csv_log_service.close()
         self.sound_service.stop()

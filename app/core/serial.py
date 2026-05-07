@@ -1,6 +1,10 @@
 # app/core/serial.py
+import logging
+
 from PySide6.QtCore import QIODevice, QObject, Signal
 from PySide6.QtSerialPort import QSerialPort, QSerialPortInfo
+
+logger = logging.getLogger(__name__)
 
 
 class SerialCommunicationError(Exception):
@@ -52,6 +56,7 @@ class SerialCommunication(QObject):
                 text = raw.decode("utf-8")
                 self.encoding = "utf-8"
             except UnicodeDecodeError:
+                logger.warning("UTF-8解码失败, 回退GBK: %.20s", raw)
                 text = raw.decode("gbk", errors="ignore")
                 self.encoding = "gbk"
             self.data_received.emit(text)

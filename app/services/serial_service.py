@@ -1,8 +1,11 @@
 # app/services/serial_service.py
+import logging
 
 from PySide6.QtCore import QObject, QTimer, Signal
 
 from app.core.serial import SerialCommunication
+
+logger = logging.getLogger(__name__)
 
 
 class SerialService(QObject):
@@ -44,6 +47,7 @@ class SerialService(QObject):
             self.timer.stop()
             self.serial.close()
         except Exception as e:
+            logger.error("串口关闭失败: %s", e)
             self.error_occurred.emit(str(e))
 
     # ============================================================

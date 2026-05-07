@@ -7,7 +7,7 @@ from app.models.biz_result import BizState
 from app.models.parameter_manager import ParameterManager
 from app.services.checker_service import CheckerService
 from app.services.counter_service import CounterService
-from app.services.log_service import LogService
+from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
 from app.services.sound_service import SoundService
 from app.services.ui.ui_service import UIService
@@ -27,7 +27,7 @@ class TestControllerPipeline:
         counter = CounterService(params)
         checker = CheckerService(params)
         sound = SoundService()
-        log = LogService()
+        csv_log = CsvLogService()
 
         controller = MainController(
             ui_service=ui,
@@ -35,7 +35,7 @@ class TestControllerPipeline:
             counter_service=counter,
             checker_service=checker,
             sound_service=sound,
-            log_service=log,
+            csv_log_service=csv_log,
             params=params,
         )
         return controller, ui

@@ -1,8 +1,12 @@
 # app/services/sound_service.py
+import logging
+
 from PySide6.QtCore import QObject, Signal
 
 from app.core.resource_manager import ResourceManager
 from app.core.sound import SoundManager
+
+logger = logging.getLogger(__name__)
 
 
 class SoundService(QObject):
@@ -44,4 +48,5 @@ class SoundService(QObject):
     def _play(self, file_name: str):
         success, error_msg = self.sound_manager.play(file_name)
         if not success:
+            logger.error("播放失败: %s", error_msg)
             self.soundError.emit(error_msg)

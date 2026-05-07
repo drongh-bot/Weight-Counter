@@ -4,10 +4,12 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from app.controllers.main_controller import MainController
+from app.core.log_config import setup_logging
+from app.core.resource_manager import ResourceManager
 from app.models.parameter_manager import ParameterManager
 from app.services.checker_service import CheckerService
 from app.services.counter_service import CounterService
-from app.services.log_service import LogService
+from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
 from app.services.sound_service import SoundService
 from app.services.ui.ui_service import UIService
@@ -16,6 +18,9 @@ from app.views.main_window import MainWindow
 
 def main():
     app = QApplication(sys.argv)
+
+    # ---------------- Logging ----------------
+    setup_logging(ResourceManager.get_external_root() / "log")
 
     # ---------------- Parameters ----------------
     params = ParameterManager()
@@ -27,7 +32,7 @@ def main():
     counter_service = CounterService(params)
     checker_service = CheckerService(params)
     sound_service = SoundService()
-    log_service = LogService()
+    csv_log_service = CsvLogService()
 
     # ---------------- Controller ----------------
     controller = MainController(
@@ -36,7 +41,7 @@ def main():
         counter_service=counter_service,
         checker_service=checker_service,
         sound_service=sound_service,
-        log_service=log_service,
+        csv_log_service=csv_log_service,
         params=params,
     )
 

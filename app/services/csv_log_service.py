@@ -1,34 +1,35 @@
-# app/services/log_service.py
+# app/services/csv_log_service.py
+import logging
 import queue
-import sys
 import threading
 from datetime import datetime
 
 from PySide6.QtCore import QObject, Signal
 
-from app.core.logger import Logger
+from app.core.csv_writer import CsvWriter
 from app.core.resource_manager import ResourceManager
 
+logger = logging.getLogger(__name__)
 
-class LogService(QObject):
+
+class CsvLogService(QObject):
     """
-    Production-grade async log service:
+    Async CSV record service:
     - Main thread / API callers only enqueue, no IO
     - Background thread handles all writes, avoiding GUI blocking
-    - Supports safe shutdown (no log loss)
+    - Supports safe shutdown (no record loss)
     - Supports sentinel mechanism (Poison Pill)
     - Supports queue.get(timeout) to prevent thread deadlock
     """
 
-    log_error_occurred = Signal(str)
+    error_occurred = Signal(str)
 
     def __init__(self):
         super().__init__()
         base = ResourceManager.get_external_root() / "log"
-        # three log types
-        self.event_logger: Logger | None = Logger(base / "event", ("Time", "Event", "Details"))
-        self.error_logger: Logger | None = Logger(base / "error", ("Time", "Error", "Details"))
-        self.production_logger: Logger | None = Logger(base / "production", ("Time", "Weight", "Total"))
+        self.event_writer: CsvWriter | None = CsvWriter(base / "event", ("Time", "Event", "Details"))
+        self.error_writer: CsvWriter | None = CsvWriter(base / "error", ("Time", "Error", "Details"))
+        self.production_writer: CsvWriter | None = CsvWriter(base / "production", ("Time", "Weight", "Total"))
 
         # log queue
         self.queue: queue.Queue = queue.Queue()
@@ -60,20 +61,20 @@ class LogService(QObject):
 
                 log_type, timestamp, col1, col2 = item
 
-                if log_type == "event" and self.event_logger:
-                    self.event_logger.write(timestamp, col1, col2)
+                if log_type == "event" and self.event_writer:
+                    self.event_writer.write(timestamp, col1, col2)
 
-                elif log_type == "error" and self.error_logger:
-                    self.error_logger.write(timestamp, col1, col2)
+                elif log_type == "error" and self.error_writer:
+                    self.error_writer.write(timestamp, col1, col2)
 
-                elif log_type == "production" and self.production_logger:
-                    self.production_logger.write(timestamp, col1, col2)
+                elif log_type == "production" and self.production_writer:
+                    self.production_writer.write(timestamp, col1, col2)
 
                 self.queue.task_done()
 
             except Exception as e:
                 # auto-queued, thread-safe
-                self.log_error_occurred.emit(f"Log write failed: {e}")
+                self.error_occurred.emit(f"CSV write failed: {e}")
 
     # ============================================================
     # Utility: current time
@@ -82,25 +83,25 @@ class LogService(QObject):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # ============================================================
-    # Event log
+    # Record event
     # ============================================================
-    def log_event(self, msg: str, extra: str = "") -> None:
+    def record_event(self, msg: str, extra: str = "") -> None:
         if not self.running:
             return
         self.queue.put(("event", self._timestamp(), msg, extra))
 
     # ============================================================
-    # Error log
+    # Record error
     # ============================================================
-    def log_error(self, error: Exception, extra: str = "") -> None:
+    def record_error(self, error: Exception, extra: str = "") -> None:
         if not self.running:
             return
         self.queue.put(("error", self._timestamp(), f"{type(error).__name__}: {error}", extra))
 
     # ============================================================
-    # Production log (based on PieceCounter properties)
+    # Record production
     # ============================================================
-    def log_production(self, weight: float, total: int) -> None:
+    def record_production(self, weight: float, total: int) -> None:
         """
         weight: single-piece weight (last piece)
         total: current total count
@@ -111,7 +112,7 @@ class LogService(QObject):
         try:
             self.queue.put(("production", self._timestamp(), f"{weight:.3f}", str(total)))
         except Exception as e:
-            self.log_error_occurred.emit(f"Production log write failed: {e}")
+            self.error_occurred.emit(f"Production write failed: {e}")
 
     # ============================================================
     # Safe shutdown (called on program exit)
@@ -132,18 +133,18 @@ class LogService(QObject):
         # 4. Wait for background thread to finish writing remaining logs
         self.worker.join(timeout=2.0)
 
-        # 5. Close all loggers
+        # 5. Close all writers
         try:
-            if self.event_logger:
-                self.event_logger.close()
-            if self.error_logger:
-                self.error_logger.close()
-            if self.production_logger:
-                self.production_logger.close()
+            if self.event_writer:
+                self.event_writer.close()
+            if self.error_writer:
+                self.error_writer.close()
+            if self.production_writer:
+                self.production_writer.close()
         except Exception as e:
-            print(f"[LogService] 关闭日志失败: {e}", file=sys.stderr)
+            logger.error("关闭日志失败: %s", e)
 
         # 6. Prevent accidental writes after close
-        self.event_logger = None
-        self.error_logger = None
-        self.production_logger = None
+        self.event_writer = None
+        self.error_writer = None
+        self.production_writer = None
