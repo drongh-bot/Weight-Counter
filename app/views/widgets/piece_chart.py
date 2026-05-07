@@ -17,11 +17,11 @@ class FixedAxis(pg.AxisItem):
 
 
 class PieceChart(QWidget):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, decimal_places: int = 2, parent=None) -> None:
         super().__init__(parent)
 
         self.data_list: list[float] = []
-        self._decimal_places: int = 2
+        self._decimal_places: int = decimal_places
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -37,6 +37,9 @@ class PieceChart(QWidget):
         )
 
         self.plot.setAntialiasing(True)
+
+        self.plot.getAxis("bottom").decimals = self._decimal_places
+        self.plot.getAxis("top").decimals = self._decimal_places
 
         self.plot.showGrid(x=True, y=True, alpha=0.3)
         self.plot.getAxis("left").setPen("k")
@@ -80,9 +83,8 @@ class PieceChart(QWidget):
         self.hover_point.setData([])
         self.plot.getAxis("left").setTicks([])
 
-    def update_chart(self, new_list: list[float], decimal_places: int = 2) -> None:
+    def update_chart(self, new_list: list[float]) -> None:
         self.data_list = list(new_list)
-        self._decimal_places = decimal_places
 
         if not self.isVisible():
             return
@@ -103,9 +105,16 @@ class PieceChart(QWidget):
         # Auto range
         self.plot.autoRange()
 
-        # Sync axis decimal places
-        self.plot.getAxis("bottom").decimals = decimal_places
-        self.plot.getAxis("top").decimals = decimal_places
+    def set_decimal_places(self, places: int) -> None:
+        if places == self._decimal_places:
+            return
+        self._decimal_places = places
+        for name in ("bottom", "top"):
+            axis = self.plot.getAxis(name)
+            axis.decimals = places
+            axis.picture = None
+        if self.data_list and self.isVisible():
+            self.plot.scene().update()
 
     def on_mouse_moved(self, pos: QPointF) -> None:
         if not self.data_list:
@@ -133,4 +142,4 @@ class PieceChart(QWidget):
     def showEvent(self, event) -> None:
         super().showEvent(event)
         if self.data_list:
-            self.update_chart(self.data_list, self._decimal_places)
+            self.update_chart(self.data_list)

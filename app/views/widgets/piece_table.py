@@ -8,10 +8,11 @@ from PySide6.QtWidgets import (
 
 
 class PieceTable(QTableWidget):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, decimal_places: int = 2, parent=None) -> None:
         super().__init__(parent)
 
         self._data: list[float] = []
+        self._decimal_places: int = decimal_places
 
         self.setColumnCount(1)
         self.setHorizontalHeaderLabels(["重量"])
@@ -44,7 +45,14 @@ class PieceTable(QTableWidget):
         self.setRowCount(0)
         self._data.clear()
 
-    def update_table(self, new_data: list[float], decimal_places: int = 2) -> None:
+    def _fill_rows(self, data: list[float]) -> None:
+        """Fill cells with formatted weights (newest at top)."""
+        for row, weight in enumerate(reversed(data)):
+            item = QTableWidgetItem(f"{weight:.{self._decimal_places}f}")
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.setItem(row, 0, item)
+
+    def update_table(self, new_data: list[float]) -> None:
         """Newest data at the top."""
         if new_data == self._data:
             return
@@ -54,18 +62,25 @@ class PieceTable(QTableWidget):
             count = len(new_data)
             self.setRowCount(count)
 
-            # Row index: count -> 1
             labels = [str(i) for i in range(count, 0, -1)]
             self.setVerticalHeaderLabels(labels)
 
-            # Fill data (newest at the top)
-            for row, weight in enumerate(reversed(new_data)):
-                item = QTableWidgetItem(f"{weight:.{decimal_places}f}")
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.setItem(row, 0, item)
+            self._fill_rows(new_data)
 
             self._data = new_data.copy()
             self.scrollToTop()
 
+        finally:
+            self.setUpdatesEnabled(True)
+
+    def set_decimal_places(self, places: int) -> None:
+        if places == self._decimal_places:
+            return
+        self._decimal_places = places
+        if not self._data:
+            return
+        self.setUpdatesEnabled(False)
+        try:
+            self._fill_rows(self._data)
         finally:
             self.setUpdatesEnabled(True)

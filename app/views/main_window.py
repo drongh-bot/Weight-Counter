@@ -63,8 +63,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _init_extra_widgets(self) -> None:
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
 
-        self.pieceTable = PieceTable()
-        self.pieceChart = PieceChart()
+        self.pieceTable = PieceTable(self.params.decimal_places)
+        self.pieceChart = PieceChart(self.params.decimal_places)
 
         self.splitter.addWidget(self.pieceTable)
         self.splitter.addWidget(self.pieceChart)
@@ -123,8 +123,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.lblLastStableWeight.setText(biz.last_stable_weight)
             self.lblLastBaseWeight.setText(biz.last_base_weight)
 
-            self.pieceTable.update_table(biz.weights, biz.decimal_places)
-            self.pieceChart.update_chart(biz.weights, biz.decimal_places)
+            self.pieceTable.update_table(biz.weights)
+            self.pieceChart.update_chart(biz.weights)
 
         except Exception as e:
             logger.exception("UI更新失败")
@@ -149,6 +149,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.spnForcePieces.valueChanged.connect(self._sync_ui_to_params)
         self.spnTargetPieces.valueChanged.connect(self._sync_ui_to_params)
         self.spnDecimalPlaces.valueChanged.connect(self._sync_ui_to_params)
+        self.spnDecimalPlaces.valueChanged.connect(self._on_decimal_places_changed)
 
     def start(self) -> None:
         port = self.cbPort.currentText()
@@ -200,6 +201,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.params.initial_single_pieces = int(self.spnInitialSinglePieces.value())
         self.params.target_pieces = int(self.spnTargetPieces.value())
         self.params.decimal_places = int(self.spnDecimalPlaces.value())
+
+    def _on_decimal_places_changed(self) -> None:
+        places = int(self.spnDecimalPlaces.value())
+        self.pieceTable.set_decimal_places(places)
+        self.pieceChart.set_decimal_places(places)
 
     def init_port_list(self) -> None:
         self.cbPort.clear()
