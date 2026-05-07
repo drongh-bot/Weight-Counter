@@ -114,7 +114,9 @@ class MainController(QObject):
         if self.counter_service.consume_target_edge():
             self.sound_service.play_alert()
         if result.added and result.weights:
-            self.csv_log_service.record_production(result.weights[-1], result.total_pieces)
+            self.csv_log_service.record_production(
+                result.weights[-1], result.total_pieces
+            )
 
     # ============================================================
     # Event Handling

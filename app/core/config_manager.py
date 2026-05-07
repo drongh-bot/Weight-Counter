@@ -75,4 +75,3 @@ class ConfigManager:
             if section not in self.data:
                 self.data[section] = {}
             self.data[section][key] = value
-

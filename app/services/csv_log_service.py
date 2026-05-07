@@ -27,7 +27,9 @@ class CsvLogService(QObject):
     def __init__(self) -> None:
         super().__init__()
         base = ResourceManager.get_external_root() / "log"
-        self.production_writer: CsvWriter | None = CsvWriter(base / "production", ("Time", "Weight", "Total"))
+        self.production_writer: CsvWriter | None = CsvWriter(
+            base / "production", ("Time", "Weight", "Total")
+        )
 
         # log queue
         self.queue: queue.Queue = queue.Queue()
@@ -87,7 +89,9 @@ class CsvLogService(QObject):
             return
 
         try:
-            self.queue.put(("production", self._timestamp(), f"{weight:.3f}", str(total)))
+            self.queue.put(
+                ("production", self._timestamp(), f"{weight:.3f}", str(total))
+            )
         except Exception as e:
             self.error_occurred.emit(f"Production write failed: {e}")
 

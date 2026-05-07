@@ -135,8 +135,12 @@ class Tolerance:
 
         # Add min_tol (Prevent Tolerance Too Small)
         # Extend tolerance range outward by at least min_tol
-        self.low = min(low, avg_weight - self.min_tol)  # Lower bound smaller (wider tolerance)
-        self.high = max(high, avg_weight + self.min_tol)  # Upper bound larger (wider tolerance)
+        self.low = min(
+            low, avg_weight - self.min_tol
+        )  # Lower bound smaller (wider tolerance)
+        self.high = max(
+            high, avg_weight + self.min_tol
+        )  # Upper bound larger (wider tolerance)
 
         # Single Piece Error (Take the Larger Side)
         self.half_range = max(avg_weight - self.low, self.high - avg_weight)

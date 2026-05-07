@@ -1,4 +1,5 @@
 """Logging configuration — called once at app startup."""
+
 import logging
 from pathlib import Path
 

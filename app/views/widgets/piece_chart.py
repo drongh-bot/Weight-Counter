@@ -126,7 +126,9 @@ class PieceChart(QWidget):
 
         self.hover_point.setData([{"pos": (weight, closest_y)}])
 
-        self.plot.setToolTip(f"片号：{closest_y}\n重量：{weight:.{self._decimal_places}f}")
+        self.plot.setToolTip(
+            f"片号：{closest_y}\n重量：{weight:.{self._decimal_places}f}"
+        )
 
     def showEvent(self, event) -> None:
         super().showEvent(event)

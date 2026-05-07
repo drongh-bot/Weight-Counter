@@ -66,5 +66,7 @@ def main():
         logger.exception("shutdown error")
 
     sys.exit(exit_code)
+
+
 if __name__ == "__main__":
     main()
