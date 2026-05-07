@@ -35,7 +35,7 @@ class CheckerService(QObject):
             if "," in raw:
                 raw = raw.split(",")[-1].strip()
 
-            for ch in ["KG", "G", "N", "NT", " "]:
+            for ch in ["KG", "G", "NT", "N", " "]:
                 raw = raw.replace(ch, "")
 
             weight = float(raw)
