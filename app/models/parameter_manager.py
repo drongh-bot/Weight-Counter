@@ -1,7 +1,11 @@
 # app/models/parameter_manager.py
 import logging
+import threading
+from typing import Any
 
-from app.core.config_manager import ConfigManager
+import toml
+
+from app.core.resource_manager import ResourceManager
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +56,8 @@ class ParameterManager:
     }
 
     def __init__(self) -> None:
-        self.config = ConfigManager()
+        self._data: dict[str, dict[str, Any]] = {}
+        self._lock = threading.Lock()
         p = self._DEFAULTS["parameters"]
         s = self._DEFAULTS["stability"]
         c = self._DEFAULTS["counting"]
@@ -82,26 +87,55 @@ class ParameterManager:
         self.serial_timeout_millis: int = int(r["timeout_millis"])
 
     # ============================================================
+    # TOML I/O
+    # ============================================================
+    def _load_toml(self) -> None:
+        path = ResourceManager.get_external_root() / "config.toml"
+        try:
+            if path.exists():
+                with open(path, "r", encoding="utf-8") as f:
+                    self._data = toml.load(f)
+            else:
+                self._data = {}
+        except Exception as e:
+            raise RuntimeError(f"加载 TOML 配置失败: {e}") from e
+
+    def _save_toml(self) -> None:
+        path = ResourceManager.get_external_root() / "config.toml"
+        with self._lock:
+            try:
+                with open(path, "w", encoding="utf-8") as f:
+                    toml.dump(self._data, f)
+            except Exception as e:
+                raise RuntimeError(f"保存 TOML 配置失败: {e}") from e
+
+    def set_value(self, section: str, key: str, value: Any) -> None:
+        with self._lock:
+            if section not in self._data:
+                self._data[section] = {}
+            self._data[section][key] = value
+
+    # ============================================================
     # Load Parameters
     # ============================================================
     def load(self) -> None:
         try:
-            self.config.load()
+            self._load_toml()
         except Exception as e:
             logger.error("加载配置失败: %s", e)
             return
 
         for section, defaults in self._DEFAULTS.items():
-            section_data = self.config.data.get(section, {})
+            section_data = self._data.get(section, {})
             for key, default in defaults.items():
                 setattr(self, key, section_data.get(key, default))
 
     # ============================================================
-    # Save Parameters
+    # Write Parameters to in-memory data
     # ============================================================
-    def save(self) -> None:
+    def _write_to_config(self) -> None:
         for section, defaults in self._DEFAULTS.items():
-            self.config.data.setdefault(section, {})
-            sec = self.config.data[section]
+            self._data.setdefault(section, {})
+            sec = self._data[section]
             for key in defaults:
                 sec[key] = getattr(self, key)

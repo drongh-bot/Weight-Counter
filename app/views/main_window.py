@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
 )
 
 from app.controllers.main_controller import MainController
-from app.core.config_manager import ConfigManager
 from app.core.resource_manager import ResourceManager
 from app.models.parameter_manager import ParameterManager
 from app.services.ui.models import LabelItem, UIData
@@ -170,25 +169,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.controller.clear_abnormal()
 
     def save_params(self) -> None:
+        """Sync UI → params, then persist all config to disk."""
         self._sync_ui_to_params()
-        self._save_all()
-
-    def _save_all(self) -> None:
-        """Write all config sections in one load/save cycle."""
-        config = ConfigManager()
-        try:
-            config.load()
-        except Exception as e:
-            logger.error("保存配置失败: %s", e)
-            return
-
-        config.set_value("ui", "splitter_sizes", self.splitter.sizes())
-        config.set_value("serial", "port", self.cbPort.currentText())
-        config.set_value("serial", "baud_rate", int(self.cbBaudRate.currentText()))
-
-        self.params.save()
-
-        config.save()
+        self.params.set_value("ui", "splitter_sizes", self.splitter.sizes())
+        self.params.set_value("serial", "port", self.cbPort.currentText())
+        self.params.set_value("serial", "baud_rate", int(self.cbBaudRate.currentText()))
+        self.params._write_to_config()
+        self.params._save_toml()
 
     def _load_params_to_ui(self) -> None:
         self.dspnInitialMiniWeight.setValue(self.params.initial_mini_weight)
@@ -236,11 +223,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.cbBaudRate.addItems(baud_rate_list)
 
     def load_settings(self) -> None:
-        config = ConfigManager()
-        config.load()
+        self.params._load_toml()
 
-        ui_config = config.data.get("ui", {})
-        serial_config = config.data.get("serial", {})
+        ui_config = self.params._data.get("ui", {})
+        serial_config = self.params._data.get("serial", {})
 
         sizes = ui_config.get("splitter_sizes", [400, 600])
         if isinstance(sizes, list):
@@ -264,8 +250,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         self.hide()
 
-        self._sync_ui_to_params()
-        self._save_all()
+        self.save_params()
         self.controller.shutdown()
 
         event.accept()
