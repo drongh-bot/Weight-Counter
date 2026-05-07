@@ -68,10 +68,14 @@ class MainController(QObject):
             clear=abnormal,
             force=abnormal,
         )
-        self.ui_service.update(result, button_state, weight,
-                               parse_ok=parse_ok,
-                               comm_ok=comm_ok,
-                               exception_text=exception_text)
+        self.ui_service.update(
+            result,
+            button_state,
+            weight,
+            parse_ok=parse_ok,
+            comm_ok=comm_ok,
+            exception_text=exception_text,
+        )
 
     # ============================================================
     # Data Pipeline
@@ -79,19 +83,20 @@ class MainController(QObject):
     def _on_raw_data(self, raw: str) -> None:
         weight = self._handle_parse(raw)
         if weight is None:
+            self._update_ui(self.counter_service.current_result(), None, parse_ok=False)
             return
         stable_weight = self._handle_stability_check(weight)
         if stable_weight is None:
+            self._update_ui(
+                self.counter_service.current_result(), weight, parse_ok=True
+            )
             return
         self._handle_pre_process(stable_weight)
         result = self.counter_service.process(stable_weight)
         self._handle_result(result, stable_weight)
 
     def _handle_parse(self, raw: str) -> float | None:
-        weight = self.checker_service.parse(raw)
-        self._update_ui(self.counter_service.current_result(), weight,
-                        parse_ok=weight is not None)
-        return weight
+        return self.checker_service.parse(raw)
 
     def _handle_stability_check(self, weight: float) -> float | None:
         return self.checker_service.check(weight)
@@ -106,7 +111,7 @@ class MainController(QObject):
             self._pending_action = PendingAction.NONE
 
     def _handle_result(self, result: BizResult, stable_weight: float) -> None:
-        self._update_ui(result, stable_weight)
+        self._update_ui(result, stable_weight, parse_ok=True)
         if self.counter_service.consume_abnormal_edge():
             self.sound_service.play_error()
         if self.counter_service.consume_target_edge():
@@ -118,12 +123,18 @@ class MainController(QObject):
     # Event Handling
     # ============================================================
     def _on_timeout(self) -> None:
-        self._update_ui(self.counter_service.current_result(), None,
-                        parse_ok=False, comm_ok=False)
+        self._update_ui(
+            self.counter_service.current_result(), None, parse_ok=False, comm_ok=False
+        )
 
     def _on_error(self, msg: str) -> None:
-        self._update_ui(self.counter_service.current_result(), None,
-                        parse_ok=False, comm_ok=False, exception_text=msg)
+        self._update_ui(
+            self.counter_service.current_result(),
+            None,
+            parse_ok=False,
+            comm_ok=False,
+            exception_text=msg,
+        )
 
     # ============================================================
     # User Actions
@@ -152,8 +163,13 @@ class MainController(QObject):
             return True
         except Exception as e:
             self.running = False
-            self._update_ui(self.counter_service.current_result(), None,
-                            parse_ok=False, comm_ok=False, exception_text=str(e))
+            self._update_ui(
+                self.counter_service.current_result(),
+                None,
+                parse_ok=False,
+                comm_ok=False,
+                exception_text=str(e),
+            )
             return False
 
     def stop(self) -> None:
