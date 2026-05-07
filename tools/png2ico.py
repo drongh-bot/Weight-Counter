@@ -1,12 +1,9 @@
+from pathlib import Path
+
 from PIL import Image
 
-# 输入 PNG 路径
-png_path = "../app/resources/icons/app.png"
+icons_dir = Path(__file__).resolve().parent.parent / "app" / "resources" / "icons"
 
-# 输出 ICO 路径
-ico_path = "../app/resources/icons/app.ico"
-
-# ICO 需要的尺寸
 sizes = [
     (16, 16),
     (32, 32),
@@ -16,9 +13,8 @@ sizes = [
     (256, 256),
 ]
 
-img = Image.open(png_path)
-
-# 生成 ICO
-img.save(ico_path, sizes=sizes)
-
-print("ICO 已生成:", ico_path)
+for png_path in icons_dir.glob("*.png"):
+    img = Image.open(png_path)
+    ico_path = png_path.with_suffix(".ico")
+    img.save(ico_path, sizes=sizes)
+    print(f"ICO: {ico_path.name}")
