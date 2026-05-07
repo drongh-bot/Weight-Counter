@@ -18,7 +18,7 @@ class SoundService(QObject):
 
     def __init__(self):
         super().__init__()
-        self.sound_manager = SoundManager.instance()
+        self.sound_manager = SoundManager()
 
     # ============================================================
     # Error sound (counting abnormal)

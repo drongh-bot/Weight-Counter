@@ -16,14 +16,13 @@ class SoundManager:
 
     _instance: SoundManager | None = None
 
+    def __new__(cls) -> "SoundManager":
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self) -> None:
         pass
-
-    @classmethod
-    def instance(cls):
-        if cls._instance is None:
-            cls._instance = SoundManager()
-        return cls._instance
 
     def play(self, full_path: str, repeat: bool = False) -> tuple[bool, str]:
         """
