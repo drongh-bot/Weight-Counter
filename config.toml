@@ -2,7 +2,7 @@
 initial_mini_weight = 0.5
 tolerance_percent = 10.0
 stability_threshold = 0.02
-max_batch_pieces = 1
+max_batch_pieces = 4
 initial_single_pieces = 5
 force_pieces = 0
 target_pieces = 100
