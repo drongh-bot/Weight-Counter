@@ -136,7 +136,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnStop.clicked.connect(self.stop)
         self.btnForce.clicked.connect(self.force_accept)
         self.btnClear.clicked.connect(self.clear_abnormal)
-        self.btnSaveParams.clicked.connect(self.save_settings)
+        self.btnSaveParams.clicked.connect(self.save_params)
 
         self.dspnInitialMiniWeight.valueChanged.connect(self._sync_ui_to_params)
         self.dspnTolerancePercent.valueChanged.connect(self._sync_ui_to_params)
@@ -168,14 +168,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def clear_abnormal(self) -> None:
         self.controller.clear_abnormal()
 
-    def save_settings(self) -> None:
+    def save_params(self) -> None:
         """Sync UI → params, then persist all config to disk."""
         self._sync_ui_to_params()
+        self.params.port = self.cbPort.currentText()
+        self.params.baud_rate = int(self.cbBaudRate.currentText())
         self.params.set_value("ui", "splitter_sizes", self.splitter.sizes())
-        self.params.set_value("serial", "port", self.cbPort.currentText())
-        self.params.set_value("serial", "baud_rate", int(self.cbBaudRate.currentText()))
-        self.params._write_to_config()
-        self.params._save_toml()
+        self.params.save()
 
     def _load_params_to_ui(self) -> None:
         self.dspnInitialMiniWeight.setValue(self.params.initial_mini_weight)
@@ -224,7 +223,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def load_settings(self) -> None:
         ui_config = self.params._data.get("ui", {})
-        serial_config = self.params._data.get("serial", {})
 
         sizes = ui_config.get("splitter_sizes", [400, 600])
         if isinstance(sizes, list):
@@ -235,12 +233,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 sizes = [400, 600]
         self.splitter.setSizes(sizes)
 
-        port = serial_config.get("port", "")
-        baud_rate = serial_config.get("baud_rate", 9600)
-
-        if port:
-            self.cbPort.setCurrentText(port)
-        self.cbBaudRate.setCurrentText(str(baud_rate))
+        self.cbPort.setCurrentText(self.params.port)
+        self.cbBaudRate.setCurrentText(str(self.params.baud_rate))
 
     # ============================================================
     # Close event
@@ -248,7 +242,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         self.hide()
 
-        self.save_settings()
+        self.save_params()
         self.controller.shutdown()
 
         event.accept()
