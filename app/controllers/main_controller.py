@@ -81,11 +81,11 @@ class MainController(QObject):
     # Data Pipeline
     # ============================================================
     def _on_raw_data(self, raw: str) -> None:
-        weight = self._handle_parse(raw)
+        weight = self.checker_service.parse(raw)
         if weight is None:
             self._update_ui(self.counter_service.current_result(), None, parse_ok=False)
             return
-        stable_weight = self._handle_stability_check(weight)
+        stable_weight = self.checker_service.check(weight)
         if stable_weight is None:
             self._update_ui(
                 self.counter_service.current_result(), weight, parse_ok=True
@@ -94,12 +94,6 @@ class MainController(QObject):
         self._handle_pre_process(stable_weight)
         result = self.counter_service.process(stable_weight)
         self._handle_result(result, stable_weight)
-
-    def _handle_parse(self, raw: str) -> float | None:
-        return self.checker_service.parse(raw)
-
-    def _handle_stability_check(self, weight: float) -> float | None:
-        return self.checker_service.check(weight)
 
     def _handle_pre_process(self, stable_weight: float) -> None:
         if self._pending_action is PendingAction.FORCE_ACCEPT:

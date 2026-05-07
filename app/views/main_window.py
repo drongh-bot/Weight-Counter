@@ -153,7 +153,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         self._sync_ui_to_params()
-        self.controller.start(port, baud_rate)
+        if not self.controller.start(port, baud_rate):
+            QMessageBox.warning(self, "提示", f"无法打开串口 {port}")
 
     def stop(self) -> None:
         self.controller.stop()
