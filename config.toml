@@ -4,7 +4,7 @@ tolerance_percent = 10.0
 stability_threshold = 0.02
 max_batch_pieces = 1
 initial_single_pieces = 5
-force_pieces = 0
+force_pieces = 8
 target_pieces = 100
 decimal_places = 2
 
@@ -32,4 +32,4 @@ baud_rate = 9600
 timeout_millis = 2000
 
 [ui]
-splitter_sizes = [ 320, 453,]
+splitter_sizes = [ 389, 384,]

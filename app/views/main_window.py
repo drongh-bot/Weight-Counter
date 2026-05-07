@@ -163,7 +163,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.controller.stop()
 
     def force_accept(self) -> None:
-        self.controller.force_accept()
+        pieces = int(self.spnForcePieces.value())
+        self.controller.force_accept(pieces)
+        self.spnForcePieces.setValue(0)
 
     def clear_abnormal(self) -> None:
         self.controller.clear_abnormal()
@@ -182,7 +184,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.dspnStabilityThreshold.setValue(self.params.stability_threshold)
         self.spnMaxBatchPieces.setValue(self.params.max_batch_pieces)
         self.spnInitialSinglePieces.setValue(self.params.initial_single_pieces)
-        self.spnForcePieces.setValue(self.params.force_pieces)
         self.spnTargetPieces.setValue(self.params.target_pieces)
         self.spnDecimalPlaces.setValue(self.params.decimal_places)
 
@@ -192,7 +193,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.params.stability_threshold = float(self.dspnStabilityThreshold.value())
         self.params.max_batch_pieces = int(self.spnMaxBatchPieces.value())
         self.params.initial_single_pieces = int(self.spnInitialSinglePieces.value())
-        self.params.force_pieces = int(self.spnForcePieces.value())
         self.params.target_pieces = int(self.spnTargetPieces.value())
         self.params.decimal_places = int(self.spnDecimalPlaces.value())
 

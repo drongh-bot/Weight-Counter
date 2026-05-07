@@ -28,7 +28,6 @@ class ParameterManager:
             "stability_threshold": 0.02,
             "max_batch_pieces": 1,
             "initial_single_pieces": 1,
-            "force_pieces": 0,
             "target_pieces": 100,
             "decimal_places": 2,
         },
@@ -69,7 +68,6 @@ class ParameterManager:
         self.stability_threshold: float = float(p["stability_threshold"])
         self.max_batch_pieces: int = int(p["max_batch_pieces"])
         self.initial_single_pieces: int = int(p["initial_single_pieces"])
-        self.force_pieces: int = int(p["force_pieces"])
         self.target_pieces: int = int(p["target_pieces"])
         self.decimal_places: int = int(p["decimal_places"])
         self.stability_short_win: int = int(s["short_win"])

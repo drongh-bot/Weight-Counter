@@ -18,7 +18,6 @@ class TestControllerPipeline:
     def _make_controller(qapp):
         params = ParameterManager()
         params.load()
-        params.force_pieces = 5
         params.target_pieces = 10
         params.max_batch_pieces = 4
 
@@ -78,7 +77,7 @@ class TestControllerPipeline:
     def test_force_accept_pending_action(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller.running = True
-        controller.force_accept()
+        controller.force_accept(5)
         assert controller._pending_action == PendingAction.FORCE_ACCEPT
 
     def test_clear_abnormal_pending_action(self, qapp):
@@ -96,11 +95,10 @@ class TestControllerPipeline:
             controller._on_raw_data("10.0 kg")
 
         # 排队强制校准
-        controller.force_accept()
+        controller.force_accept(3)
         assert controller._pending_action == PendingAction.FORCE_ACCEPT
 
-        # 设置 force_pieces，下一帧稳定重量 → 应执行强制校准
-        controller.params.force_pieces = 3
+        # 下一帧稳定重量 → 应执行强制校准
         for _ in range(12):
             controller._on_raw_data("30.0 kg")
 
@@ -135,7 +133,7 @@ class TestControllerPipeline:
         controller, ui = self._make_controller(qapp)
         controller.running = False
 
-        controller.force_accept()
+        controller.force_accept(5)
         assert controller._pending_action == PendingAction.NONE
 
         controller.clear_abnormal()

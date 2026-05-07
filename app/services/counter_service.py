@@ -126,8 +126,8 @@ class CounterService(QObject):
     # ============================================================
     # Force accept / Clear abnormal
     # ============================================================
-    def force_accept(self, stable_weight: float) -> None:
-        self.counter.force_accept(stable_weight, self.params.force_pieces)
+    def force_accept(self, stable_weight: float, pieces: int) -> None:
+        self.counter.force_accept(stable_weight, pieces)
 
     def clear_abnormal(self, stable_weight: float) -> None:
         self.counter.clear_abnormal(stable_weight)

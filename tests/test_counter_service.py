@@ -71,9 +71,9 @@ class TestCounterServiceProcess:
     def test_force_accept(self, qapp):
         svc = self._make_service()
         svc.counter.last_stable_weight = 100.0
-        svc.force_accept(100.0)
+        svc.force_accept(100.0, 10)
         result = svc.current_result()
-        assert result.total_pieces == svc.params.force_pieces
+        assert result.total_pieces == 10
 
     def test_clear_abnormal(self, qapp):
         svc = self._make_service()

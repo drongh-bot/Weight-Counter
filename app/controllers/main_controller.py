@@ -46,6 +46,7 @@ class MainController(QObject):
 
         self.running: bool = False
         self._pending_action: PendingAction = PendingAction.NONE
+        self._pending_force_pieces: int = 0
 
         self.serial_service.data_received.connect(self._on_raw_data)
         self.serial_service.timeout_detected.connect(self._on_timeout)
@@ -100,8 +101,7 @@ class MainController(QObject):
 
     def _handle_pre_process(self, stable_weight: float) -> None:
         if self._pending_action is PendingAction.FORCE_ACCEPT:
-            self.counter_service.force_accept(stable_weight)
-            self.params.force_pieces = 0
+            self.counter_service.force_accept(stable_weight, self._pending_force_pieces)
             self._pending_action = PendingAction.NONE
         elif self._pending_action is PendingAction.CLEAR_ABNORMAL:
             self.counter_service.clear_abnormal(stable_weight)
@@ -138,9 +138,10 @@ class MainController(QObject):
     # ============================================================
     # User Actions
     # ============================================================
-    def force_accept(self) -> None:
+    def force_accept(self, pieces: int) -> None:
         if self.running:
             self._pending_action = PendingAction.FORCE_ACCEPT
+            self._pending_force_pieces = pieces
 
     def clear_abnormal(self) -> None:
         if self.running:
