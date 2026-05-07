@@ -37,6 +37,15 @@ class CounterService(QObject):
             max_batch_pieces=params.max_batch_pieces,
             initial_single_pieces=params.initial_single_pieces,
             decimal_places=params.decimal_places,
+            dynamic_weight_ratio=params.dynamic_weight_ratio,
+            initial_min_ratio=params.initial_min_ratio,
+            jump_threshold_ratio=params.jump_threshold_ratio,
+            jump_confirm_times=params.jump_confirm_times,
+            early_learn_pieces=params.early_learn_pieces,
+            ema_alpha_min=params.ema_alpha_min,
+            ema_alpha_max=params.ema_alpha_max,
+            count_rounding_tolerance=params.count_rounding_tolerance,
+            abnormal_recover_factor=params.abnormal_recover_factor,
         )
 
     # ============================================================
@@ -110,6 +119,7 @@ class CounterService(QObject):
             last_stable_weight=self.counter.last_stable_weight,
             last_base_weight=self.counter.last_base_weight,
             weights=self.counter.piece_weights,
+            decimal_places=self.counter.decimal_places,
         )
 
     # ============================================================

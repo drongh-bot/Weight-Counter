@@ -44,7 +44,7 @@ class PieceTable(QTableWidget):
         self.setRowCount(0)
         self._data.clear()
 
-    def update_table(self, new_data: list[float]) -> None:
+    def update_table(self, new_data: list[float], decimal_places: int = 2) -> None:
         """Newest data at the top."""
         if new_data == self._data:
             return
@@ -60,7 +60,7 @@ class PieceTable(QTableWidget):
 
             # Fill data (newest at the top)
             for row, weight in enumerate(reversed(new_data)):
-                item = QTableWidgetItem(f"{weight:.3f}")
+                item = QTableWidgetItem(f"{weight:.{decimal_places}f}")
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.setItem(row, 0, item)
 

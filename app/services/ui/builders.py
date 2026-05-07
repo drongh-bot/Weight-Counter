@@ -7,6 +7,7 @@ from app.services.ui.styles import Styles
 class BizBuilder:
     @staticmethod
     def build(biz: BizResult) -> BizData:
+        dp = biz.decimal_places
         if biz.state == BizState.ZERO:
             state_text = "等待第一件"
             state_style = ""
@@ -21,20 +22,21 @@ class BizBuilder:
 
         return BizData(
             delta_weight=LabelItem(
-                text=f"{biz.delta:.3f}",
+                text=f"{biz.delta:.{dp}f}",
                 style=delta_style,
             ),
             state=LabelItem(
                 text=state_text,
                 style=state_style,
             ),
-            avg_weight=f"{biz.avg_weight:.3f}",
-            tol_high=f"{biz.tol_high:.3f}",
-            tol_low=f"{biz.tol_low:.3f}",
+            avg_weight=f"{biz.avg_weight:.{dp}f}",
+            tol_high=f"{biz.tol_high:.{dp}f}",
+            tol_low=f"{biz.tol_low:.{dp}f}",
             total_pieces=str(biz.total_pieces),
-            last_stable_weight=f"{biz.last_stable_weight:.3f}",
-            last_base_weight=f"{biz.last_base_weight:.3f}",
+            last_stable_weight=f"{biz.last_stable_weight:.{dp}f}",
+            last_base_weight=f"{biz.last_base_weight:.{dp}f}",
             weights=biz.weights,
+            decimal_places=dp,
         )
 
 

@@ -7,9 +7,9 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 #   Custom horizontal axis: fixed decimal places
 # ============================
 class FixedAxis(pg.AxisItem):
-    def __init__(self, orientation, decimals=3):
+    def __init__(self, orientation):
         super().__init__(orientation=orientation)
-        self.decimals = decimals
+        self.decimals = 2
 
     def tickStrings(self, values, scale, spacing):
         fmt = f"{{:.{self.decimals}f}}"
@@ -21,6 +21,7 @@ class PieceChart(QWidget):
         super().__init__(parent)
 
         self.data_list: list[float] = []
+        self._decimal_places: int = 2
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -30,8 +31,8 @@ class PieceChart(QWidget):
         self.plot = pg.PlotWidget(
             background="w",
             axisItems={
-                "bottom": FixedAxis("bottom", decimals=3),  # Control decimal places
-                "top": FixedAxis("top", decimals=3),
+                "bottom": FixedAxis("bottom"),
+                "top": FixedAxis("top"),
             },
         )
 
@@ -73,21 +74,22 @@ class PieceChart(QWidget):
         scene = self.plot.scene()
         scene.sigMouseMoved.connect(self.on_mouse_moved)
 
-    def reset(self):
+    def _reset(self):
         self.data_list = []
         self.scatter.setData([])
         self.hover_point.setData([])
         self.plot.getAxis("left").setTicks([])
 
-    def update_chart(self, new_list: list[float]):
+    def update_chart(self, new_list: list[float], decimal_places: int = 2):
         self.data_list = list(new_list)
+        self._decimal_places = decimal_places
 
         if not self.isVisible():
             return
 
         count = len(self.data_list)
         if count == 0:
-            self.reset()
+            self._reset()
             return
 
         # Scatter: newest on top
@@ -100,6 +102,10 @@ class PieceChart(QWidget):
 
         # Auto range
         self.plot.autoRange()
+
+        # Sync axis decimal places
+        self.plot.getAxis("bottom").decimals = decimal_places
+        self.plot.getAxis("top").decimals = decimal_places
 
     def on_mouse_moved(self, pos: QPointF) -> None:
         if not self.data_list:
@@ -120,8 +126,9 @@ class PieceChart(QWidget):
 
         self.hover_point.setData([{"pos": (weight, closest_y)}])
 
-        self.plot.setToolTip(f"片号：{closest_y}\n重量：{weight:.3f}")
+        self.plot.setToolTip(f"片号：{closest_y}\n重量：{weight:.{self._decimal_places}f}")
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
-        self.update_chart(self.data_list)
+        if self.data_list:
+            self.update_chart(self.data_list, self._decimal_places)

@@ -42,10 +42,10 @@ class TestBizBuilder:
         data = BizBuilder.build(biz)
         assert data.state.text == "正常"
         assert data.state.style == ""
-        assert data.delta_weight.text == "10.000"
+        assert data.delta_weight.text == "10.00"
         assert data.delta_weight.style == ""  # NORMAL should not highlight delta
         assert data.total_pieces == "5"
-        assert data.avg_weight == "10.000"
+        assert data.avg_weight == "10.00"
 
     def test_abnormal_high_state(self):
         biz = BizResult(
@@ -103,11 +103,11 @@ class TestBizBuilder:
             weights=[10.0],
         )
         data = BizBuilder.build(biz)
-        assert data.delta_weight.text == "3.142"
-        assert data.tol_high == "11.000"
-        assert data.tol_low == "9.000"
-        assert data.last_stable_weight == "10.000"
-        assert data.last_base_weight == "0.000"
+        assert data.delta_weight.text == "3.14"
+        assert data.tol_high == "11.00"
+        assert data.tol_low == "9.00"
+        assert data.last_stable_weight == "10.00"
+        assert data.last_base_weight == "0.00"
 
 
 class TestStatusBuilder:

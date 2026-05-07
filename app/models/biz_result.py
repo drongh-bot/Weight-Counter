@@ -24,3 +24,4 @@ class BizResult:
     last_stable_weight: float
     last_base_weight: float
     weights: list[float]
+    decimal_places: int = 2

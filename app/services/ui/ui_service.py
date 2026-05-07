@@ -24,7 +24,7 @@ class UIService(QObject):
     ) -> None:
         ui_data = UIData(
             button_state=button_state,
-            actual_weight=f"{actual_weight:.3f}"
+            actual_weight=f"{actual_weight:.{biz.decimal_places}f}"
             if actual_weight is not None
             else "-----",
             status=StatusBuilder.build(parse_ok, comm_ok, exception_text),

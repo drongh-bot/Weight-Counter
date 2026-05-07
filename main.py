@@ -23,7 +23,7 @@ def main():
 
     # ---------------- Service Layer ----------------
     ui_service = UIService()
-    serial_service = SerialService()
+    serial_service = SerialService(params.serial_timeout_millis)
     counter_service = CounterService(params)
     checker_service = CheckerService(params)
     sound_service = SoundService()

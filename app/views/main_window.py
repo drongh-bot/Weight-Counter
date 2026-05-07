@@ -30,7 +30,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     ):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle("称重计数 v1.1")
+        self.setWindowTitle("称重计数 v1.2")
 
         self.setWindowIcon(
             QIcon(ResourceManager.get_resource("app/resources/icons/app.ico"))
@@ -118,8 +118,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.lblLastStableWeight.setText(biz.last_stable_weight)
             self.lblLastBaseWeight.setText(biz.last_base_weight)
 
-            self.pieceTable.update_table(biz.weights)
-            self.pieceChart.update_chart(biz.weights)
+            self.pieceTable.update_table(biz.weights, biz.decimal_places)
+            self.pieceChart.update_chart(biz.weights, biz.decimal_places)
 
         except Exception as e:
             QMessageBox.critical(self, "错误", f"UI更新时出错: {e}")

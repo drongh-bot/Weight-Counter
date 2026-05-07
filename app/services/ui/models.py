@@ -5,6 +5,7 @@ from dataclasses import dataclass
 @dataclass
 class LabelItem:
     """Generic label item: text + style."""
+
     text: str
     style: str
 
@@ -27,6 +28,7 @@ class BizData:
     last_stable_weight: str
     last_base_weight: str
     weights: list[float]
+    decimal_places: int
 
 
 @dataclass

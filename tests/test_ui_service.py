@@ -34,7 +34,7 @@ class TestUIService:
 
         assert spy.count() == 1
         d = self._ui_data(spy)
-        assert d.actual_weight == "10.000"
+        assert d.actual_weight == "10.00"
         assert d.biz.state.text == "正常"
         assert d.button_state.start is False
         assert d.button_state.stop is True

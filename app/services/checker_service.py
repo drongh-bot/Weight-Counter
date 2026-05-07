@@ -18,7 +18,14 @@ class CheckerService(QObject):
         self.params = params
 
         # initialize stability checker (thresholds set once)
-        self.checker = WeightStabilityChecker(base_threshold=params.stability_threshold)
+        self.checker = WeightStabilityChecker(
+            short_win=params.stability_short_win,
+            long_win=params.stability_long_win,
+            stable_count=params.stability_stable_count,
+            unlock_confirm=params.stability_unlock_confirm,
+            unlock_factor=params.stability_unlock_factor,
+            base_threshold=params.stability_threshold,
+        )
 
     # ============================================================
     # Parse weight (string -> float)

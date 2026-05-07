@@ -26,12 +26,12 @@ class LogService(QObject):
         super().__init__()
         base = ResourceManager.get_external_root() / "log"
         # three log types
-        self.event_logger = Logger(base / "event", ("Time", "Event", "Details"))
-        self.error_logger = Logger(base / "error", ("Time", "Error", "Details"))
-        self.production_logger = Logger(base / "production", ("Time", "Weight", "Total"))
+        self.event_logger: Logger | None = Logger(base / "event", ("Time", "Event", "Details"))
+        self.error_logger: Logger | None = Logger(base / "error", ("Time", "Error", "Details"))
+        self.production_logger: Logger | None = Logger(base / "production", ("Time", "Weight", "Total"))
 
         # log queue
-        self.queue = queue.Queue()
+        self.queue: queue.Queue = queue.Queue()
 
         # background thread control
         self.running = True

@@ -19,7 +19,7 @@ class SerialService(QObject):
     timeout_detected = Signal()  # timeout signal (Controller decides how to handle)
     error_occurred = Signal(str)
 
-    def __init__(self, timeout_millis: int = 2000):
+    def __init__(self, timeout_millis: int):
         super().__init__()
 
         self.serial = SerialCommunication()

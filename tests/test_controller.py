@@ -23,7 +23,7 @@ class TestControllerPipeline:
         params.max_batch_pieces = 4
 
         ui = UIService()
-        serial = SerialService()
+        serial = SerialService(2000)
         counter = CounterService(params)
         checker = CheckerService(params)
         sound = SoundService()

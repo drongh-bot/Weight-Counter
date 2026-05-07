@@ -6,32 +6,29 @@ from enum import Enum, auto
 # Threshold Calculation Class
 # ============================================================
 class Thresholds:
-    DYNAMIC_WEIGHT_RATIO: float = 0.5
-    INITIAL_MIN_RATIO: float = 0.3
-
     def __init__(
         self,
         initial_mini_weight: float,
         avg_weight: float,
         tolerance_percent: float,
         min_tol: float,
+        dynamic_weight_ratio: float = 0.5,
+        initial_min_ratio: float = 0.3,
     ) -> None:
         self.initial_mini_weight: float = initial_mini_weight
         self.avg_weight: float = avg_weight
         self.tolerance_percent: float = tolerance_percent
         self.min_tol: float = min_tol
+        self.dynamic_weight_ratio: float = dynamic_weight_ratio
+        self.initial_min_ratio: float = initial_min_ratio
 
     @property
     def dynamic_mini_weight(self) -> float:
-        """
-        After the second piece, use 50% of avg_weight as the minimum
-        effective change, with a 30% lower bound of initial_mini_weight.
-        """
         if self.avg_weight <= 0:
             return self.initial_mini_weight
         return max(
-            self.avg_weight * self.DYNAMIC_WEIGHT_RATIO,
-            self.initial_mini_weight * self.INITIAL_MIN_RATIO,
+            self.avg_weight * self.dynamic_weight_ratio,
+            self.initial_mini_weight * self.initial_min_ratio,
         )
 
     @property
@@ -55,13 +52,19 @@ class Thresholds:
 # Average Piece Weight Learning Class
 # ============================================================
 class WeightLearner:
-    JUMP_THRESHOLD_RATIO: float = 0.5
-    JUMP_CONFIRM_TIMES: int = 2
-    EARLY_LEARN_PIECES: int = 5
-    EMA_ALPHA_MIN: float = 0.05
-    EMA_ALPHA_MAX: float = 0.30
-
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        jump_threshold_ratio: float = 0.5,
+        jump_confirm_times: int = 2,
+        early_learn_pieces: int = 5,
+        ema_alpha_min: float = 0.05,
+        ema_alpha_max: float = 0.30,
+    ) -> None:
+        self.jump_threshold_ratio: float = jump_threshold_ratio
+        self.jump_confirm_times: int = jump_confirm_times
+        self.early_learn_pieces: int = early_learn_pieces
+        self.ema_alpha_min: float = ema_alpha_min
+        self.ema_alpha_max: float = ema_alpha_max
         self.jump_count: int = 0
 
     def reset(self) -> None:
@@ -73,7 +76,7 @@ class WeightLearner:
         if total_pieces <= 0:
             return piece_weight
 
-        if total_pieces <= self.EARLY_LEARN_PIECES:
+        if total_pieces <= self.early_learn_pieces:
             old_count = total_pieces - n
             if old_count <= 0:
                 return piece_weight
@@ -85,9 +88,9 @@ class WeightLearner:
         else:
             diff_ratio = 1.0
 
-        if diff_ratio > self.JUMP_THRESHOLD_RATIO:
+        if diff_ratio > self.jump_threshold_ratio:
             self.jump_count += 1
-            if self.jump_count >= self.JUMP_CONFIRM_TIMES:
+            if self.jump_count >= self.jump_confirm_times:
                 # Trigger Jump: Reset Learning
                 self.jump_count = 0
                 return piece_weight
@@ -95,7 +98,7 @@ class WeightLearner:
             self.jump_count = 0
 
         # ----------- Dynamic EMA -----------
-        alpha = min(max(diff_ratio, self.EMA_ALPHA_MIN), self.EMA_ALPHA_MAX)
+        alpha = min(max(diff_ratio, self.ema_alpha_min), self.ema_alpha_max)
 
         return alpha * piece_weight + (1 - alpha) * avg_weight
 
@@ -169,6 +172,15 @@ class PieceCounter:
         max_batch_pieces: int = 4,
         initial_single_pieces: int = 5,
         decimal_places: int = 2,
+        dynamic_weight_ratio: float = 0.5,
+        initial_min_ratio: float = 0.3,
+        jump_threshold_ratio: float = 0.5,
+        jump_confirm_times: int = 2,
+        early_learn_pieces: int = 5,
+        ema_alpha_min: float = 0.05,
+        ema_alpha_max: float = 0.30,
+        count_rounding_tolerance: float = 0.2,
+        abnormal_recover_factor: float = 1.5,
     ) -> None:
 
         # Fixed Configuration Parameters
@@ -177,6 +189,8 @@ class PieceCounter:
         self.max_batch_pieces: int = max_batch_pieces
         self.initial_single_pieces: int = initial_single_pieces
         self.decimal_places: int = decimal_places
+        self.count_rounding_tolerance: float = count_rounding_tolerance
+        self.abnormal_recover_factor: float = abnormal_recover_factor
 
         # Calculate min_tol
         resolution: float = 10 ** (-decimal_places)
@@ -186,7 +200,13 @@ class PieceCounter:
         self.tolerance: Tolerance = Tolerance(
             min_tol=min_tol, tolerance_percent=tolerance_percent
         )
-        self.learner: WeightLearner = WeightLearner()
+        self.learner: WeightLearner = WeightLearner(
+            jump_threshold_ratio=jump_threshold_ratio,
+            jump_confirm_times=jump_confirm_times,
+            early_learn_pieces=early_learn_pieces,
+            ema_alpha_min=ema_alpha_min,
+            ema_alpha_max=ema_alpha_max,
+        )
 
         # Threshold Management
         self.thresholds: Thresholds = Thresholds(
@@ -194,6 +214,8 @@ class PieceCounter:
             avg_weight=0.0,
             tolerance_percent=tolerance_percent,
             min_tol=min_tol,
+            dynamic_weight_ratio=dynamic_weight_ratio,
+            initial_min_ratio=initial_min_ratio,
         )
 
         self.piece_weights: list[float] = []
@@ -337,7 +359,7 @@ class PieceCounter:
 
         # Must first approach the base point
         # Use 1.5x, leave some margin for physical error
-        relax_factor = 1.5
+        relax_factor = self.abnormal_recover_factor
         if (
             abs(stable_weight - self.last_base_weight)
             > self.thresholds.recover_threshold * relax_factor
@@ -402,7 +424,7 @@ class PieceCounter:
         if not (1 <= n <= limit):
             return None
 
-        if abs(n_est - n) > 0.2:
+        if abs(n_est - n) > self.count_rounding_tolerance:
             return None
 
         # Tolerance Check
