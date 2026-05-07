@@ -201,6 +201,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             port_names.sort(key=lambda x: int(x.replace("COM", "")))
         except Exception:
+            logger.warning("COM端口排序回退")
             port_names.sort()
         self.cbPort.addItems(port_names)
 
@@ -230,6 +231,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             try:
                 sizes = [int(x) for x in sizes]
             except Exception:
+                logger.warning("splitter_sizes格式错误, 使用默认值")
                 sizes = [400, 600]
         self.splitter.setSizes(sizes)
 

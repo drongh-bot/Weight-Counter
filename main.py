@@ -1,4 +1,5 @@
 # main.py
+import logging
 import sys
 
 from PySide6.QtWidgets import QApplication
@@ -14,6 +15,8 @@ from app.services.serial_service import SerialService
 from app.services.sound_service import SoundService
 from app.services.ui.ui_service import UIService
 from app.views.main_window import MainWindow
+
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -60,10 +63,8 @@ def main():
     try:
         controller.shutdown()
     except Exception:
-        pass
+        logger.exception("shutdown error")
 
     sys.exit(exit_code)
-
-
 if __name__ == "__main__":
     main()
