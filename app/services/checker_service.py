@@ -41,7 +41,7 @@ class CheckerService(QObject):
             weight = float(raw)
             return weight
 
-        except Exception:
+        except (ValueError, AttributeError):
             return None
 
     # ============================================================

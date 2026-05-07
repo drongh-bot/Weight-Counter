@@ -62,8 +62,8 @@ class Logger:
         self._ensure_file()
 
         try:
-            assert self.writer is not None
-            assert self.file is not None
+            if self.writer is None or self.file is None:
+                raise RuntimeError("日志文件未打开")
             self.writer.writerow([timestamp, col1, col2])
             self.file.flush()
         except Exception as e:

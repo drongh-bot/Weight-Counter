@@ -63,7 +63,7 @@ class LogService(QObject):
                     self.event_logger.write(timestamp, col1, col2)
 
                 elif log_type == "error" and self.error_logger:
-                    self.event_logger.write(timestamp, col1, col2)
+                    self.error_logger.write(timestamp, col1, col2)
 
                 elif log_type == "production" and self.production_logger:
                     self.production_logger.write(timestamp, col1, col2)
