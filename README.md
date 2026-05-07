@@ -81,19 +81,19 @@ Edit `config.toml`:
 ```toml
 [parameters]
 initial_mini_weight = 0.5
-tolerance_percent = 10.0
+tolerance_percent = 20.0
 stability_threshold = 0.02
 max_batch_pieces = 1
-initial_single_pieces = 1
+initial_single_pieces = 5
 target_pieces = 100
 decimal_places = 2
 
 [stability]
-short_win = 4
-long_win = 8
-stable_count = 3
-unlock_confirm = 2
-unlock_factor = 2.5
+stability_short_win = 5
+stability_long_win = 10
+stability_stable_count = 3
+stability_unlock_confirm = 2
+stability_unlock_factor = 2.5
 
 [counting]
 dynamic_weight_ratio = 0.5
@@ -116,6 +116,7 @@ splitter_sizes = [140, 199]
 ```
 
 ---
+
 ## Testing
 
 ```bash
@@ -125,20 +126,22 @@ uv run mypy app                  # Type check
 
 ### Test coverage
 
-| Layer | Tests |
-|-------|-------|
-| model | 43 (Qt-free, plain pytest) |
-| service | 31 (uses `qapp` fixture from `pytest-qt`) |
-| builder | 8 (Qt-free) |
-| controller | 12 (uses `qapp` fixture) |
+| Layer      | Tests                                     |
+| ---------- | ----------------------------------------- |
+| model      | 43 (Qt-free, plain pytest)                |
+| service    | 31 (uses `qapp` fixture from `pytest-qt`) |
+| builder    | 8 (Qt-free)                               |
+| controller | 12 (uses `qapp` fixture)                  |
 
 ---
+
 ## Hardware Requirement
 
 The app requires a serial port with a connected electronic scale. `config.toml` must set
 `[serial].port` to a valid COM port. Without hardware, serial operations will fail.
 
 ---
+
 ## Packaging
 
 ```bash
@@ -157,7 +160,7 @@ Output: `dist/WeightCounter/`
 | PySide6      | Qt for Python UI        |
 | PyQtGraph    | Real-time scatter chart |
 | TOML         | Configuration format    |
-| UV          | Package manager         |
+| UV           | Package manager         |
 | PyInstaller  | Application packaging   |
 
 ---
