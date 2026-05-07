@@ -27,8 +27,6 @@ class CsvLogService(QObject):
     def __init__(self):
         super().__init__()
         base = ResourceManager.get_external_root() / "log"
-        self.event_writer: CsvWriter | None = CsvWriter(base / "event", ("Time", "Event", "Details"))
-        self.error_writer: CsvWriter | None = CsvWriter(base / "error", ("Time", "Error", "Details"))
         self.production_writer: CsvWriter | None = CsvWriter(base / "production", ("Time", "Weight", "Total"))
 
         # log queue
@@ -59,15 +57,9 @@ class CsvLogService(QObject):
                 if item is None:
                     break
 
-                log_type, timestamp, col1, col2 = item
+                _, timestamp, col1, col2 = item
 
-                if log_type == "event" and self.event_writer:
-                    self.event_writer.write(timestamp, col1, col2)
-
-                elif log_type == "error" and self.error_writer:
-                    self.error_writer.write(timestamp, col1, col2)
-
-                elif log_type == "production" and self.production_writer:
+                if self.production_writer:
                     self.production_writer.write(timestamp, col1, col2)
 
                 self.queue.task_done()
@@ -79,24 +71,9 @@ class CsvLogService(QObject):
     # ============================================================
     # Utility: current time
     # ============================================================
-    def _timestamp(self) -> str:
+    @staticmethod
+    def _timestamp() -> str:
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    # ============================================================
-    # Record event
-    # ============================================================
-    def record_event(self, msg: str, extra: str = "") -> None:
-        if not self.running:
-            return
-        self.queue.put(("event", self._timestamp(), msg, extra))
-
-    # ============================================================
-    # Record error
-    # ============================================================
-    def record_error(self, error: Exception, extra: str = "") -> None:
-        if not self.running:
-            return
-        self.queue.put(("error", self._timestamp(), f"{type(error).__name__}: {error}", extra))
 
     # ============================================================
     # Record production
@@ -133,18 +110,12 @@ class CsvLogService(QObject):
         # 4. Wait for background thread to finish writing remaining logs
         self.worker.join(timeout=2.0)
 
-        # 5. Close all writers
+        # 5. Close writer
         try:
-            if self.event_writer:
-                self.event_writer.close()
-            if self.error_writer:
-                self.error_writer.close()
             if self.production_writer:
                 self.production_writer.close()
         except Exception as e:
             logger.error("关闭日志失败: %s", e)
 
         # 6. Prevent accidental writes after close
-        self.event_writer = None
-        self.error_writer = None
         self.production_writer = None
