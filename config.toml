@@ -1,15 +1,15 @@
 [parameters]
 initial_mini_weight = 0.5
-tolerance_percent = 10.0
+tolerance_percent = 20.0
 stability_threshold = 0.02
-max_batch_pieces = 2
+max_batch_pieces = 1
 initial_single_pieces = 5
 target_pieces = 100
 decimal_places = 2
 
 [stability]
-stability_short_win = 4
-stability_long_win = 8
+stability_short_win = 5
+stability_long_win = 10
 stability_stable_count = 3
 stability_unlock_confirm = 2
 stability_unlock_factor = 2.5
@@ -31,4 +31,4 @@ port = "COM1"
 baud_rate = 9600
 
 [ui]
-splitter_sizes = [ 171, 168,]
+splitter_sizes = [ 390, 383,]

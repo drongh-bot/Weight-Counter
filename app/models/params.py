@@ -8,16 +8,16 @@ class Params:
 
     # [parameters] — runtime mutable
     initial_mini_weight: float = 0.5
-    tolerance_percent: float = 10.0
+    tolerance_percent: float = 20.0
     stability_threshold: float = 0.02
     max_batch_pieces: int = 1
-    initial_single_pieces: int = 4
+    initial_single_pieces: int = 5
     target_pieces: int = 100
     decimal_places: int = 2
 
     # [stability] — fixed at startup
-    stability_short_win: int = 4
-    stability_long_win: int = 8
+    stability_short_win: int = 5
+    stability_long_win: int = 10
     stability_stable_count: int = 3
     stability_unlock_confirm: int = 2
     stability_unlock_factor: float = 2.5
