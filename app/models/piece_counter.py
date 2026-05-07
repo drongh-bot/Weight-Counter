@@ -480,5 +480,4 @@ class PieceCounter:
             self.tolerance_percent = tolerance_percent
             self.tolerance.tolerance_percent = tolerance_percent
             self.thresholds.tolerance_percent = tolerance_percent
-            self.tolerance.update(self.avg_weight)
-            self.thresholds.update(self.avg_weight)
+            self._sync_all()
