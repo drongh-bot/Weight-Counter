@@ -25,6 +25,7 @@ class ParameterManager:
     }
 
     def __init__(self) -> None:
+        self.config = ConfigManager()
         defaults = self._DEFAULTS
         self.initial_mini_weight: float = defaults["initial_mini_weight"]
         self.tolerance_percent: float = defaults["tolerance_percent"]
@@ -34,8 +35,6 @@ class ParameterManager:
         self.force_pieces: int = int(defaults["force_pieces"])
         self.target_pieces: int = int(defaults["target_pieces"])
         self.decimal_places: int = int(defaults["decimal_places"])
-
-        self.config = ConfigManager()
 
     # ============================================================
     # Load Parameters
