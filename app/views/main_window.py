@@ -171,8 +171,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def save_params(self) -> None:
         self._sync_ui_to_params()
-        self.save_settings()
+        self._save_all()
+
+    def _save_all(self) -> None:
+        """Write all config sections in one load/save cycle."""
+        config = ConfigManager()
+        try:
+            config.load()
+        except Exception as e:
+            logger.error("保存配置失败: %s", e)
+            return
+
+        config.set_value("ui", "splitter_sizes", self.splitter.sizes())
+        config.set_value("serial", "port", self.cbPort.currentText())
+        config.set_value("serial", "baud_rate", int(self.cbBaudRate.currentText()))
+
         self.params.save()
+
+        config.save()
 
     def _load_params_to_ui(self) -> None:
         self.dspnInitialMiniWeight.setValue(self.params.initial_mini_weight)
@@ -242,16 +258,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.cbPort.setCurrentText(port)
         self.cbBaudRate.setCurrentText(str(baud_rate))
 
-    def save_settings(self) -> None:
-        config = ConfigManager()
-        config.load()
-
-        config.set_value("ui", "splitter_sizes", self.splitter.sizes())
-        config.set_value("serial", "port", self.cbPort.currentText())
-        config.set_value("serial", "baud_rate", int(self.cbBaudRate.currentText()))
-
-        config.save()
-
     # ============================================================
     # Close event
     # ============================================================
@@ -259,8 +265,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.hide()
 
         self._sync_ui_to_params()
-        self.params.save()
-        self.save_settings()
+        self._save_all()
         self.controller.shutdown()
 
         event.accept()

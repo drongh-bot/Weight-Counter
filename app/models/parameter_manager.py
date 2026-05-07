@@ -100,16 +100,8 @@ class ParameterManager:
     # Save Parameters
     # ============================================================
     def save(self) -> None:
-        try:
-            self.config.load()
-        except Exception as e:
-            logger.error("保存配置失败: %s", e)
-            return
-
         for section, defaults in self._DEFAULTS.items():
             self.config.data.setdefault(section, {})
             sec = self.config.data[section]
             for key in defaults:
                 sec[key] = getattr(self, key)
-
-        self.config.save()
