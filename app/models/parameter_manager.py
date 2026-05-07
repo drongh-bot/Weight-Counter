@@ -1,4 +1,6 @@
 # app/models/parameter_manager.py
+import sys
+
 from app.core.config_manager import ConfigManager
 
 
@@ -42,7 +44,8 @@ class ParameterManager:
     def load(self) -> None:
         try:
             self.config.load()
-        except Exception:
+        except Exception as e:
+            print(f"[ParameterManager] 加载配置失败: {e}", file=sys.stderr)
             return
 
         params = self.config.data.get("parameters", {})
@@ -55,7 +58,8 @@ class ParameterManager:
     def save(self) -> None:
         try:
             self.config.load()
-        except Exception:
+        except Exception as e:
+            print(f"[ParameterManager] 保存配置失败: {e}", file=sys.stderr)
             return
 
         self.config.data.setdefault("parameters", {})

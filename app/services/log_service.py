@@ -1,5 +1,6 @@
 # app/services/log_service.py
 import queue
+import sys
 import threading
 from datetime import datetime
 
@@ -139,8 +140,8 @@ class LogService(QObject):
                 self.error_logger.close()
             if self.production_logger:
                 self.production_logger.close()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[LogService] 关闭日志失败: {e}", file=sys.stderr)
 
         # 6. Prevent accidental writes after close
         self.event_logger = None
