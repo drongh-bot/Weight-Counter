@@ -41,11 +41,31 @@ app/
 uv sync                          # Install dependencies
 uv run main.py                   # Run the app
 uv run pyinstaller main.spec     # Package to dist/WeightCounter/
+uv run pytest tests/ -v          # Run all 95 tests
+uv run mypy app                  # Type check
 ```
 
-## Important: no test suite
+## Test suite
 
-This project has no tests. Do not attempt `pytest` or create test infrastructure unless asked.
+Model tests are Qt-free; service/controller tests use `qapp` fixture from `pytest-qt`.
+
+| File | Layer | Count |
+|------|-------|-------|
+| `tests/test_weight_stability_checker.py` | model | 12 |
+| `tests/test_piece_counter.py` | model | 31 |
+| `tests/test_builders.py` | builder | 8 |
+| `tests/test_checker_service.py` | service | 12 |
+| `tests/test_counter_service.py` | service | 13 |
+| `tests/test_ui_service.py` | service | 6 |
+| `tests/test_controller.py` | controller | 12 |
+
+## PySide6 QSignalSpy quirk (6.8.3)
+
+The `QSignalSpy` API differs from PyQt5/PySide2 and most online docs:
+- `spy.count()` — method, NOT `len(spy)`
+- `spy.at(i)` — access by index, NOT `spy[i]`
+- No `.clear()` method — create fresh spy instances
+- `spy.at(0)` returns `[arg]` — use `spy.at(0)[0]` for single-argument signals
 
 ## Hardware dependency
 

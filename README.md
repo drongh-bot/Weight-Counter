@@ -88,7 +88,29 @@ decimal_places = 2
 ```
 
 ---
+## Testing
 
+```bash
+uv run pytest tests/ -v          # 95 tests: model → service → controller
+uv run mypy app                  # Type check
+```
+
+### Test coverage
+
+| Layer | Tests |
+|-------|-------|
+| model | 43 (Qt-free, plain pytest) |
+| service | 31 (uses `qapp` fixture from `pytest-qt`) |
+| builder | 8 (Qt-free) |
+| controller | 12 (uses `qapp` fixture) |
+
+---
+## Hardware Requirement
+
+The app requires a serial port with a connected electronic scale. `config.toml` must set
+`[serial].port` to a valid COM port. Without hardware, serial operations will fail.
+
+---
 ## Packaging
 
 ```bash
@@ -107,6 +129,7 @@ Output: `dist/WeightCounter/`
 | PySide6      | Qt for Python UI        |
 | PyQtGraph    | Real-time scatter chart |
 | TOML         | Configuration format    |
+| UV          | Package manager         |
 | PyInstaller  | Application packaging   |
 
 ---
