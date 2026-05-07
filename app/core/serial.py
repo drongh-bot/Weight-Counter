@@ -53,10 +53,9 @@ class SerialCommunication(QObject):
         while self.serial.canReadLine():
             raw = bytes(self.serial.readLine().data())
             try:
-                text = raw.decode("utf-8")
-                self.encoding = "utf-8"
+                text = raw.decode(self.encoding)
             except UnicodeDecodeError:
-                logger.warning("UTF-8解码失败, 回退GBK: %.20s", raw)
+                logger.warning("解码失败, 回退GBK: %.20s", raw)
                 text = raw.decode("gbk", errors="ignore")
                 self.encoding = "gbk"
             self.data_received.emit(text)
