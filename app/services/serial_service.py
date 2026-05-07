@@ -22,7 +22,7 @@ class SerialService(QObject):
     timeout_detected = Signal()  # timeout signal (Controller decides how to handle)
     error_occurred = Signal(str)
 
-    def __init__(self, timeout_millis: int):
+    def __init__(self, timeout_millis: int) -> None:
         super().__init__()
 
         self.serial = SerialCommunication()
@@ -42,7 +42,7 @@ class SerialService(QObject):
         self.serial.open(port, baud)
         self.timer.start(self.timeout_millis)
 
-    def close(self):
+    def close(self) -> None:
         try:
             self.timer.stop()
             self.serial.close()
@@ -53,9 +53,9 @@ class SerialService(QObject):
     # ============================================================
     # Serial data entry point
     # ============================================================
-    def _on_raw_data(self, raw: str):
+    def _on_raw_data(self, raw: str) -> None:
         self.timer.start(self.timeout_millis)
         self.data_received.emit(raw)
 
-    def _on_timeout(self):
+    def _on_timeout(self) -> None:
         self.timeout_detected.emit()

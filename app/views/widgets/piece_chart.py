@@ -7,17 +7,17 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 #   Custom horizontal axis: fixed decimal places
 # ============================
 class FixedAxis(pg.AxisItem):
-    def __init__(self, orientation):
+    def __init__(self, orientation) -> None:
         super().__init__(orientation=orientation)
         self.decimals = 2
 
-    def tickStrings(self, values, scale, spacing):
+    def tickStrings(self, values, scale, spacing) -> list[str]:
         fmt = f"{{:.{self.decimals}f}}"
         return [fmt.format(v) for v in values]
 
 
 class PieceChart(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
         self.data_list: list[float] = []
@@ -74,13 +74,13 @@ class PieceChart(QWidget):
         scene = self.plot.scene()
         scene.sigMouseMoved.connect(self.on_mouse_moved)
 
-    def _reset(self):
+    def _reset(self) -> None:
         self.data_list = []
         self.scatter.setData([])
         self.hover_point.setData([])
         self.plot.getAxis("left").setTicks([])
 
-    def update_chart(self, new_list: list[float], decimal_places: int = 2):
+    def update_chart(self, new_list: list[float], decimal_places: int = 2) -> None:
         self.data_list = list(new_list)
         self._decimal_places = decimal_places
 

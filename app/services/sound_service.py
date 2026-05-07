@@ -20,32 +20,32 @@ class SoundService(QObject):
 
     soundError = Signal(str)  # report sound errors to UI
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.sound_manager = SoundManager()
 
     # ============================================================
     # Error sound (counting abnormal)
     # ============================================================
-    def play_error(self):
+    def play_error(self) -> None:
         self._play(ResourceManager.get_resource("app/resources/sounds/error.wav"))
 
     # ============================================================
     # Target reached alert sound
     # ============================================================
-    def play_alert(self):
+    def play_alert(self) -> None:
         self._play(ResourceManager.get_resource("app/resources/sounds/alert.wav"))
 
     # ============================================================
     # Stop all sounds
     # ============================================================
-    def stop(self):
+    def stop(self) -> None:
         self.sound_manager.stop()
 
     # ============================================================
     # Internal unified play logic
     # ============================================================
-    def _play(self, file_name: str):
+    def _play(self, file_name: str) -> None:
         success, error_msg = self.sound_manager.play(file_name)
         if not success:
             logger.error("播放失败: %s", error_msg)

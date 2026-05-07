@@ -3,6 +3,7 @@
 from PySide6.QtCore import QObject
 
 from app.models.biz_result import BizResult, BizState
+from app.models.parameter_manager import ParameterManager
 from app.models.piece_counter import CounterState, PieceCounter
 
 
@@ -19,7 +20,7 @@ class CounterService(QObject):
     - Consume edge flags (consume_*), avoiding external direct state manipulation
     """
 
-    def __init__(self, params):
+    def __init__(self, params: ParameterManager) -> None:
         super().__init__()
 
         self.params = params
@@ -51,7 +52,7 @@ class CounterService(QObject):
     # ============================================================
     # Parameter update
     # ============================================================
-    def apply_params(self):
+    def apply_params(self) -> None:
         self.counter.set_initial_single_pieces(self.params.initial_single_pieces)
         self.counter.set_max_batch_pieces(self.params.max_batch_pieces)
         self.counter.set_tolerance_percent(self.params.tolerance_percent)
@@ -125,16 +126,16 @@ class CounterService(QObject):
     # ============================================================
     # Force accept / Clear abnormal
     # ============================================================
-    def force_accept(self, stable_weight: float):
+    def force_accept(self, stable_weight: float) -> None:
         self.counter.force_accept(stable_weight, self.params.force_pieces)
 
-    def clear_abnormal(self, stable_weight: float):
+    def clear_abnormal(self, stable_weight: float) -> None:
         self.counter.clear_abnormal(stable_weight)
 
     # ============================================================
     # Reset
     # ============================================================
-    def reset(self):
+    def reset(self) -> None:
         self.counter.reset()
         self.abnormal_edge = False
         self.target_edge = False

@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 
 
 class PieceTable(QTableWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
         self._data: list[float] = []
@@ -40,7 +40,7 @@ class PieceTable(QTableWidget):
         # Key: increase header height
         header.setFixedHeight(40)
 
-    def reset(self):
+    def reset(self) -> None:
         self.setRowCount(0)
         self._data.clear()
 

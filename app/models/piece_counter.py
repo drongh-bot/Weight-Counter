@@ -250,7 +250,7 @@ class PieceCounter:
         self._sync_all()
 
     @property
-    def total_pieces(self):
+    def total_pieces(self) -> int:
         return len(self.piece_weights)
 
     # ---------------------------------------------------------

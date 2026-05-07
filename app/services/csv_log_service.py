@@ -24,7 +24,7 @@ class CsvLogService(QObject):
 
     error_occurred = Signal(str)
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         base = ResourceManager.get_external_root() / "log"
         self.production_writer: CsvWriter | None = CsvWriter(base / "production", ("Time", "Weight", "Total"))
