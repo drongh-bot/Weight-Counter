@@ -34,7 +34,7 @@ class ConfigManager:
             return
 
         self.path = ResourceManager.get_external_root() / "config.toml"
-        self.data = {}
+        self.data: dict[str, dict[str, Any]] = {}
         self._initialized = True
 
     # ------------------------------------------------------------

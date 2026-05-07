@@ -92,6 +92,7 @@ class WeightStabilityChecker:
         if self.locked:
             unlock_threshold = base_threshold * self.unlock_factor
 
+            assert self.locked_weight is not None
             if abs(weight - self.locked_weight) > unlock_threshold:
                 # Exceeded unlock threshold, increment confirmation count
                 self.unlock_pending += 1
@@ -117,6 +118,7 @@ class WeightStabilityChecker:
         # ============================================================
 
         # Skip early frames (common practice in industrial weighing)
+        assert self.long_win.maxlen is not None
         if len(self.long_win) < self.long_win.maxlen:
             self.stable_counter = 0
             return None

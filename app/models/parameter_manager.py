@@ -29,11 +29,11 @@ class ParameterManager:
         self.initial_mini_weight: float = defaults["initial_mini_weight"]
         self.tolerance_percent: float = defaults["tolerance_percent"]
         self.stability_threshold: float = defaults["stability_threshold"]
-        self.max_batch_pieces: int = defaults["max_batch_pieces"]
-        self.initial_single_pieces: int = defaults["initial_single_pieces"]
-        self.force_pieces: int = defaults["force_pieces"]
-        self.target_pieces: int = defaults["target_pieces"]
-        self.decimal_places: int = defaults["decimal_places"]
+        self.max_batch_pieces: int = int(defaults["max_batch_pieces"])
+        self.initial_single_pieces: int = int(defaults["initial_single_pieces"])
+        self.force_pieces: int = int(defaults["force_pieces"])
+        self.target_pieces: int = int(defaults["target_pieces"])
+        self.decimal_places: int = int(defaults["decimal_places"])
 
         self.config = ConfigManager()
 

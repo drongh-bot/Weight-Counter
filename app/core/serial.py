@@ -47,7 +47,7 @@ class SerialCommunication(QObject):
 
     def on_ready_read(self) -> None:
         while self.serial.canReadLine():
-            raw = self.serial.readLine().data()
+            raw = bytes(self.serial.readLine().data())
             try:
                 text = raw.decode("utf-8")
                 self.encoding = "utf-8"

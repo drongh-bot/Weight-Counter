@@ -3,7 +3,7 @@ import csv
 import datetime
 import threading
 from pathlib import Path
-from typing import TextIO
+from typing import Any, TextIO
 
 
 class Logger:
@@ -16,7 +16,7 @@ class Logger:
         self.header: tuple[str, ...] = header
 
         self.file: TextIO | None = None
-        self.writer: csv.writer | None = None
+        self.writer: Any = None
         self.filepath: Path | None = None
         self.current_date: datetime.date | None = None
         self.lock: threading.Lock = threading.Lock()
@@ -62,6 +62,8 @@ class Logger:
         self._ensure_file()
 
         try:
+            assert self.writer is not None
+            assert self.file is not None
             self.writer.writerow([timestamp, col1, col2])
             self.file.flush()
         except Exception as e:

@@ -41,7 +41,7 @@ class ResourceManager:
             return ResourceManager._resource_root_cache
 
         if ResourceManager.is_frozen():
-            root = Path(sys._MEIPASS)
+            root = Path(getattr(sys, "_MEIPASS", ""))
             ResourceManager._resource_root_cache = root
             return root
 
