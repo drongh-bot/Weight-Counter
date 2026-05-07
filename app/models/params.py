@@ -11,7 +11,7 @@ class Params:
     tolerance_percent: float = 10.0
     stability_threshold: float = 0.02
     max_batch_pieces: int = 1
-    initial_single_pieces: int = 1
+    initial_single_pieces: int = 4
     target_pieces: int = 100
     decimal_places: int = 2
 

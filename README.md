@@ -24,8 +24,8 @@ Serial Port
 ```
 app/
 ├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
-├── models/                Pure business logic (PieceCounter, WeightStabilityChecker)
-├── services/              Service layer (serial, checker, counter, sound, log, ui)
+├── models/                Pure business logic (PieceCounter, WeightStabilityChecker, Params)
+├── services/              Service layer (serial, checker, counter, sound, log, config, ui)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets
@@ -70,6 +70,11 @@ uv run main.py
 ---
 
 ## Config
+
+`config.toml` is the only configuration file. It is managed by:
+
+- **`Params`** (`app/models/params.py`) — pure `@dataclass` with all 22 typed fields, no I/O
+- **`ConfigService`** (`app/services/config_service.py`) — loads/saves `Params` ↔ `config.toml`
 
 Edit `config.toml`:
 

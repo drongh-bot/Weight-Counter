@@ -34,7 +34,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     ):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle("称重计数 v1.3.2")
+        self.setWindowTitle("称重计数 v1.3.3")
 
         self.setWindowIcon(
             QIcon(ResourceManager.get_resource("app/resources/icons/app.ico"))

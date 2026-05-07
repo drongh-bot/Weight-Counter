@@ -7,8 +7,8 @@ Industrial piece-counting desktop application — PySide6 + MVVM + Dependency In
 ```
 app/
 ├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
-├── models/                Pure business logic (PieceCounter, WeightStabilityChecker)
-├── services/              Service layer (serial, checker, counter, sound, csv_log, ui)
+├── models/                Pure business logic (PieceCounter, WeightStabilityChecker, Params)
+├── services/              Service layer (serial, checker, counter, sound, csv_log, config, ui)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets
@@ -22,7 +22,7 @@ app/
 - **CQS**: PieceCounter mutates state (Command), CounterService queries and builds results
 - **Signal-driven UI**: UIService emits `ui_changed`; MainWindow renders, never touches business logic
 - **No bare attribute access**: Controller communicates with services through methods only
-- **Model layer is Qt-free**: unit-testable without a GUI
+- **Model layer is Qt-free**: unit-testable without a GUI, no I/O (see Params vs ConfigService split)
 
 ## Tech Stack
 
@@ -82,6 +82,9 @@ The app requires a serial port with a connected electronic scale. Without hardwa
 ## Config
 
 `config.toml` controls serial port, baud rate, weight params, counting tolerance, etc.
+
+- **`Params`** (`app/models/params.py`): `@dataclass` holding all config values — pure data, no I/O.
+- **`ConfigService`** (`app/services/config_service.py`): loads `Params` from TOML, persists `Params` back to TOML.
 
 ## Core Algorithms
 
