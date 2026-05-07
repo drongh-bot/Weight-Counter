@@ -4,7 +4,7 @@ from PySide6.QtTest import QSignalSpy
 
 from app.controllers.main_controller import MainController, PendingAction
 from app.models.biz_result import BizState
-from app.models.parameter_manager import ParameterManager
+from app.models.params import Params
 from app.services.checker_service import CheckerService
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
@@ -16,8 +16,7 @@ from app.services.ui.ui_service import UIService
 class TestControllerPipeline:
     @staticmethod
     def _make_controller(qapp):
-        params = ParameterManager()
-        params.load()
+        params = Params()
         params.target_pieces = 10
         params.max_batch_pieces = 4
 

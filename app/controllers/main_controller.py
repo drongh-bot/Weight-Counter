@@ -5,7 +5,7 @@ from enum import Enum, auto
 from PySide6.QtCore import QObject
 
 from app.models.biz_result import BizResult, BizState
-from app.models.parameter_manager import ParameterManager
+from app.models.params import Params
 from app.services.checker_service import CheckerService
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
@@ -32,7 +32,7 @@ class MainController(QObject):
         checker_service: CheckerService,
         sound_service: SoundService,
         csv_log_service: CsvLogService,
-        params: ParameterManager,
+        params: Params,
     ):
         super().__init__()
 
@@ -42,7 +42,7 @@ class MainController(QObject):
         self.checker_service: CheckerService = checker_service
         self.sound_service: SoundService = sound_service
         self.csv_log_service: CsvLogService = csv_log_service
-        self.params: ParameterManager = params
+        self.params: Params = params
 
         self.running: bool = False
         self._pending_action: PendingAction = PendingAction.NONE

@@ -3,7 +3,7 @@ import logging
 
 from PySide6.QtCore import QObject
 
-from app.models.parameter_manager import ParameterManager
+from app.models.params import Params
 from app.models.weight_stability_checker import WeightStabilityChecker
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ class CheckerService(QObject):
     - Provides parse() / check() / reset()
     """
 
-    def __init__(self, params: ParameterManager) -> None:
+    def __init__(self, params: Params) -> None:
         super().__init__()
 
         self.params = params

@@ -7,8 +7,8 @@ from PySide6.QtWidgets import QApplication
 from app.controllers.main_controller import MainController
 from app.core.log_config import setup_logging
 from app.core.resource_manager import ResourceManager
-from app.models.parameter_manager import ParameterManager
 from app.services.checker_service import CheckerService
+from app.services.config_service import ConfigService
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
@@ -26,12 +26,12 @@ def main():
     setup_logging(ResourceManager.get_external_root() / "log")
 
     # ---------------- Parameters ----------------
-    params = ParameterManager()
-    params.load()
+    config_service = ConfigService()
+    params = config_service.load(ResourceManager.get_external_root() / "config.toml")
 
     # ---------------- Service Layer ----------------
     ui_service = UIService()
-    serial_service = SerialService(params.serial_timeout_millis)
+    serial_service = SerialService(params.timeout_millis)
     counter_service = CounterService(params)
     checker_service = CheckerService(params)
     sound_service = SoundService()
@@ -53,6 +53,7 @@ def main():
         ui_service=ui_service,
         controller=controller,
         params=params,
+        config_service=config_service,
     )
     window.show()
 

@@ -1,4 +1,4 @@
-from app.models.parameter_manager import ParameterManager
+from app.models.params import Params
 from app.services.checker_service import CheckerService
 
 
@@ -58,6 +58,5 @@ class TestCheckerServiceParse:
 
     @staticmethod
     def _make_service() -> CheckerService:
-        params = ParameterManager()
-        params.load()
+        params = Params()
         return CheckerService(params)

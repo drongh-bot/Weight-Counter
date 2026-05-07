@@ -3,7 +3,7 @@
 from PySide6.QtCore import QObject
 
 from app.models.biz_result import BizResult, BizState
-from app.models.parameter_manager import ParameterManager
+from app.models.params import Params
 from app.models.piece_counter import CounterState, PieceCounter
 
 
@@ -20,7 +20,7 @@ class CounterService(QObject):
     - Consume edge flags (consume_*), avoiding external direct state manipulation
     """
 
-    def __init__(self, params: ParameterManager) -> None:
+    def __init__(self, params: Params) -> None:
         super().__init__()
 
         self.params = params

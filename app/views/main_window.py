@@ -13,7 +13,8 @@ from PySide6.QtWidgets import (
 
 from app.controllers.main_controller import MainController
 from app.core.resource_manager import ResourceManager
-from app.models.parameter_manager import ParameterManager
+from app.models.params import Params
+from app.services.config_service import ConfigService
 from app.services.ui.models import LabelItem, UIData
 from app.services.ui.ui_service import UIService
 from app.views.ui_generated.form import Ui_MainWindow
@@ -28,7 +29,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self,
         ui_service: UIService,
         controller: MainController,
-        params: ParameterManager,
+        params: Params,
+        config_service: ConfigService,
     ):
         super().__init__()
         self.setupUi(self)
@@ -40,7 +42,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.ui_service: UIService = ui_service
         self.controller: MainController = controller
-        self.params: ParameterManager = params
+        self.params: Params = params
+        self.config_service: ConfigService = config_service
 
         self.init_port_list()
         self.init_baud_rate_list()
@@ -175,8 +178,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._sync_ui_to_params()
         self.params.port = self.cbPort.currentText()
         self.params.baud_rate = int(self.cbBaudRate.currentText())
-        self.params.set_value("ui", "splitter_sizes", self.splitter.sizes())
-        self.params.save()
+        self.params.splitter_sizes = self.splitter.sizes()
+        self.config_service.save(
+            self.params, ResourceManager.get_external_root() / "config.toml"
+        )
 
     def _load_params_to_ui(self) -> None:
         self.dspnInitialMiniWeight.setValue(self.params.initial_mini_weight)
@@ -222,15 +227,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.cbBaudRate.addItems(baud_rate_list)
 
     def load_settings(self) -> None:
-        ui_config = self.params._data.get("ui", {})
-
-        sizes = ui_config.get("splitter_sizes", [400, 600])
-        if isinstance(sizes, list):
-            try:
-                sizes = [int(x) for x in sizes]
-            except Exception:
-                logger.warning("splitter_sizes格式错误, 使用默认值")
-                sizes = [400, 600]
+        sizes = self.params.splitter_sizes
+        if not isinstance(sizes, list):
+            sizes = [400, 600]
+        try:
+            sizes = [int(x) for x in sizes]
+        except Exception:
+            logger.warning("splitter_sizes格式错误, 使用默认值")
+            sizes = [400, 600]
         self.splitter.setSizes(sizes)
 
         self.cbPort.setCurrentText(self.params.port)

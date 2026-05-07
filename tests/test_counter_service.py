@@ -1,5 +1,5 @@
 from app.models.biz_result import BizState
-from app.models.parameter_manager import ParameterManager
+from app.models.params import Params
 from app.models.piece_counter import CounterState
 from app.services.counter_service import CounterService
 
@@ -7,8 +7,7 @@ from app.services.counter_service import CounterService
 class TestCounterServiceProcess:
     @staticmethod
     def _make_service(target=100):
-        params = ParameterManager()
-        params.load()
+        params = Params()
         params.target_pieces = target
         return CounterService(params)
 
