@@ -14,8 +14,8 @@ class WeightStabilityChecker:
 
     def __init__(
         self,
-        short_win: int = 4,
-        long_win: int = 8,
+        short_win: int = 5,
+        long_win: int = 10,
         stable_count: int = 3,
         unlock_confirm: int = 2,
         unlock_factor: float = 2.5,

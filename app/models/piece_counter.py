@@ -171,9 +171,9 @@ class PieceCounter:
     def __init__(
         self,
         initial_mini_weight: float = 0.5,
-        tolerance_percent: float = 10.0,
+        tolerance_percent: float = 20.0,
         stability_threshold: float = 0.02,
-        max_batch_pieces: int = 4,
+        max_batch_pieces: int = 1,
         initial_single_pieces: int = 5,
         decimal_places: int = 2,
         dynamic_weight_ratio: float = 0.5,
