@@ -124,18 +124,17 @@ class PieceChart(QWidget):
         self.plot.getAxis("left").setTicks([ticks])
 
         # Y range
-        window = self._WINDOW
-        if count <= window:
+        if count <= self._WINDOW:
             y_min, y_max = 0.0, float(count + 1)
         elif self._follow_latest:
-            y_min = float(count - window + 1)
+            y_min = float(count - self._WINDOW + 1)
             y_max = float(count + 1)
         else:
             y_min, y_max = self.plot.viewRange()[1]
 
         self._apply_y_range(y_min, y_max)
 
-        self.scrollbar.setVisible(count > window)
+        self.scrollbar.setVisible(count > self._WINDOW)
 
         # X range
         vrange = self.plot.viewRange()[1]
@@ -220,18 +219,9 @@ class PieceChart(QWidget):
 
         ymin = ranges[1][0]
         ymax = ranges[1][1]
-        count = len(self.data_list)
-        self._follow_latest = ymax >= count - 0.5
+        self._follow_latest = ymax >= len(self.data_list) - 0.5
 
-        height = int(ymax - ymin)
-        value = max(0, count - height - int(ymin) + 1)
-        top = max(0, count - height)
-
-        self.scrollbar.blockSignals(True)
-        self.scrollbar.setRange(0, top)
-        self.scrollbar.setPageStep(height)
-        self.scrollbar.setValue(min(value, top))
-        self.scrollbar.blockSignals(False)
+        self._sync_scrollbar(ymin, ymax)
 
     # ---------------------------------------------------------
     #  Internal
@@ -240,10 +230,12 @@ class PieceChart(QWidget):
         self._setting_range = True
         self.plot.setYRange(y_min, y_max, padding=0)
 
-        if not self.scrollbar.isVisible():
-            self._setting_range = False
-            return
+        if self.scrollbar.isVisible():
+            self._sync_scrollbar(y_min, y_max)
 
+        self._setting_range = False
+
+    def _sync_scrollbar(self, y_min: float, y_max: float) -> None:
         height = int(y_max - y_min)
         count = len(self.data_list)
         value = max(0, count - height - int(y_min) + 1)
@@ -254,8 +246,6 @@ class PieceChart(QWidget):
         self.scrollbar.setPageStep(height)
         self.scrollbar.setValue(min(value, top))
         self.scrollbar.blockSignals(False)
-
-        self._setting_range = False
 
     def _reset(self) -> None:
         self.data_list = []

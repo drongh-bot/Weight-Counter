@@ -19,7 +19,6 @@ class PieceTable(QTableWidget):
 
         # Enable vertical header to display row index
         vertical_header = self.verticalHeader()
-        vertical_header.setVisible(True)
         vertical_header.setFixedWidth(40)
 
         # Key: align index to the right
