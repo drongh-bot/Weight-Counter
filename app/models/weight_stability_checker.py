@@ -90,26 +90,20 @@ class WeightStabilityChecker:
         # ============================================================
 
         if self.locked:
+            assert self.locked_weight is not None
             unlock_threshold = base_threshold * self.unlock_factor
 
-            assert self.locked_weight is not None
             if abs(weight - self.locked_weight) > unlock_threshold:
-                # Exceeded unlock threshold, increment confirmation count
                 self.unlock_pending += 1
-
-                if self.unlock_pending >= self.unlock_confirm_required:
-                    # Actually Unlock
-                    self.locked = False
-                    self.locked_weight = None
-                    self.unlock_pending = 0
-                    self.stable_counter = 0
-                else:
-                    # Still Remain Locked
-                    self.last_stable_weight = self.locked_weight
-                    return self.locked_weight
             else:
-                # Not exceeded unlock threshold, clear pending
                 self.unlock_pending = 0
+
+            if self.unlock_pending >= self.unlock_confirm_required:
+                self.locked = False
+                self.locked_weight = None
+                self.unlock_pending = 0
+                self.stable_counter = 0
+            else:
                 self.last_stable_weight = self.locked_weight
                 return self.locked_weight
 

@@ -50,7 +50,8 @@ class MainController(QObject):
 
         self.serial_service.data_received.connect(self._on_raw_data)
         self.serial_service.timeout_detected.connect(self._on_timeout)
-        self.serial_service.error_occurred.connect(self._on_error)
+        self.serial_service.error_occurred.connect(self._on_serial_error)
+        self.csv_log_service.error_occurred.connect(self._on_csv_error)
 
         self._update_ui(self.counter_service.current_result(), None)
 
@@ -126,7 +127,7 @@ class MainController(QObject):
             self.counter_service.current_result(), None, parse_ok=False, comm_ok=False
         )
 
-    def _on_error(self, msg: str) -> None:
+    def _on_serial_error(self, msg: str) -> None:
         self._update_ui(
             self.counter_service.current_result(),
             None,
@@ -134,6 +135,9 @@ class MainController(QObject):
             comm_ok=False,
             exception_text=msg,
         )
+
+    def _on_csv_error(self, msg: str) -> None:
+        self._update_ui(self.counter_service.current_result(), None, exception_text=msg)
 
     # ============================================================
     # User Actions

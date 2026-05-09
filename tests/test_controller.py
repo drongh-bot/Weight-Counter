@@ -67,7 +67,7 @@ class TestControllerPipeline:
         controller, ui = self._make_controller(qapp)
         spy = QSignalSpy(ui.ui_changed)
 
-        controller._on_error("测试错误")
+        controller._on_serial_error("测试错误")
 
         assert spy.count() >= 1
         d = self._last_ui(spy)
@@ -177,9 +177,7 @@ class TestControllerPipeline:
         spy = QSignalSpy(ui.ui_changed)
 
         controller.running = True
-        controller._update_ui(
-            controller.counter_service.current_result(), 10.0
-        )
+        controller._update_ui(controller.counter_service.current_result(), 10.0)
 
         d = self._last_ui(spy)
         assert d.button_state.start is False
