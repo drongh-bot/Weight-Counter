@@ -359,10 +359,9 @@ class PieceCounter:
 
         # Must first approach the base point
         # Use 1.5x, leave some margin for physical error
-        relax_factor = self.abnormal_recover_factor
         if (
-            abs(stable_weight - self.last_base_weight)
-            > self.thresholds.recover_threshold * relax_factor
+            abs(current_delta)
+            > self.thresholds.recover_threshold * self.abnormal_recover_factor
         ):
             return
 
