@@ -149,7 +149,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.spnForcePieces.valueChanged.connect(self._sync_ui_to_params)
         self.spnTargetPieces.valueChanged.connect(self._sync_ui_to_params)
         self.spnDecimalPlaces.valueChanged.connect(self._sync_ui_to_params)
-        self.spnDecimalPlaces.valueChanged.connect(self._on_decimal_places_changed)
+        self.spnDecimalPlaces.valueChanged.connect(self._decimal_places_changed)
 
     def start(self) -> None:
         port = self.cbPort.currentText()
@@ -202,7 +202,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.params.target_pieces = int(self.spnTargetPieces.value())
         self.params.decimal_places = int(self.spnDecimalPlaces.value())
 
-    def _on_decimal_places_changed(self) -> None:
+    def _decimal_places_changed(self) -> None:
         places = int(self.spnDecimalPlaces.value())
         self.pieceTable.set_decimal_places(places)
         self.pieceChart.set_decimal_places(places)
