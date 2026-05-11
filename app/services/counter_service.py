@@ -2,9 +2,10 @@
 
 from PySide6.QtCore import QObject
 
-from app.models.biz_result import BizResult, BizState
+from app.models.biz_result import BizResult
 from app.models.params import Params
-from app.models.piece_counter import CounterState, PieceCounter
+from app.models.counter_state import CounterState
+from app.models.piece_counter import PieceCounter
 
 
 class CounterService(QObject):
@@ -26,12 +27,12 @@ class CounterService(QObject):
         self.params = params
 
         # edge trigger flags
-        self.abnormal_edge = False
-        self.target_edge = False
-        self.prev_reached_target = False
+        self._abnormal_edge = False
+        self._target_edge = False
+        self._previously_reached_target = False
 
         # core counter
-        self.counter = PieceCounter(
+        self._piece_counter = PieceCounter(
             initial_mini_weight=params.initial_mini_weight,
             tolerance_percent=params.tolerance_percent,
             stability_threshold=params.stability_threshold,
@@ -53,27 +54,27 @@ class CounterService(QObject):
     # Parameter update
     # ============================================================
     def apply_params(self) -> None:
-        self.counter.set_initial_single_pieces(self.params.initial_single_pieces)
-        self.counter.set_max_batch_pieces(self.params.max_batch_pieces)
-        self.counter.set_tolerance_percent(self.params.tolerance_percent)
+        self._piece_counter.set_initial_single_pieces(self.params.initial_single_pieces)
+        self._piece_counter.set_max_batch_pieces(self.params.max_batch_pieces)
+        self._piece_counter.set_tolerance_percent(self.params.tolerance_percent)
 
     # ============================================================
     # Core: process stable weight (event result)
     # ============================================================
     def process(self, stable_weight: float) -> BizResult:
-        old_count = self.counter.total_pieces
-        old_state = self.counter.state
+        old_count = self._piece_counter.total_pieces
+        old_state = self._piece_counter.state
 
         # process weight
-        self.counter.process(stable_weight)
+        self._piece_counter.process(stable_weight)
 
-        new_count = self.counter.total_pieces
-        new_state = self.counter.state
+        new_count = self._piece_counter.total_pieces
+        new_state = self._piece_counter.state
 
         # -------------------------
         # Abnormal edge trigger
         # -------------------------
-        self.abnormal_edge = (
+        self._abnormal_edge = (
             old_state != CounterState.ABNORMAL and new_state == CounterState.ABNORMAL
         )
 
@@ -81,9 +82,9 @@ class CounterService(QObject):
         # Target edge trigger
         # -------------------------
         target = self.params.target_pieces
-        curr_reached = 0 < target == new_count and new_state == CounterState.NORMAL
-        self.target_edge = (not self.prev_reached_target) and curr_reached
-        self.prev_reached_target = curr_reached
+        reached = 0 < target == new_count and new_state == CounterState.NORMAL
+        self._target_edge = (not self._previously_reached_target) and reached
+        self._previously_reached_target = reached
 
         # -------------------------
         # Whether added in this cycle
@@ -96,62 +97,54 @@ class CounterService(QObject):
         return self._build_result(added=added)
 
     # ============================================================
-    # State mapping + result construction
+    # Result construction
     # ============================================================
-    @staticmethod
-    def _map_state(state: CounterState) -> BizState:
-        if state == CounterState.ZERO:
-            return BizState.ZERO
-        if state == CounterState.NORMAL:
-            return BizState.NORMAL
-        return BizState.ABNORMAL
-
     def _build_result(self, added: bool = False) -> BizResult:
         return BizResult(
             added=added,
-            abnormal_high=self.counter.high,
-            abnormal_low=self.counter.low,
-            state=self._map_state(self.counter.state),
-            delta=self.counter.delta,
-            avg_weight=self.counter.avg_weight,
-            tol_high=self.counter.tolerance.high,
-            tol_low=self.counter.tolerance.low,
-            total_pieces=self.counter.total_pieces,
-            last_stable_weight=self.counter.last_stable_weight,
-            last_base_weight=self.counter.last_base_weight,
-            weights=self.counter.piece_weights,
-            decimal_places=self.counter.decimal_places,
+            abnormal_high=self._piece_counter.abnormal_high,
+            abnormal_low=self._piece_counter.abnormal_low,
+            state=self._piece_counter.state,
+            delta=self._piece_counter.delta,
+            avg_weight=self._piece_counter.avg_weight,
+            tol_high=self._piece_counter.tolerance.high,
+            tol_low=self._piece_counter.tolerance.low,
+            total_pieces=self._piece_counter.total_pieces,
+            last_stable_weight=self._piece_counter.last_stable_weight,
+            last_base_weight=self._piece_counter.last_base_weight,
+            weights=self._piece_counter.piece_weights,
+            decimal_places=self._piece_counter.decimal_places,
         )
 
     # ============================================================
     # Force accept / Clear abnormal
     # ============================================================
     def force_accept(self, stable_weight: float, pieces: int) -> None:
-        self.counter.force_accept(stable_weight, pieces)
+        self._piece_counter.force_accept(stable_weight, pieces)
 
     def clear_abnormal(self, stable_weight: float) -> None:
-        self.counter.clear_abnormal(stable_weight)
+        self._piece_counter.clear_abnormal(stable_weight)
 
     # ============================================================
     # Reset
     # ============================================================
     def reset(self) -> None:
-        self.counter.reset()
-        self.abnormal_edge = False
-        self.target_edge = False
-        self.prev_reached_target = False
+        self._piece_counter.reset()
+        self._abnormal_edge = False
+        self._target_edge = False
+        self._previously_reached_target = False
 
     # ============================================================
     # Edge flag consumption (read-then-clear, decouples external raw assignment)
     # ============================================================
     def consume_abnormal_edge(self) -> bool:
-        result = self.abnormal_edge
-        self.abnormal_edge = False
+        result = self._abnormal_edge
+        self._abnormal_edge = False
         return result
 
     def consume_target_edge(self) -> bool:
-        result = self.target_edge
-        self.target_edge = False
+        result = self._target_edge
+        self._target_edge = False
         return result
 
     # ============================================================

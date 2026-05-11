@@ -1,5 +1,6 @@
-from app.models.biz_result import BizResult, BizState
-from app.services.ui.builders import BizBuilder, StatusBuilder
+from app.models.biz_result import BizResult
+from app.models.counter_state import CounterState
+from app.services.ui.builders import BizBuilder, BarStatusBuilder
 from app.services.ui.styles import Styles
 
 
@@ -9,7 +10,7 @@ class TestBizBuilder:
             added=False,
             abnormal_high=False,
             abnormal_low=False,
-            state=BizState.ZERO,
+            state=CounterState.ZERO,
             delta=0.0,
             avg_weight=0.0,
             tol_high=0.0,
@@ -29,7 +30,7 @@ class TestBizBuilder:
             added=True,
             abnormal_high=False,
             abnormal_low=False,
-            state=BizState.NORMAL,
+            state=CounterState.NORMAL,
             delta=10.0,
             avg_weight=10.0,
             tol_high=11.0,
@@ -52,7 +53,7 @@ class TestBizBuilder:
             added=False,
             abnormal_high=True,
             abnormal_low=False,
-            state=BizState.ABNORMAL,
+            state=CounterState.ABNORMAL,
             delta=15.0,
             avg_weight=10.0,
             tol_high=11.0,
@@ -64,15 +65,15 @@ class TestBizBuilder:
         )
         data = BizBuilder.build(biz)
         assert data.state.text == "异常（偏高）"
-        assert data.state.style == Styles.ABN_HI
-        assert data.delta_weight.style == Styles.ABN_HI
+        assert data.state.style == Styles.ABNORMAL_HIGH
+        assert data.delta_weight.style == Styles.ABNORMAL_HIGH
 
     def test_abnormal_low_state(self):
         biz = BizResult(
             added=False,
             abnormal_high=False,
             abnormal_low=True,
-            state=BizState.ABNORMAL,
+            state=CounterState.ABNORMAL,
             delta=-5.0,
             avg_weight=10.0,
             tol_high=11.0,
@@ -84,15 +85,15 @@ class TestBizBuilder:
         )
         data = BizBuilder.build(biz)
         assert data.state.text == "异常（偏低）"
-        assert data.state.style == Styles.ABN_LO
-        assert data.delta_weight.style == Styles.ABN_LO
+        assert data.state.style == Styles.ABNORMAL_LOW
+        assert data.delta_weight.style == Styles.ABNORMAL_LOW
 
     def test_delta_formatting(self):
         biz = BizResult(
             added=False,
             abnormal_high=False,
             abnormal_low=False,
-            state=BizState.NORMAL,
+            state=CounterState.NORMAL,
             delta=3.14159,
             avg_weight=10.0,
             tol_high=11.0,
@@ -110,9 +111,9 @@ class TestBizBuilder:
         assert data.last_base_weight == "0.00"
 
 
-class TestStatusBuilder:
+class TestBarStatusBuilder:
     def test_parse_ok_comm_ok(self):
-        status = StatusBuilder.build(parse_ok=True, comm_ok=True, exception_text="")
+        status = BarStatusBuilder.build(parse_ok=True, comm_ok=True, exception_text="")
         assert status.parse.text == "解析正常"
         assert status.parse.style == Styles.GREEN
         assert status.comm.text == "通讯正常"
@@ -121,7 +122,7 @@ class TestStatusBuilder:
         assert status.exception.style == ""
 
     def test_parse_fail_comm_fail(self):
-        status = StatusBuilder.build(parse_ok=False, comm_ok=False, exception_text=None)
+        status = BarStatusBuilder.build(parse_ok=False, comm_ok=False, exception_text=None)
         assert status.parse.text == "解析等待"
         assert status.parse.style == Styles.GRAY
         assert status.comm.text == "通讯等待"
@@ -129,8 +130,15 @@ class TestStatusBuilder:
         assert status.exception.text == "无异常"
         assert status.exception.style == ""
 
+    def test_parse_fail_comm_ok(self):
+        status = BarStatusBuilder.build(parse_ok=False, comm_ok=True, exception_text="")
+        assert status.parse.text == "解析异常"
+        assert status.parse.style == Styles.RED
+        assert status.comm.text == "通讯正常"
+        assert status.comm.style == Styles.GREEN
+
     def test_exception_display(self):
-        status = StatusBuilder.build(
+        status = BarStatusBuilder.build(
             parse_ok=True, comm_ok=True, exception_text="串口打开失败"
         )
         assert status.exception.text == "串口打开失败"

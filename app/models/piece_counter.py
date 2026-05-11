@@ -1,5 +1,5 @@
 # app/models/piece_counter.py
-from enum import Enum, auto
+from app.models.counter_state import CounterState
 
 
 # ============================================================
@@ -145,7 +145,7 @@ class Tolerance:
         # Single Piece Error (Take the Larger Side)
         self.half_range = max(avg_weight - self.low, self.high - avg_weight)
 
-    def match(self, delta_abs: float, n: int) -> bool:
+    def is_within_tolerance(self, delta_abs: float, n: int) -> bool:
         """
         sqrt(n) tolerance model: statistics-based total weight judgment
         """
@@ -161,10 +161,6 @@ class Tolerance:
 # ============================================================
 # Main Logic Class
 # ============================================================
-class CounterState(Enum):
-    ZERO = auto()
-    NORMAL = auto()
-    ABNORMAL = auto()
 
 
 class PieceCounter:
@@ -226,8 +222,8 @@ class PieceCounter:
         self.last_stable_weight: float = 0.0
         self.delta: float = 0.0
         self.state: CounterState = CounterState.ZERO
-        self.high: bool = False
-        self.low: bool = False
+        self.abnormal_high: bool = False
+        self.abnormal_low: bool = False
         self.avg_weight: float = 0.0
         self.abnormal_weight: float = 0.0
 
@@ -241,8 +237,8 @@ class PieceCounter:
         self.delta = 0.0
 
         self.state = CounterState.ZERO
-        self.high = False
-        self.low = False
+        self.abnormal_high = False
+        self.abnormal_low = False
 
         self.avg_weight = 0.0
 
@@ -313,7 +309,7 @@ class PieceCounter:
             else self.max_batch_pieces
         )
 
-        n = self._match_piece_count(self.delta, limit)
+        n = self._try_match_piece_count(self.delta, limit)
 
         if n is not None:
             if self.delta > 0:
@@ -325,8 +321,8 @@ class PieceCounter:
         else:
             # Match Failed → Abnormal
             self.state = CounterState.ABNORMAL
-            self.high = self.delta > 0
-            self.low = self.delta < 0
+            self.abnormal_high = self.delta > 0
+            self.abnormal_low = self.delta < 0
             self.abnormal_weight = stable_weight
 
     # ---------------------------------------------------------
@@ -337,23 +333,23 @@ class PieceCounter:
         current_delta = stable_weight - self.last_base_weight
 
         # If direction reverses, update high/low and abnormal reference point
-        if current_delta > 0 and not self.high:
-            self.high = True
-            self.low = False
+        if current_delta > 0 and not self.abnormal_high:
+            self.abnormal_high = True
+            self.abnormal_low = False
             self.abnormal_weight = stable_weight
 
-        elif current_delta < 0 and not self.low:
-            self.low = True
-            self.high = False
+        elif current_delta < 0 and not self.abnormal_low:
+            self.abnormal_low = True
+            self.abnormal_high = False
             self.abnormal_weight = stable_weight
 
         # Add-piece abnormal → weight should decrease during recovery
-        if self.high and stable_weight > self.abnormal_weight:
+        if self.abnormal_high and stable_weight > self.abnormal_weight:
             self.abnormal_weight = stable_weight
             return
 
         # Remove-piece abnormal → weight should increase during recovery
-        if self.low and stable_weight < self.abnormal_weight:
+        if self.abnormal_low and stable_weight < self.abnormal_weight:
             self.abnormal_weight = stable_weight
             return
 
@@ -373,8 +369,8 @@ class PieceCounter:
     def clear_abnormal(self, stable_weight: float) -> None:
         if self.state == CounterState.ABNORMAL:
             self.state = CounterState.NORMAL
-            self.high = False
-            self.low = False
+            self.abnormal_high = False
+            self.abnormal_low = False
             self.abnormal_weight = 0.0
             self.last_stable_weight = stable_weight
             self.last_base_weight = stable_weight
@@ -412,7 +408,7 @@ class PieceCounter:
     def _update_delta(self, stable_weight: float) -> None:
         self.delta = stable_weight - self.last_base_weight
 
-    def _match_piece_count(self, delta: float, limit: int) -> int | None:
+    def _try_match_piece_count(self, delta: float, limit: int) -> int | None:
         if self.avg_weight <= 0:
             return None
 
@@ -426,7 +422,7 @@ class PieceCounter:
             return None
 
         # Tolerance Check
-        if not self.tolerance.match(abs(delta), n):
+        if not self.tolerance.is_within_tolerance(abs(delta), n):
             return None
 
         return n

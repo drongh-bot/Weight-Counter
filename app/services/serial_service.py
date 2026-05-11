@@ -53,9 +53,9 @@ class SerialService(QObject):
     # ============================================================
     # Serial data entry point
     # ============================================================
-    def _on_raw_data(self, raw: str) -> None:
+    def _on_raw_data(self, raw_data: str) -> None:
         self.timer.start(self.timeout_millis)
-        self.data_received.emit(raw)
+        self.data_received.emit(raw_data)
 
     def _on_timeout(self) -> None:
         self.timeout_detected.emit()

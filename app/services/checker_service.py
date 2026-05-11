@@ -23,7 +23,7 @@ class CheckerService(QObject):
         self.params = params
 
         # initialize stability checker (thresholds set once)
-        self.checker = WeightStabilityChecker(
+        self._stability_checker = WeightStabilityChecker(
             short_win=params.stability_short_win,
             long_win=params.stability_long_win,
             stable_count=params.stability_stable_count,
@@ -64,17 +64,17 @@ class CheckerService(QObject):
         """
         Returns the stable weight, or None if unstable
         """
-        return self.checker.update(weight)
+        return self._stability_checker.check_stability(weight)
 
     # ============================================================
     # Reset
     # ============================================================
     def reset(self) -> None:
-        self.checker.reset()
+        self._stability_checker.reset()
 
     # ============================================================
     # Last stable value
     # ============================================================
     @property
     def last_stable_weight(self) -> float | None:
-        return self.checker.last_stable_weight
+        return self._stability_checker.last_stable_weight

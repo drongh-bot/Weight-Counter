@@ -15,7 +15,7 @@ from app.controllers.main_controller import MainController
 from app.core.resource_manager import ResourceManager
 from app.models.params import Params
 from app.services.config_service import ConfigService
-from app.services.ui.models import LabelItem, UIData
+from app.services.ui.models import BizSnapshot, ButtonStatus, LabelItem, BarStatus
 from app.services.ui.ui_service import UIService
 from app.views.ui_generated.form import Ui_MainWindow
 from app.views.widgets.piece_chart import PieceChart
@@ -45,12 +45,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.params: Params = params
         self.config_service: ConfigService = config_service
 
-        self.init_port_list()
-        self.init_baud_rate_list()
+        self._init_port_list()
+        self._init_baud_rate_list()
 
         self._init_extra_widgets()
 
-        self.load_settings()
+        self._load_settings()
 
         self._load_params_to_ui()
 
@@ -63,59 +63,53 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _init_extra_widgets(self) -> None:
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
 
-        self.pieceTable = PieceTable(self.params.decimal_places)
-        self.pieceChart = PieceChart(self.params.decimal_places)
+        self.wgtPieceTable = PieceTable(self.params.decimal_places)
+        self.wgtPieceChart = PieceChart(self.params.decimal_places)
 
-        self.splitter.addWidget(self.pieceTable)
-        self.splitter.addWidget(self.pieceChart)
+        self.splitter.addWidget(self.wgtPieceTable)
+        self.splitter.addWidget(self.wgtPieceChart)
 
         self.rightPanel.layout().addWidget(self.splitter)
 
-        self.lbl_parse = QLabel()
-        self.lbl_comm = QLabel()
-        self.lbl_exception = QLabel()
+        self.lblParse = QLabel()
+        self.lblComm = QLabel()
+        self.lblException = QLabel()
 
-        for lbl in [self.lbl_parse, self.lbl_comm, self.lbl_exception]:
+        for lbl in [self.lblParse, self.lblComm, self.lblException]:
             lbl.setContentsMargins(5, 5, 5, 5)
             lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
         status_bar = self.statusBar()
         status_bar.setStyleSheet("QStatusBar::item { border: none; }")
-        status_bar.addWidget(self.lbl_parse, 1)
-        status_bar.addWidget(self.lbl_comm, 1)
-        status_bar.addWidget(self.lbl_exception, 1)
+        status_bar.addWidget(self.lblParse, 1)
+        status_bar.addWidget(self.lblComm, 1)
+        status_bar.addWidget(self.lblException, 1)
 
     def _bind_ui_service_signals(self) -> None:
-        self.ui_service.ui_changed.connect(self._on_ui_changed)
+        self.ui_service.actual_weight_changed.connect(self.lblActWeight.setText)
+        self.ui_service.bar_status_changed.connect(self._on_bar_status_changed)
+        self.ui_service.button_status_changed.connect(self._on_button_status_changed)
+        self.ui_service.biz_changed.connect(self._on_biz_changed)
 
-    def _on_ui_changed(self, data: UIData) -> None:
+    def _on_bar_status_changed(self, data: BarStatus) -> None:
+        self._apply_bar_label_item(data.parse, self.lblParse)
+        self._apply_bar_label_item(data.comm, self.lblComm)
+        self._apply_bar_label_item(data.exception, self.lblException)
+
+    def _on_button_status_changed(self, state: ButtonStatus) -> None:
+        self.btnStart.setEnabled(state.start)
+        self.btnStop.setEnabled(state.stop)
+        self.btnClear.setEnabled(state.clear)
+        self.btnForce.setEnabled(state.force)
+
+    def _on_biz_changed(self, biz: BizSnapshot) -> None:
         try:
-            # --- status bar ---
-            status = data.status
-            self._update_status_item(status.parse, self.lbl_parse)
-            self._update_status_item(status.comm, self.lbl_comm)
-            self._update_status_item(status.exception, self.lbl_exception)
-
-            # --- buttons ---
-            button_state = data.button_state
-            self.btnStart.setEnabled(button_state.start)
-            self.btnStop.setEnabled(button_state.stop)
-            self.btnClear.setEnabled(button_state.clear)
-            self.btnForce.setEnabled(button_state.force)
-
-            # --- actual weight ---
-            self.lblActWeight.setText(data.actual_weight)
-
-            # --- business data ---
-            biz = data.biz
-
             self.lblDeltaWeight.setText(biz.delta_weight.text)
             self.lblDeltaWeight.setStyleSheet(biz.delta_weight.style)
 
             self.lblState.setText(biz.state.text)
             self.lblState.setStyleSheet(biz.state.style)
 
-            # --- stats ---
             self.lblAvgWeight.setText(biz.avg_weight)
             self.lblTolHigh.setText(biz.tol_high)
             self.lblTolLow.setText(biz.tol_low)
@@ -123,14 +117,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.lblLastStableWeight.setText(biz.last_stable_weight)
             self.lblLastBaseWeight.setText(biz.last_base_weight)
 
-            self.pieceTable.update_table(biz.weights)
-            self.pieceChart.update_chart(biz.weights)
+            self.wgtPieceTable.update_table(biz.weights)
+            self.wgtPieceChart.update_chart(biz.weights)
 
         except Exception as e:
             logger.exception("UI更新失败")
             QMessageBox.critical(self, "错误", f"UI更新时出错: {e}")
 
-    def _update_status_item(self, item: LabelItem, label: QLabel) -> None:
+    def _apply_bar_label_item(self, item: LabelItem, label: QLabel) -> None:
         label.setText(item.text)
         label.setStyleSheet(item.style)
 
@@ -204,10 +198,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _decimal_places_changed(self) -> None:
         places = int(self.spnDecimalPlaces.value())
-        self.pieceTable.set_decimal_places(places)
-        self.pieceChart.set_decimal_places(places)
+        self.wgtPieceTable.set_decimal_places(places)
+        self.wgtPieceChart.set_decimal_places(places)
 
-    def init_port_list(self) -> None:
+    def _init_port_list(self) -> None:
         self.cbPort.clear()
         ports = QSerialPortInfo.availablePorts()
         port_names = [port.portName() for port in ports]
@@ -218,7 +212,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             port_names.sort()
         self.cbPort.addItems(port_names)
 
-    def init_baud_rate_list(self) -> None:
+    def _init_baud_rate_list(self) -> None:
         self.cbBaudRate.clear()
         baud_rate_list = [
             "1200",
@@ -232,7 +226,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ]
         self.cbBaudRate.addItems(baud_rate_list)
 
-    def load_settings(self) -> None:
+    def _load_settings(self) -> None:
         sizes = self.params.splitter_sizes
         if not isinstance(sizes, list):
             sizes = [400, 600]

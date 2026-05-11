@@ -11,7 +11,7 @@ class PieceTable(QTableWidget):
     def __init__(self, decimal_places: int = 2, parent=None) -> None:
         super().__init__(parent)
 
-        self._data: list[float] = []
+        self._piece_weights: list[float] = []
         self._decimal_places: int = decimal_places
 
         self.setColumnCount(1)
@@ -42,7 +42,7 @@ class PieceTable(QTableWidget):
 
     def reset(self) -> None:
         self.setRowCount(0)
-        self._data.clear()
+        self._piece_weights.clear()
 
     def _fill_rows(self, data: list[float]) -> None:
         """Fill cells with formatted weights (newest at top)."""
@@ -53,7 +53,7 @@ class PieceTable(QTableWidget):
 
     def update_table(self, new_data: list[float]) -> None:
         """Newest data at the top."""
-        if new_data == self._data:
+        if new_data == self._piece_weights:
             return
 
         self.setUpdatesEnabled(False)
@@ -66,7 +66,7 @@ class PieceTable(QTableWidget):
 
             self._fill_rows(new_data)
 
-            self._data = new_data.copy()
+            self._piece_weights = new_data.copy()
             self.scrollToTop()
 
         finally:
@@ -76,10 +76,10 @@ class PieceTable(QTableWidget):
         if places == self._decimal_places:
             return
         self._decimal_places = places
-        if not self._data:
+        if not self._piece_weights:
             return
         self.setUpdatesEnabled(False)
         try:
-            self._fill_rows(self._data)
+            self._fill_rows(self._piece_weights)
         finally:
             self.setUpdatesEnabled(True)

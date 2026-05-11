@@ -1,13 +1,8 @@
 # app/models/biz_result.py
 
 from dataclasses import dataclass
-from enum import Enum
 
-
-class BizState(Enum):
-    ZERO = 0
-    NORMAL = 1
-    ABNORMAL = 2
+from app.models.counter_state import CounterState
 
 
 @dataclass
@@ -15,7 +10,7 @@ class BizResult:
     added: bool
     abnormal_high: bool
     abnormal_low: bool
-    state: BizState
+    state: CounterState
     delta: float
     avg_weight: float
     tol_high: float

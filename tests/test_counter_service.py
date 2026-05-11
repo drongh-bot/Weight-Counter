@@ -1,6 +1,5 @@
-from app.models.biz_result import BizState
 from app.models.params import Params
-from app.models.piece_counter import CounterState
+from app.models.counter_state import CounterState
 from app.services.counter_service import CounterService
 
 
@@ -14,13 +13,13 @@ class TestCounterServiceProcess:
     def test_initial_state(self, qapp):
         svc = self._make_service()
         result = svc.current_result()
-        assert result.state == BizState.ZERO
+        assert result.state == CounterState.ZERO
         assert result.total_pieces == 0
 
     def test_zero_to_normal(self, qapp):
         svc = self._make_service()
         result = svc.process(10.0)
-        assert result.state == BizState.NORMAL
+        assert result.state == CounterState.NORMAL
         assert result.total_pieces == 1
 
     def test_normal_add_multiple(self, qapp):
@@ -28,7 +27,7 @@ class TestCounterServiceProcess:
         svc.process(10.0)
         svc.process(20.0)
         result = svc.process(30.0)
-        assert result.state == BizState.NORMAL
+        assert result.state == CounterState.NORMAL
         assert result.total_pieces == 3
 
     def test_abnormal_edge_trigger(self, qapp):
@@ -69,7 +68,7 @@ class TestCounterServiceProcess:
 
     def test_force_accept(self, qapp):
         svc = self._make_service()
-        svc.counter.last_stable_weight = 100.0
+        svc._piece_counter.last_stable_weight = 100.0
         svc.force_accept(100.0, 10)
         result = svc.current_result()
         assert result.total_pieces == 10
@@ -78,9 +77,9 @@ class TestCounterServiceProcess:
         svc = self._make_service()
         svc.process(10.0)
         svc.process(25.0)  # 进入异常
-        assert svc.counter.state == CounterState.ABNORMAL
+        assert svc._piece_counter.state == CounterState.ABNORMAL
         svc.clear_abnormal(10.0)
-        assert svc.counter.state == CounterState.NORMAL
+        assert svc._piece_counter.state == CounterState.NORMAL
 
     def test_reset(self, qapp):
         svc = self._make_service()
@@ -89,14 +88,14 @@ class TestCounterServiceProcess:
         assert svc.current_result().total_pieces == 2
         svc.reset()
         result = svc.current_result()
-        assert result.state == BizState.ZERO
+        assert result.state == CounterState.ZERO
         assert result.total_pieces == 0
 
     def test_abnormal_result_mapping(self, qapp):
         svc = self._make_service()
         svc.process(10.0)
         result = svc.process(25.0)  # 异常
-        assert result.state == BizState.ABNORMAL
+        assert result.state == CounterState.ABNORMAL
         assert result.abnormal_high is True
         assert result.abnormal_low is False
 

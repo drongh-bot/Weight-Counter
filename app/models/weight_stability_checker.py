@@ -72,7 +72,7 @@ class WeightStabilityChecker:
     # ============================================================
     # Main Logic
     # ============================================================
-    def update(self, weight: float) -> float | None:
+    def check_stability(self, weight: float) -> float | None:
         """
         Input: current weight
         Output: stable weight (None means unstable)

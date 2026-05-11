@@ -32,14 +32,13 @@ class CsvLogService(QObject):
         )
 
         # log queue
-        self.queue: queue.Queue = queue.Queue()
+        self._production_queue: queue.Queue = queue.Queue()
 
-        # background thread control
-        self.running = True
-        self.worker = threading.Thread(
+        self._is_active = True
+        self._writer_thread = threading.Thread(
             target=self._worker_loop, name="LogWorker", daemon=True
         )
-        self.worker.start()
+        self._writer_thread.start()
 
     # ============================================================
     # Background thread: unified log writer
@@ -47,25 +46,25 @@ class CsvLogService(QObject):
     def _worker_loop(self) -> None:
         while True:
             try:
-                item = self.queue.get(timeout=1.0)
+                item = self._production_queue.get(timeout=1.0)
             except queue.Empty:
-                if not self.running:
+                if not self._is_active:
                     break
                 continue
 
             if item is None:
-                self.queue.task_done()
+                self._production_queue.task_done()
                 break
 
-            timestamp, col1, col2 = item
+            timestamp, weight_str, total_str = item
 
             try:
                 if self.production_writer:
-                    self.production_writer.write(timestamp, col1, col2)
+                    self.production_writer.write(timestamp, weight_str, total_str)
             except Exception as e:
                 self.error_occurred.emit(f"CSV write failed: {e}")
             finally:
-                self.queue.task_done()
+                self._production_queue.task_done()
 
     # ============================================================
     # Utility: current time
@@ -82,11 +81,11 @@ class CsvLogService(QObject):
         weight: single-piece weight (last piece)
         total: current total count
         """
-        if not self.running:
+        if not self._is_active:
             return
 
         try:
-            self.queue.put((self._timestamp(), f"{weight:.3f}", str(total)))
+            self._production_queue.put((self._timestamp(), f"{weight:.3f}", str(total)))
         except Exception as e:
             self.error_occurred.emit(f"Production write failed: {e}")
 
@@ -97,20 +96,20 @@ class CsvLogService(QObject):
         """Ensure background thread exits safely without log loss"""
 
         # 1. Idempotency guard: prevent double close
-        if not self.running:
+        if not self._is_active:
             return
 
         # 2. Stop accepting new items
-        self.running = False
+        self._is_active = False
 
         # 3. Wait for all queued items to be written to disk
-        self.queue.join()
+        self._production_queue.join()
 
         # 4. Inject sentinel to unblock worker and trigger exit
-        self.queue.put_nowait(None)
+        self._production_queue.put_nowait(None)
 
         # 5. Wait for worker thread to exit
-        self.worker.join(timeout=3.0)
+        self._writer_thread.join(timeout=3.0)
 
         # 6. Close writer
         try:

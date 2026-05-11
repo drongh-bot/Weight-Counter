@@ -1,26 +1,27 @@
 # app/services/ui/builders.py
-from app.models.biz_result import BizResult, BizState
-from app.services.ui.models import BizData, LabelItem, StatusData
+from app.models.biz_result import BizResult
+from app.models.counter_state import CounterState
+from app.services.ui.models import BarStatus, BizSnapshot, LabelItem
 from app.services.ui.styles import Styles
 
 
 class BizBuilder:
     @staticmethod
-    def build(biz: BizResult) -> BizData:
+    def build(biz: BizResult) -> BizSnapshot:
         dp = biz.decimal_places
-        if biz.state == BizState.ZERO:
+        if biz.state == CounterState.ZERO:
             state_text = "等待第一件"
             state_style = ""
-        elif biz.state == BizState.NORMAL:
+        elif biz.state == CounterState.NORMAL:
             state_text = "正常"
             state_style = ""
         else:
             state_text = "异常（偏高）" if biz.abnormal_high else "异常（偏低）"
-            state_style = Styles.ABN_HI if biz.abnormal_high else Styles.ABN_LO
+            state_style = Styles.ABNORMAL_HIGH if biz.abnormal_high else Styles.ABNORMAL_LOW
 
-        delta_style = state_style if biz.state == BizState.ABNORMAL else ""
+        delta_style = state_style if biz.state == CounterState.ABNORMAL else ""
 
-        return BizData(
+        return BizSnapshot(
             delta_weight=LabelItem(
                 text=f"{biz.delta:.{dp}f}",
                 style=delta_style,
@@ -40,14 +41,21 @@ class BizBuilder:
         )
 
 
-class StatusBuilder:
+class BarStatusBuilder:
     @staticmethod
-    def build(parse_ok: bool, comm_ok: bool, exception_text: str | None) -> StatusData:
-        return StatusData(
-            parse=LabelItem(
-                text="解析正常" if parse_ok else "解析等待",
-                style=Styles.GREEN if parse_ok else Styles.GRAY,
-            ),
+    def build(parse_ok: bool, comm_ok: bool, exception_text: str | None) -> BarStatus:
+        if not comm_ok:
+            parse_text = "解析等待"
+            parse_style = Styles.GRAY
+        elif not parse_ok:
+            parse_text = "解析异常"
+            parse_style = Styles.RED
+        else:
+            parse_text = "解析正常"
+            parse_style = Styles.GREEN
+
+        return BarStatus(
+            parse=LabelItem(text=parse_text, style=parse_style),
             comm=LabelItem(
                 text="通讯正常" if comm_ok else "通讯等待",
                 style=Styles.GREEN if comm_ok else Styles.GRAY,

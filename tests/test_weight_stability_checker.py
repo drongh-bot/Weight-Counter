@@ -13,11 +13,11 @@ class TestStableDetection:
         value = 100.0
         # 前 7 帧填充长窗口，返回 None
         for _ in range(checker.long_win.maxlen - 1):
-            result = checker.update(value)
+            result = checker.check_stability(value)
             assert result is None
         # 连续 3 帧稳定后进入锁定
         for i in range(checker.stable_count_required):
-            result = checker.update(value)
+            result = checker.check_stability(value)
             if i < checker.stable_count_required - 1:
                 assert result is None
             else:
@@ -33,9 +33,9 @@ class TestStableDetection:
         )
         # 先填充窗口
         for _ in range(8):
-            checker.update(100.0)
+            checker.check_stability(100.0)
         # 突变超过 speed_limit
-        result = checker.update(110.0)
+        result = checker.check_stability(110.0)
         assert result is None
 
     def test_unstable_by_trend(self):
@@ -48,9 +48,9 @@ class TestStableDetection:
         )
         # 逐步上升
         for i in range(8):
-            checker.update(100.0 + i * 0.5)
+            checker.check_stability(100.0 + i * 0.5)
         # 漂移超过 trend_limit
-        result = checker.update(105.0)
+        result = checker.check_stability(105.0)
         assert result is None
 
     def test_unstable_by_stddev(self):
@@ -63,8 +63,8 @@ class TestStableDetection:
         )
         values = [100.0, 100.5, 99.5, 101.0, 98.0, 102.0, 100.0, 101.5]
         for v in values:
-            checker.update(v)
-        result = checker.update(97.0)
+            checker.check_stability(v)
+        result = checker.check_stability(97.0)
         assert result is None
 
 
@@ -80,10 +80,10 @@ class TestLockAndUnlock:
         )
         value = 50.0
         for _ in range(10):
-            checker.update(value)
+            checker.check_stability(value)
         # 锁定后无论继续喂相同值都返回稳定值
         for _ in range(5):
-            result = checker.update(value)
+            result = checker.check_stability(value)
             assert result is not None
 
     def test_unlock_after_exceeding_threshold(self):
@@ -98,17 +98,17 @@ class TestLockAndUnlock:
         )
         value = 50.0
         for _ in range(10):
-            checker.update(value)
+            checker.check_stability(value)
         # 锁定中
         assert checker.locked
         # 突变超过锁定值 + unlock_factor * base_threshold
         jump = 50.0 + 2.5 * 0.02 + 0.01
         # 第一帧仍锁定
-        result = checker.update(jump)
+        result = checker.check_stability(jump)
         assert checker.locked
         assert result is not None
         # 第二帧解锁
-        result = checker.update(jump)
+        result = checker.check_stability(jump)
         assert not checker.locked
 
     def test_no_unlock_on_minor_change(self):
@@ -122,10 +122,10 @@ class TestLockAndUnlock:
         )
         value = 50.0
         for _ in range(10):
-            checker.update(value)
+            checker.check_stability(value)
         # 小幅变化，不应解锁
         for _ in range(5):
-            result = checker.update(value + 0.01)
+            result = checker.check_stability(value + 0.01)
             assert checker.locked
             assert result is not None
 
@@ -139,14 +139,14 @@ class TestEdgeCases:
             stable_count=3,
         )
         for _ in range(5):
-            result = checker.update(10.0)
+            result = checker.check_stability(10.0)
             assert result is None
 
     def test_reset(self):
         """reset 清空所有状态"""
         checker = WeightStabilityChecker(short_win=4, long_win=8)
         for _ in range(15):
-            checker.update(42.0)
+            checker.check_stability(42.0)
         assert checker.locked
         checker.reset()
         assert not checker.locked
@@ -180,10 +180,10 @@ class TestEdgeCases:
         )
         # 用递增序列填充窗口，使元素各不相同
         for i in range(12):
-            checker.update(100.0 + i * 0.001)
+            checker.check_stability(100.0 + i * 0.001)
         assert checker.locked
         window_before = list(checker.long_win)
-        checker.update(100.0 + 12 * 0.001)
+        checker.check_stability(100.0 + 12 * 0.001)
         window_after = list(checker.long_win)
         # 窗口应滚动：最旧元素被移出，最新元素在末尾
         assert window_before[-1] != window_after[-1]

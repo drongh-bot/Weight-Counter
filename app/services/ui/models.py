@@ -11,14 +11,22 @@ class LabelItem:
 
 
 @dataclass
-class StatusData:
+class BarStatus:
     parse: LabelItem
     comm: LabelItem
     exception: LabelItem
 
 
 @dataclass
-class BizData:
+class ButtonStatus:
+    start: bool = True
+    stop: bool = True
+    clear: bool = False
+    force: bool = False
+
+
+@dataclass
+class BizSnapshot:
     delta_weight: LabelItem
     state: LabelItem
     avg_weight: str
@@ -29,19 +37,3 @@ class BizData:
     last_base_weight: str
     weights: list[float]
     decimal_places: int
-
-
-@dataclass
-class ButtonState:
-    start: bool = True
-    stop: bool = True
-    clear: bool = False
-    force: bool = False
-
-
-@dataclass
-class UIData:
-    button_state: ButtonState
-    actual_weight: str
-    status: StatusData
-    biz: BizData

@@ -18,7 +18,7 @@ class SoundService(QObject):
     - Provides semantic business interfaces (play_add / play_error / play_alert)
     """
 
-    soundError = Signal(str)  # report sound errors to UI
+    error_occurred = Signal(str)  # report sound errors to UI
 
     def __init__(self) -> None:
         super().__init__()
@@ -49,4 +49,4 @@ class SoundService(QObject):
         success, error_msg = self.sound_manager.play(file_name)
         if not success:
             logger.error("播放失败: %s", error_msg)
-            self.soundError.emit(error_msg)
+            self.error_occurred.emit(error_msg)

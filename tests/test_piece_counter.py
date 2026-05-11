@@ -1,6 +1,6 @@
 import pytest
+from app.models.counter_state import CounterState
 from app.models.piece_counter import (
-    CounterState,
     PieceCounter,
     Thresholds,
     Tolerance,
@@ -148,27 +148,27 @@ class TestTolerance:
         tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
         tol.update(10.0)
         # delta = 10.0 → 1 piece exactly
-        assert tol.match(abs(10.0), 1)
+        assert tol.is_within_tolerance(abs(10.0), 1)
 
     def test_match_multi_piece(self):
         """sqrt(n) 公差模型"""
         tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
         tol.update(10.0)
         # 4 pieces = ~40.0, sqrt(4) = 2, tolerance scaled by 2
-        assert tol.match(40.0, 4)
+        assert tol.is_within_tolerance(40.0, 4)
 
     def test_match_failure(self):
         """超出公差 → False"""
         tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
         tol.update(10.0)
         # delta = 25.0 for 1 piece (expected ~10.0, far outside tolerance)
-        assert not tol.match(25.0, 1)
+        assert not tol.is_within_tolerance(25.0, 1)
 
     def test_match_zero_avg(self):
         """avg_weight ≤ 0 时直接返回 False"""
         tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
         tol.update(0.0)
-        assert not tol.match(10.0, 1)
+        assert not tol.is_within_tolerance(10.0, 1)
 
 
 class TestPieceCounterFSM:
@@ -246,8 +246,8 @@ class TestPieceCounterFSM:
         counter.process(10.0)
         counter.process(15.0)  # 异常
         assert counter.state == CounterState.ABNORMAL
-        assert counter.high
-        assert not counter.low
+        assert counter.abnormal_high
+        assert not counter.abnormal_low
 
     def test_abnormal_low_direction(self):
         """ABNORMAL 低位异常方向追踪（模拟减件异常）"""
@@ -263,8 +263,8 @@ class TestPieceCounterFSM:
         # 减到半件值 → 异常（减了多少不确定）
         counter.process(25.0)
         assert counter.state == CounterState.ABNORMAL
-        assert counter.low
-        assert not counter.high
+        assert counter.abnormal_low
+        assert not counter.abnormal_high
 
     def test_force_accept(self):
         """强制校准，重置为指定件数"""
