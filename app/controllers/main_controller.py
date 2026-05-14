@@ -123,12 +123,10 @@ class MainController(QObject):
     # Event Handling
     # ============================================================
     def _on_timeout(self) -> None:
-        self.ui_service.update_bar_status(parse_ok=False, comm_ok=False)
+        self.ui_service.update_bar_status(comm_ok=False)
 
     def _on_serial_error(self, msg: str) -> None:
-        self.ui_service.update_bar_status(
-            parse_ok=False, comm_ok=False, exception_text=msg
-        )
+        self.ui_service.update_bar_status(comm_ok=False, exception_text=msg)
 
     def _on_csv_error(self, msg: str) -> None:
         self.ui_service.update_bar_status(exception_text=msg)
