@@ -21,7 +21,7 @@ class CsvWriter:
         self.writer: Any = None
         self.filepath: Path | None = None
         self.current_date: datetime.date | None = None
-        self.lock: threading.Lock = threading.Lock()
+        self.lock: threading.RLock = threading.RLock()
 
     # ---------------------------------------------------------
     # Open CSV file (one per day)
@@ -75,10 +75,11 @@ class CsvWriter:
     # Close file
     # ---------------------------------------------------------
     def close(self) -> None:
-        if self.file:
-            self.file.close()
-            self.file = None
-            self.writer = None
+        with self.lock:
+            if self.file:
+                self.file.close()
+                self.file = None
+                self.writer = None
 
     # ---------------------------------------------------------
     # Context manager support

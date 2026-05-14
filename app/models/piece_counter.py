@@ -217,15 +217,15 @@ class PieceCounter:
             initial_min_ratio=initial_min_ratio,
         )
 
-        self.piece_weights: list[float] = []
-        self.last_base_weight: float = 0.0
-        self.last_stable_weight: float = 0.0
-        self.delta: float = 0.0
-        self.state: CounterState = CounterState.ZERO
-        self.abnormal_high: bool = False
-        self.abnormal_low: bool = False
-        self.avg_weight: float = 0.0
-        self.abnormal_weight: float = 0.0
+        self.piece_weights: list[float]
+        self.last_base_weight: float
+        self.last_stable_weight: float
+        self.delta: float
+        self.state: CounterState
+        self.abnormal_high: bool
+        self.abnormal_low: bool
+        self.avg_weight: float
+        self.abnormal_weight: float
 
         self.reset()
 

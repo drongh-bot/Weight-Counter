@@ -49,6 +49,8 @@ class SerialCommunication(QObject):
         if not self.serial.open(QIODevice.OpenModeFlag.ReadWrite):
             raise SerialCommunicationError(f"打开串口失败：{self.serial.errorString()}")
 
+        self.encoding = "utf-8"
+
     def on_ready_read(self) -> None:
         while self.serial.canReadLine():
             raw = bytes(self.serial.readLine().data())

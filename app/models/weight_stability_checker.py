@@ -133,16 +133,14 @@ class WeightStabilityChecker:
         # -----------------------------
         # Trend Detection (long window)
         # -----------------------------
-        span = max(self.long_win) - min(self.long_win)
-        if span > trend_limit:
+        if (max(self.long_win) - min(self.long_win)) > trend_limit:
             self.stable_counter = 0
             return None
 
         # -----------------------------
         # Standard Deviation Detection (long window)
         # -----------------------------
-        std_val = statistics.stdev(self.long_win)
-        if std_val > std_limit:
+        if statistics.stdev(self.long_win) > std_limit:
             self.stable_counter = 0
             return None
 

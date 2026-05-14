@@ -110,20 +110,8 @@ class PieceChart(QWidget):
             self._reset()
             return
 
-        # Scatter
-        spots = [{"pos": (weight, i + 1)} for i, weight in enumerate(self._piece_weights)]
-        self.scatter.setData(spots)
+        self._update_scatter_and_ticks(count)
 
-        # Y-axis ticks — thin labels when too many
-        max_labels = 20
-        if count <= max_labels:
-            ticks = [(i + 1, str(i + 1)) for i in range(count)]
-        else:
-            step = max(count // max_labels, 1)
-            ticks = [(i + 1, str(i + 1)) for i in range(0, count, step)]
-        self.plot.getAxis("left").setTicks([ticks])
-
-        # Y range
         if count <= self._DEFAULT_Y_WINDOW_SIZE:
             y_min, y_max = 0.0, float(count + 1)
         elif self._follow_latest:
@@ -133,10 +121,22 @@ class PieceChart(QWidget):
             y_min, y_max = self.plot.viewRange()[1]
 
         self._apply_y_range(y_min, y_max)
-
         self.scrollbar.setVisible(count > self._DEFAULT_Y_WINDOW_SIZE)
+        self._update_x_range(count)
 
-        # X range
+    def _update_scatter_and_ticks(self, count: int) -> None:
+        spots = [{"pos": (weight, i + 1)} for i, weight in enumerate(self._piece_weights)]
+        self.scatter.setData(spots)
+
+        max_labels = 20
+        if count <= max_labels:
+            ticks = [(i + 1, str(i + 1)) for i in range(count)]
+        else:
+            step = max(count // max_labels, 1)
+            ticks = [(i + 1, str(i + 1)) for i in range(0, count, step)]
+        self.plot.getAxis("left").setTicks([ticks])
+
+    def _update_x_range(self, count: int) -> None:
         vrange = self.plot.viewRange()[1]
         start_idx = max(0, int(vrange[0]) - 1)
         end_idx = min(count, int(vrange[1]) + 1)
