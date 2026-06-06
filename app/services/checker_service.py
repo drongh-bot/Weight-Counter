@@ -1,15 +1,13 @@
 # app/services/checker_service.py
 import logging
 
-from PySide6.QtCore import QObject
-
 from app.models.params import Params
 from app.models.weight_stability_checker import WeightStabilityChecker
 
 logger = logging.getLogger(__name__)
 
 
-class CheckerService(QObject):
+class CheckerService:
     """
     CheckerService (refactored version)
     - Responsible for weight parsing + stability checking
@@ -18,8 +16,6 @@ class CheckerService(QObject):
     """
 
     def __init__(self, params: Params) -> None:
-        super().__init__()
-
         self.params = params
 
         # initialize stability checker (thresholds set once)

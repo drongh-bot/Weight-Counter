@@ -1,14 +1,12 @@
 # app/services/counter_service.py
 
-from PySide6.QtCore import QObject
-
 from app.models.biz_result import BizResult
 from app.models.params import Params
 from app.models.counter_state import CounterState
 from app.models.piece_counter import PieceCounter
 
 
-class CounterService(QObject):
+class CounterService:
     """
     Counting business service
 
@@ -22,8 +20,6 @@ class CounterService(QObject):
     """
 
     def __init__(self, params: Params) -> None:
-        super().__init__()
-
         self.params = params
 
         # edge trigger flags

@@ -10,19 +10,19 @@ class TestCounterServiceProcess:
         params.target_pieces = target
         return CounterService(params)
 
-    def test_initial_state(self, qapp):
+    def test_initial_state(self):
         svc = self._make_service()
         result = svc.current_result()
         assert result.state == CounterState.ZERO
         assert result.total_pieces == 0
 
-    def test_zero_to_normal(self, qapp):
+    def test_zero_to_normal(self):
         svc = self._make_service()
         result = svc.process(10.0)
         assert result.state == CounterState.NORMAL
         assert result.total_pieces == 1
 
-    def test_normal_add_multiple(self, qapp):
+    def test_normal_add_multiple(self):
         svc = self._make_service()
         svc.process(10.0)
         svc.process(20.0)
@@ -30,14 +30,14 @@ class TestCounterServiceProcess:
         assert result.state == CounterState.NORMAL
         assert result.total_pieces == 3
 
-    def test_abnormal_edge_trigger(self, qapp):
+    def test_abnormal_edge_trigger(self):
         svc = self._make_service()
         svc.process(10.0)
         svc.process(25.0)  # 无法匹配 → 异常
         assert svc.consume_abnormal_edge() is True
         assert svc.consume_abnormal_edge() is False  # 已消费
 
-    def test_target_edge_trigger(self, qapp):
+    def test_target_edge_trigger(self):
         svc = self._make_service(target=3)
         svc.process(10.0)   # 1件
         svc.process(20.0)   # 2件
@@ -45,13 +45,13 @@ class TestCounterServiceProcess:
         assert svc.consume_target_edge() is True
         assert svc.consume_target_edge() is False
 
-    def test_target_not_triggered_below_target(self, qapp):
+    def test_target_not_triggered_below_target(self):
         svc = self._make_service(target=10)
         svc.process(10.0)
         svc.process(20.0)
         assert svc.consume_target_edge() is False
 
-    def test_target_not_triggered_in_abnormal(self, qapp):
+    def test_target_not_triggered_in_abnormal(self):
         svc = self._make_service(target=2)
         svc.process(10.0)
         # 目标只应在 NORMAL 状态下触发
@@ -59,21 +59,21 @@ class TestCounterServiceProcess:
         assert result.total_pieces == 1
         assert svc.consume_target_edge() is False
 
-    def test_added_flag(self, qapp):
+    def test_added_flag(self):
         svc = self._make_service()
         result = svc.process(10.0)
         assert result.added is True
         result = svc.process(10.0)  # 无变化
         assert result.added is False
 
-    def test_force_accept(self, qapp):
+    def test_force_accept(self):
         svc = self._make_service()
         svc._piece_counter.last_stable_weight = 100.0
         svc.force_accept(100.0, 10)
         result = svc.current_result()
         assert result.total_pieces == 10
 
-    def test_clear_abnormal(self, qapp):
+    def test_clear_abnormal(self):
         svc = self._make_service()
         svc.process(10.0)
         svc.process(25.0)  # 进入异常
@@ -81,7 +81,7 @@ class TestCounterServiceProcess:
         svc.clear_abnormal(10.0)
         assert svc._piece_counter.state == CounterState.NORMAL
 
-    def test_reset(self, qapp):
+    def test_reset(self):
         svc = self._make_service()
         svc.process(10.0)
         svc.process(20.0)
@@ -91,7 +91,7 @@ class TestCounterServiceProcess:
         assert result.state == CounterState.ZERO
         assert result.total_pieces == 0
 
-    def test_abnormal_result_mapping(self, qapp):
+    def test_abnormal_result_mapping(self):
         svc = self._make_service()
         svc.process(10.0)
         result = svc.process(25.0)  # 异常
@@ -99,7 +99,7 @@ class TestCounterServiceProcess:
         assert result.abnormal_high is True
         assert result.abnormal_low is False
 
-    def test_current_result_snapshot(self, qapp):
+    def test_current_result_snapshot(self):
         svc = self._make_service()
         svc.process(10.0)
         result = svc.current_result()
