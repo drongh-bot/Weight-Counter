@@ -451,6 +451,7 @@ class PieceCounter:
         if not self.piece_weights:
             self.avg_weight = 0.0
         else:
+            # Recalculate from scratch — EMA not applicable when pieces are removed
             self.avg_weight = sum(self.piece_weights) / len(self.piece_weights)
         self._sync_all()
 
