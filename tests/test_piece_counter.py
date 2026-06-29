@@ -326,3 +326,23 @@ class TestPieceCounterFSM:
         # 尝试加大量（模拟加多件入），但处于学习阶段只能加 1
         counter.process(10.0 + 9.9)  # should only add 1
         assert counter.total_pieces == 2
+
+
+class TestPieceCounterParamUpdate:
+    def test_set_initial_mini_weight(self):
+        counter = PieceCounter(initial_mini_weight=0.5)
+        counter.set_initial_mini_weight(1.0)
+        assert counter.initial_mini_weight == 1.0
+        assert counter.thresholds.initial_mini_weight == 1.0
+
+    def test_set_decimal_places_recalcs_min_tol(self):
+        counter = PieceCounter(decimal_places=2, stability_threshold=0.02)
+        counter.set_decimal_places(3)
+        assert counter.decimal_places == 3
+        assert counter.tolerance.min_tol == max(0.002, 0.04)
+
+    def test_set_stability_threshold_recalcs_min_tol(self):
+        counter = PieceCounter(decimal_places=2, stability_threshold=0.02)
+        counter.set_stability_threshold(0.10)
+        assert counter.tolerance.min_tol == max(0.02, 0.20)
+        assert counter.thresholds.min_tol == counter.tolerance.min_tol

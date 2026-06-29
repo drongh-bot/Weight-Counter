@@ -56,6 +56,15 @@ class TestCheckerServiceParse:
         svc = self._make_service()
         assert svc.parse("10.5 kg") == 10.5
 
+    def test_apply_params_syncs_stability_threshold(self):
+        params = Params(stability_threshold=0.02)
+        svc = CheckerService(params)
+
+        params.stability_threshold = 0.10
+        svc.apply_params()
+
+        assert svc._stability_checker.base_threshold == 0.10
+
     @staticmethod
     def _make_service() -> CheckerService:
         params = Params()

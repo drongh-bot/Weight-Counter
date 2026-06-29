@@ -15,7 +15,7 @@ Serial Port
   → SerialService         (raw data receive, timeout detection)
   → CheckerService        (parse + stability check via dual-window algorithm)
   → CounterService        (state machine ZERO→NORMAL→ABNORMAL + EMA weight learning)
-  → UIService             (ViewModel — builds UIData, emits ui_changed signal)
+  → UIService             (ViewModel — builds snapshots, emits biz/bar/button/weight signals)
   → MainWindow            (pure rendering — labels, table, scatter chart)
 ```
 
@@ -37,15 +37,15 @@ app/
 
 - **Dependency Injection** — all objects created and wired in `main.py`
 - **CQS** — PieceCounter mutates state (Command), CounterService queries and builds results
-- **Signal-driven UI** — UIService emits `ui_changed`; MainWindow renders, never touches business logic
+- **Signal-driven UI** — UIService emits `biz_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
 - **No bare attribute access** — Controller communicates with services through methods only
-- **Model layer is Qt-free** — unit-testable without a GUI
+- **Model layer is Qt-free** — unit-testable without a GUI; `CounterService` and `CheckerService` are also Qt-free
 
 ### Core Algorithms
 
 **WeightStabilityChecker**
 
-- Dual sliding windows (4-frame short, 8-frame long)
+- Dual sliding windows (5-frame short, 10-frame long — configurable via `[stability]` in `config.toml`)
 - Triple checks: speed (short-window range), trend (long-window range), standard deviation
 - Lock mechanism with hysteresis unlock (2.5× threshold, 2-frame confirmation)
 - Windows keep updating during lock to prevent stale data on unlock
@@ -85,7 +85,7 @@ tolerance_percent = 20.0
 stability_threshold = 0.02
 max_batch_pieces = 1
 initial_single_pieces = 5
-target_pieces = 100
+target_pieces = 30
 decimal_places = 2
 
 [stability]
@@ -120,7 +120,7 @@ splitter_sizes = [140, 199]
 ## Testing
 
 ```bash
-uv run pytest tests/ -v          # 95 tests: model → service → controller
+uv run pytest tests/ -v          # 104 tests: model → service → controller
 uv run mypy app                  # Type check
 ```
 
@@ -128,9 +128,9 @@ uv run mypy app                  # Type check
 
 | Layer      | Tests                                     |
 | ---------- | ----------------------------------------- |
-| model      | 43 (Qt-free, plain pytest)                |
-| service    | 31 (uses `qapp` fixture from `pytest-qt`) |
-| builder    | 8 (Qt-free)                               |
+| model      | 46 (Qt-free, plain pytest)                |
+| builder    | 9 (Qt-free)                               |
+| service    | 37 (checker/counter Qt-free; ui needs `qapp`) |
 | controller | 12 (uses `qapp` fixture)                  |
 
 ---

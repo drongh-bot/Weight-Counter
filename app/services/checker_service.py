@@ -68,6 +68,9 @@ class CheckerService:
     def reset(self) -> None:
         self._stability_checker.reset()
 
+    def apply_params(self) -> None:
+        self._stability_checker.set_base_threshold(self.params.stability_threshold)
+
     # ============================================================
     # Last stable value
     # ============================================================

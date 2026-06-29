@@ -53,6 +53,9 @@ class CounterService:
         self._piece_counter.set_initial_single_pieces(self.params.initial_single_pieces)
         self._piece_counter.set_max_batch_pieces(self.params.max_batch_pieces)
         self._piece_counter.set_tolerance_percent(self.params.tolerance_percent)
+        self._piece_counter.set_initial_mini_weight(self.params.initial_mini_weight)
+        self._piece_counter.set_decimal_places(self.params.decimal_places)
+        self._piece_counter.set_stability_threshold(self.params.stability_threshold)
 
     # ============================================================
     # Core: process stable weight (event result)

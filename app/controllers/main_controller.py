@@ -166,6 +166,7 @@ class MainController(QObject):
         self._is_active = True
         self._reset_all()
         self.counter_service.apply_params()
+        self.checker_service.apply_params()
         try:
             self.serial_service.open(port, baud)
             return True

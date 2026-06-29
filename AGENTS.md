@@ -20,9 +20,10 @@ app/
 
 - **DI**: all objects created and wired in `main.py`
 - **CQS**: PieceCounter mutates state (Command), CounterService queries and builds results
-- **Signal-driven UI**: UIService emits `ui_changed`; MainWindow renders, never touches business logic
+- **Signal-driven UI**: UIService emits `biz_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
 - **No bare attribute access**: Controller communicates with services through methods only
 - **Model layer is Qt-free**: unit-testable without a GUI, no I/O (see Params vs ConfigService split)
+- **Business services are Qt-free**: `CounterService` and `CheckerService` are plain Python classes; I/O and UI-facing services (`SerialService`, `UIService`, etc.) inherit `QObject`
 
 ## Tech Stack
 
@@ -41,22 +42,22 @@ app/
 uv sync                          # Install dependencies
 uv run main.py                   # Run the app
 uv run pyinstaller main.spec     # Package to dist/WeightCounter/
-uv run pytest tests/ -v          # Run all 95 tests
+uv run pytest tests/ -v          # Run all 104 tests
 uv run mypy app                  # Type check
 ```
 
 ## Test suite
 
-Model tests are Qt-free; service/controller tests use `qapp` fixture from `pytest-qt`.
+Model tests and `CounterService` / `CheckerService` tests are Qt-free; `UIService` and controller tests use the `qapp` fixture from `pytest-qt`.
 
 | File | Layer | Count |
 |------|-------|-------|
 | `tests/test_weight_stability_checker.py` | model | 12 |
-| `tests/test_piece_counter.py` | model | 31 |
-| `tests/test_builders.py` | builder | 8 |
-| `tests/test_checker_service.py` | service | 12 |
-| `tests/test_counter_service.py` | service | 13 |
-| `tests/test_ui_service.py` | service | 6 |
+| `tests/test_piece_counter.py` | model | 34 |
+| `tests/test_builders.py` | builder | 9 |
+| `tests/test_checker_service.py` | service | 14 |
+| `tests/test_counter_service.py` | service | 14 |
+| `tests/test_ui_service.py` | service | 9 |
 | `tests/test_controller.py` | controller | 12 |
 
 ## PySide6 QSignalSpy quirk (6.8.3)
@@ -85,8 +86,9 @@ The app requires a serial port with a connected electronic scale. Without hardwa
 
 - **`Params`** (`app/models/params.py`): `@dataclass` holding all config values — pure data, no I/O.
 - **`ConfigService`** (`app/services/config_service.py`): loads `Params` from TOML, persists `Params` back to TOML.
+- **Runtime params**: UI-editable `[parameters]` fields sync to `CounterService` and `CheckerService` via `apply_params()` when the user clicks Start (`MainController.start()`). `target_pieces` is read live from the shared `Params` object during counting.
 
 ## Core Algorithms
 
-- **WeightStabilityChecker**: dual sliding windows (4-frame short, 8-frame long) + triple checks (speed, trend, stddev) + hysteresis unlock
+- **WeightStabilityChecker**: dual sliding windows (5-frame short, 10-frame long by default; configurable in `[stability]`) + triple checks (speed, trend, stddev) + hysteresis unlock
 - **PieceCounter**: 3-state FSM (ZERO → NORMAL → ABNORMAL) + EMA weight learning + sqrt(n) statistical tolerance

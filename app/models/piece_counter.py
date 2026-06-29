@@ -190,6 +190,7 @@ class PieceCounter:
         self.decimal_places: int = decimal_places
         self.count_rounding_tolerance: float = count_rounding_tolerance
         self.abnormal_recover_factor: float = abnormal_recover_factor
+        self._stability_threshold: float = stability_threshold
 
         # Calculate min_tol
         resolution: float = 10 ** (-decimal_places)
@@ -474,3 +475,25 @@ class PieceCounter:
             self.tolerance.tolerance_percent = tolerance_percent
             self.thresholds.tolerance_percent = tolerance_percent
             self._sync_all()
+
+    def set_initial_mini_weight(self, initial_mini_weight: float) -> None:
+        if initial_mini_weight > 0:
+            self.initial_mini_weight = initial_mini_weight
+            self.thresholds.initial_mini_weight = initial_mini_weight
+
+    def set_decimal_places(self, decimal_places: int) -> None:
+        if decimal_places >= 0:
+            self.decimal_places = decimal_places
+            self._recalc_min_tol()
+
+    def set_stability_threshold(self, stability_threshold: float) -> None:
+        if stability_threshold > 0:
+            self._stability_threshold = stability_threshold
+            self._recalc_min_tol()
+
+    def _recalc_min_tol(self) -> None:
+        resolution = 10 ** (-self.decimal_places)
+        min_tol = max(resolution * 2, self._stability_threshold * 2)
+        self.tolerance.min_tol = min_tol
+        self.thresholds.min_tol = min_tol
+        self._sync_all()
