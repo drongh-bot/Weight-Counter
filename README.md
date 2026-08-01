@@ -37,7 +37,7 @@ app/
 
 - **Dependency Injection** — all objects created and wired in `main.py`
 - **CQS** — PieceCounter mutates state (Command), CounterService queries and builds results
-- **Signal-driven UI** — UIService emits `biz_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
+- **Signal-driven UI** — UIService emits `count_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
 - **No bare attribute access** — Controller communicates with services through methods only
 - **Model layer is Qt-free** — unit-testable without a GUI; `CounterService` and `CheckerService` are also Qt-free
 
@@ -131,7 +131,7 @@ splitter_sizes = [140, 199]
 ## Testing
 
 ```bash
-uv run pytest tests/ -v          # 117 tests: model → service → controller
+uv run pytest tests/ -v          # 119 tests: model → service → controller
 uv run mypy app                  # Type check
 ```
 

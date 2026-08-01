@@ -1,49 +1,57 @@
 # app/services/ui/builders.py
-from app.models.biz_result import BizResult
+from app.models.count_result import CountResult
 from app.models.counter_state import CounterState
-from app.services.ui.models import BarStatus, BizSnapshot, LabelItem
+from app.services.ui.models import BarStatus, CountSnapshot, LabelItem
 from app.services.ui.styles import Styles
 
 
-class BizBuilder:
+class CountBuilder:
     @staticmethod
-    def build(biz: BizResult) -> BizSnapshot:
-        dp = biz.decimal_places
-        if biz.state == CounterState.ZERO:
+    def build(result: CountResult) -> CountSnapshot:
+        dp = result.decimal_places
+        if result.state == CounterState.ZERO:
             state_text = "等待第一件"
             state_style = ""
-        elif biz.state == CounterState.NORMAL:
+        elif result.state == CounterState.NORMAL:
             state_text = "正常"
             state_style = ""
         else:
-            state_text = "异常（偏高）" if biz.abnormal_high else "异常（偏低）"
-            state_style = Styles.ABNORMAL_HIGH if biz.abnormal_high else Styles.ABNORMAL_LOW
+            state_text = "异常（偏高）" if result.abnormal_high else "异常（偏低）"
+            state_style = (
+                Styles.ABNORMAL_HIGH if result.abnormal_high else Styles.ABNORMAL_LOW
+            )
 
-        delta_style = state_style if biz.state == CounterState.ABNORMAL else ""
+        delta_style = state_style if result.state == CounterState.ABNORMAL else ""
 
-        return BizSnapshot(
+        return CountSnapshot(
             delta_weight=LabelItem(
-                text=f"{biz.delta:.{dp}f}",
+                text=f"{result.delta:.{dp}f}",
                 style=delta_style,
             ),
             state=LabelItem(
                 text=state_text,
                 style=state_style,
             ),
-            avg_weight=f"{biz.avg_weight:.{dp}f}",
-            tol_high=f"{biz.tol_high:.{dp}f}",
-            tol_low=f"{biz.tol_low:.{dp}f}",
-            total_pieces=str(biz.total_pieces),
-            last_stable_weight=f"{biz.last_stable_weight:.{dp}f}",
-            last_base_weight=f"{biz.last_base_weight:.{dp}f}",
-            weights=biz.weights,
+            avg_weight=f"{result.avg_weight:.{dp}f}",
+            tol_high=f"{result.tol_high:.{dp}f}",
+            tol_low=f"{result.tol_low:.{dp}f}",
+            total_pieces=str(result.total_pieces),
+            last_stable_weight=f"{result.last_stable_weight:.{dp}f}",
+            last_base_weight=f"{result.last_base_weight:.{dp}f}",
+            weights=result.weights,
             decimal_places=dp,
         )
 
 
 class BarStatusBuilder:
     @staticmethod
-    def build(parse_ok: bool, comm_ok: bool, exception_text: str | None) -> BarStatus:
+    def build(
+        parse_ok: bool,
+        comm_ok: bool,
+        status_message: str | None,
+        *,
+        info: bool = False,
+    ) -> BarStatus:
         if not comm_ok:
             parse_text = "解析等待"
             parse_style = Styles.GRAY
@@ -54,14 +62,19 @@ class BarStatusBuilder:
             parse_text = "解析正常"
             parse_style = Styles.GREEN
 
+        if status_message:
+            msg_style = Styles.GRAY if info else Styles.RED
+        else:
+            msg_style = ""
+
         return BarStatus(
             parse=LabelItem(text=parse_text, style=parse_style),
             comm=LabelItem(
                 text="通讯正常" if comm_ok else "通讯等待",
                 style=Styles.GREEN if comm_ok else Styles.GRAY,
             ),
-            exception=LabelItem(
-                text=exception_text or "无异常",
-                style=Styles.RED if exception_text else "",
+            message=LabelItem(
+                text=status_message or "无异常",
+                style=msg_style,
             ),
         )

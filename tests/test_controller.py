@@ -67,19 +67,22 @@ class TestControllerPipeline:
 
         assert spy.count() >= 1
         d = spy.at(spy.count() - 1)[0]
-        assert d.exception.text == "测试错误"
+        assert d.message.text == "测试错误"
 
-    def test_force_accept_pending(self, qapp):
+    def test_force_calibrate_pending(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller._is_active = True
-        controller.force_accept(5)
+        spy = QSignalSpy(ui.bar_status_changed)
+        controller.force_calibrate(5)
         assert controller._pending_force_pieces == 5
         assert controller._pending_clear_abnormal is False
+        d = spy.at(spy.count() - 1)[0]
+        assert d.message.text == "等待稳定重量…"
 
-    def test_force_accept_ignored_when_pieces_zero(self, qapp):
+    def test_force_calibrate_ignored_when_pieces_zero(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller._is_active = True
-        controller.force_accept(0)
+        controller.force_calibrate(0)
         assert controller._pending_force_pieces is None
 
     def test_clear_abnormal_pending(self, qapp):
@@ -89,14 +92,14 @@ class TestControllerPipeline:
         assert controller._pending_clear_abnormal is True
         assert controller._pending_force_pieces is None
 
-    def test_force_accept_executes_on_next_stable(self, qapp):
+    def test_force_calibrate_executes_on_next_stable(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller._is_active = True
 
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
 
-        controller.force_accept(3)
+        controller.force_calibrate(3)
         assert controller._pending_force_pieces == 3
 
         for _ in range(12):
@@ -106,7 +109,7 @@ class TestControllerPipeline:
         assert result.total_pieces == 3
         assert controller._pending_force_pieces is None
 
-    def test_force_accept_from_normal_without_abnormal(self, qapp):
+    def test_force_calibrate_from_normal_without_abnormal(self, qapp):
         """NORMAL 状态下也可强制校准，无需先进入异常"""
         controller, ui = self._make_controller(qapp)
         controller._is_active = True
@@ -118,7 +121,7 @@ class TestControllerPipeline:
         # 先稳定在 30，再强制校准，避免 pending 在过渡帧用旧 stable 重量执行
         for _ in range(12):
             controller._on_raw_data("30.0 kg")
-        controller.force_accept(3)
+        controller.force_calibrate(3)
         for _ in range(12):
             controller._on_raw_data("30.0 kg")
 
@@ -149,7 +152,7 @@ class TestControllerPipeline:
         controller, ui = self._make_controller(qapp)
         controller._is_active = False
 
-        controller.force_accept(5)
+        controller.force_calibrate(5)
         assert controller._pending_force_pieces is None
 
         controller.clear_abnormal()
@@ -221,18 +224,31 @@ class TestControllerPipeline:
         assert status.force is True
         assert status.clear is True
 
-    def test_should_defer_pending_when_raw_stable_mismatch(self, qapp):
+    def test_should_defer_force_when_raw_stable_mismatch(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller.params.stability_threshold = 0.02
-        controller._pending_force_pieces = 5
-        assert controller._should_defer_pending(30.0, 10.0) is True
-        assert controller._should_defer_pending(10.01, 10.0) is False
-        assert controller._should_defer_pending(10.0, 10.0) is False
-        controller._pending_force_pieces = None
-        controller._pending_clear_abnormal = True
-        assert controller._should_defer_pending(30.0, 10.0) is False
+        assert controller._should_defer_force(30.0, 10.0) is True
+        assert controller._should_defer_force(10.01, 10.0) is False
+        assert controller._should_defer_force(10.0, 10.0) is False
 
-    def test_force_accept_target_edge(self, qapp):
+    def test_force_calibrate_waits_when_raw_stable_mismatch(self, qapp):
+        """NORMAL 下强制校准：raw/stable 不一致时保持等待，不立刻执行"""
+        controller, ui = self._make_controller(qapp)
+        controller._is_active = True
+        for _ in range(12):
+            controller._on_raw_data("10.0 kg")
+        assert controller.counter_service.current_result().total_pieces == 1
+
+        controller.force_calibrate(3)
+        assert ui._last_bar is not None
+        assert ui._last_bar.message.text == "等待稳定重量…"
+        # 重量跳到 30，但 stable 仍锁在 10 → 应 defer，件数不变
+        controller._on_raw_data("30.0 kg")
+        assert controller._pending_force_pieces == 3
+        assert controller.counter_service.current_result().total_pieces == 1
+        assert ui._last_bar.message.text == "等待稳定重量…"
+
+    def test_force_calibrate_target_edge(self, qapp):
         sound = MagicMock()
         params = Params()
         params.target_pieces = 3
@@ -250,7 +266,7 @@ class TestControllerPipeline:
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
         assert controller.counter_service.current_result().total_pieces == 1
-        controller.force_accept(3)
+        controller.force_calibrate(3)
         for _ in range(12):
             controller._on_raw_data("30.0 kg")
         assert controller.counter_service.current_result().total_pieces == 3
@@ -270,5 +286,10 @@ class TestControllerPipeline:
         controller._is_active = True
         controller.counter_service.process(10.0)
         controller.params.decimal_places = 4
+        controller.params.tolerance_percent = 15.0  # 不应被 sync_decimal 同步
         controller.sync_decimal_places()
         assert controller.counter_service.current_result().decimal_places == 4
+        assert (
+            controller.counter_service._piece_counter.tolerance.tolerance_percent
+            == 20.0
+        )

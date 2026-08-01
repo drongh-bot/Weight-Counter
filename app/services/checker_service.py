@@ -9,10 +9,11 @@ logger = logging.getLogger(__name__)
 
 class CheckerService:
     """
-    CheckerService (refactored version)
-    - Responsible for weight parsing + stability checking
+    Weight input service:
+    - Parse serial weight strings
+    - Stabilize via WeightStabilityChecker
     - No dependency on UI or Controller
-    - Provides parse() / check() / reset()
+    - Provides parse() / stabilize() / reset()
     """
 
     def __init__(self, params: Params) -> None:
@@ -56,7 +57,7 @@ class CheckerService:
     # ============================================================
     # Stability check
     # ============================================================
-    def check(self, weight: float) -> float | None:
+    def stabilize(self, weight: float) -> float | None:
         """
         Returns the stable weight, or None if unstable
         """

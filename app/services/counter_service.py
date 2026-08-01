@@ -1,6 +1,6 @@
 # app/services/counter_service.py
 
-from app.models.biz_result import BizResult
+from app.models.count_result import CountResult
 from app.models.params import Params
 from app.models.counter_state import CounterState
 from app.models.piece_counter import PieceCounter
@@ -13,9 +13,8 @@ class CounterService:
     Responsibilities:
     - Feed stable weight into PieceCounter for counting
     - Detect abnormal/target edge triggers (rising edge)
-    - Map CounterState to BizState
-    - Build BizResult (unified data carrier)
-    - Force accept, clear abnormal, reset
+    - Build CountResult (unified data carrier)
+    - Force calibrate, clear abnormal, reset
     - Consume edge flags (consume_*), avoiding external direct state manipulation
     """
 
@@ -56,10 +55,25 @@ class CounterService:
         self._piece_counter.set_decimal_places(self.params.decimal_places)
         self._piece_counter.set_stability_threshold(self.params.stability_threshold)
 
+    def set_decimal_places(self, decimal_places: int) -> None:
+        """Hot-update decimal places only (no full apply_params)."""
+        self._piece_counter.set_decimal_places(decimal_places)
+
+    def _mark_target_edge_if_crossed(
+        self, old_count: int, new_count: int, state: CounterState
+    ) -> None:
+        target = self.params.target_pieces
+        if (
+            0 < target
+            and old_count < target <= new_count
+            and state == CounterState.NORMAL
+        ):
+            self._target_edge = True
+
     # ============================================================
     # Core: process stable weight (event result)
     # ============================================================
-    def process(self, stable_weight: float) -> BizResult:
+    def process(self, stable_weight: float) -> CountResult:
         old_count = self._piece_counter.total_pieces
         old_state = self._piece_counter.state
 
@@ -79,13 +93,7 @@ class CounterService:
         # -------------------------
         # Target edge trigger (rising edge: cross target this frame)
         # -------------------------
-        target = self.params.target_pieces
-        if (
-            0 < target
-            and old_count < target <= new_count
-            and new_state == CounterState.NORMAL
-        ):
-            self._target_edge = True
+        self._mark_target_edge_if_crossed(old_count, new_count, new_state)
 
         # -------------------------
         # Whether added in this cycle
@@ -100,8 +108,8 @@ class CounterService:
     # ============================================================
     # Result construction
     # ============================================================
-    def _build_result(self, added: bool = False) -> BizResult:
-        return BizResult(
+    def _build_result(self, added: bool = False) -> CountResult:
+        return CountResult(
             added=added,
             abnormal_high=self._piece_counter.abnormal_high,
             abnormal_low=self._piece_counter.abnormal_low,
@@ -120,21 +128,17 @@ class CounterService:
     # ============================================================
     # Force accept / Clear abnormal
     # ============================================================
-    def force_accept(self, stable_weight: float, pieces: int) -> bool:
+    def force_calibrate(self, stable_weight: float, pieces: int) -> bool:
         """Force recalibration. Returns True if applied."""
         old_count = self._piece_counter.total_pieces
-        self._piece_counter.force_accept(stable_weight, pieces)
+        self._piece_counter.force_calibrate(stable_weight, pieces)
         new_count = self._piece_counter.total_pieces
         if new_count != pieces:
             return False
 
-        target = self.params.target_pieces
-        if (
-            0 < target
-            and old_count < target <= new_count
-            and self._piece_counter.state == CounterState.NORMAL
-        ):
-            self._target_edge = True
+        self._mark_target_edge_if_crossed(
+            old_count, new_count, self._piece_counter.state
+        )
         return True
 
     def clear_abnormal(self, stable_weight: float) -> None:
@@ -164,5 +168,5 @@ class CounterService:
     # ============================================================
     # Current business state (does not count, only returns current state)
     # ============================================================
-    def current_result(self) -> BizResult:
+    def current_result(self) -> CountResult:
         return self._build_result()

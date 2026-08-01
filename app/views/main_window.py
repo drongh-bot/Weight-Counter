@@ -15,7 +15,7 @@ from app.controllers.main_controller import MainController
 from app.core.resource_manager import ResourceManager
 from app.models.params import Params
 from app.services.config_service import ConfigService
-from app.services.ui.models import BizSnapshot, ButtonStatus, LabelItem, BarStatus
+from app.services.ui.models import CountSnapshot, ButtonStatus, LabelItem, BarStatus
 from app.services.ui.ui_service import UIService
 from app.views.ui_generated.form import Ui_MainWindow
 from app.views.widgets.piece_chart import PieceChart
@@ -89,12 +89,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ui_service.actual_weight_changed.connect(self.lblActWeight.setText)
         self.ui_service.bar_status_changed.connect(self._on_bar_status_changed)
         self.ui_service.button_status_changed.connect(self._on_button_status_changed)
-        self.ui_service.biz_changed.connect(self._on_biz_changed)
+        self.ui_service.count_changed.connect(self._on_count_changed)
 
     def _on_bar_status_changed(self, data: BarStatus) -> None:
         self._apply_bar_label_item(data.parse, self.lblParse)
         self._apply_bar_label_item(data.comm, self.lblComm)
-        self._apply_bar_label_item(data.exception, self.lblException)
+        self._apply_bar_label_item(data.message, self.lblException)
 
     def _on_button_status_changed(self, state: ButtonStatus) -> None:
         self.btnStart.setEnabled(state.start)
@@ -102,23 +102,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnClear.setEnabled(state.clear)
         self.btnForce.setEnabled(state.force)
 
-    def _on_biz_changed(self, biz: BizSnapshot) -> None:
+    def _on_count_changed(self, snap: CountSnapshot) -> None:
         try:
-            self.lblDeltaWeight.setText(biz.delta_weight.text)
-            self.lblDeltaWeight.setStyleSheet(biz.delta_weight.style)
+            self.lblDeltaWeight.setText(snap.delta_weight.text)
+            self.lblDeltaWeight.setStyleSheet(snap.delta_weight.style)
 
-            self.lblState.setText(biz.state.text)
-            self.lblState.setStyleSheet(biz.state.style)
+            self.lblState.setText(snap.state.text)
+            self.lblState.setStyleSheet(snap.state.style)
 
-            self.lblAvgWeight.setText(biz.avg_weight)
-            self.lblTolHigh.setText(biz.tol_high)
-            self.lblTolLow.setText(biz.tol_low)
-            self.lblTotalPieces.setText(biz.total_pieces)
-            self.lblLastStableWeight.setText(biz.last_stable_weight)
-            self.lblLastBaseWeight.setText(biz.last_base_weight)
+            self.lblAvgWeight.setText(snap.avg_weight)
+            self.lblTolHigh.setText(snap.tol_high)
+            self.lblTolLow.setText(snap.tol_low)
+            self.lblTotalPieces.setText(snap.total_pieces)
+            self.lblLastStableWeight.setText(snap.last_stable_weight)
+            self.lblLastBaseWeight.setText(snap.last_base_weight)
 
-            self.wgtPieceTable.update_table(biz.weights)
-            self.wgtPieceChart.update_chart(biz.weights)
+            self.wgtPieceTable.update_table(snap.weights)
+            self.wgtPieceChart.update_chart(snap.weights)
 
         except Exception as e:
             logger.exception("UI更新失败")
@@ -131,7 +131,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _bind_ui_signals(self) -> None:
         self.btnStart.clicked.connect(self.start)
         self.btnStop.clicked.connect(self.stop)
-        self.btnForce.clicked.connect(self.force_accept)
+        self.btnForce.clicked.connect(self.force_calibrate)
         self.btnClear.clicked.connect(self.clear_abnormal)
         self.btnSaveParams.clicked.connect(self.save_params)
 
@@ -160,9 +160,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def stop(self) -> None:
         self.controller.stop()
 
-    def force_accept(self) -> None:
+    def force_calibrate(self) -> None:
         pieces = int(self.spnForcePieces.value())
-        self.controller.force_accept(pieces)
+        if pieces <= 0:
+            QMessageBox.warning(self, "提示", "请先输入强制片数")
+            return
+        self.controller.force_calibrate(pieces)
         self.spnForcePieces.setValue(0)
 
     def clear_abnormal(self) -> None:

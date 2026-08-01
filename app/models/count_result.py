@@ -1,4 +1,4 @@
-# app/models/biz_result.py
+# app/models/count_result.py
 
 from dataclasses import dataclass
 
@@ -6,7 +6,7 @@ from app.models.counter_state import CounterState
 
 
 @dataclass
-class BizResult:
+class CountResult:
     added: bool
     abnormal_high: bool
     abnormal_low: bool

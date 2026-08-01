@@ -266,10 +266,10 @@ class TestPieceCounterFSM:
         assert counter.abnormal_low
         assert not counter.abnormal_high
 
-    def test_force_accept(self):
+    def test_force_calibrate(self):
         """强制校准，重置为指定件数"""
         counter = PieceCounter(initial_mini_weight=0.5)
-        counter.force_accept(100.0, 10)
+        counter.force_calibrate(100.0, 10)
         assert counter.total_pieces == 10
         assert counter.avg_weight == pytest.approx(10.0)
         assert counter.state == CounterState.NORMAL
@@ -279,31 +279,31 @@ class TestPieceCounterFSM:
         counter.process(100.0)
         assert counter.total_pieces == 10
 
-    def test_force_accept_from_zero_resets_baseline(self):
+    def test_force_calibrate_from_zero_resets_baseline(self):
         """ZERO 状态强制校准也应更新基准点"""
         counter = PieceCounter(initial_mini_weight=0.5)
-        counter.force_accept(100.0, 10)
+        counter.force_calibrate(100.0, 10)
         assert counter.state == CounterState.NORMAL
         assert counter.last_base_weight == pytest.approx(100.0)
         counter.process(100.0)
         assert counter.total_pieces == 10
 
-    def test_force_accept_from_normal_resets_baseline(self):
+    def test_force_calibrate_from_normal_resets_baseline(self):
         """NORMAL 状态强制校准应更新基准点至新 stable 重量"""
         counter = PieceCounter(initial_mini_weight=0.5)
         counter.process(10.0)
         assert counter.total_pieces == 1
-        counter.force_accept(30.0, 3)
+        counter.force_calibrate(30.0, 3)
         assert counter.total_pieces == 3
         assert counter.last_base_weight == pytest.approx(30.0)
         counter.process(30.0)
         assert counter.total_pieces == 3
 
-    def test_force_accept_below_threshold_ignored(self):
+    def test_force_calibrate_below_threshold_ignored(self):
         """强制校准重量不足阈值，忽略"""
         counter = PieceCounter(initial_mini_weight=1.0)
         counter.process(10.0)  # 先建立一个正常状态
-        counter.force_accept(0.3, 5)
+        counter.force_calibrate(0.3, 5)
         assert counter.total_pieces == 1  # 未改变
 
     def test_global_zero_reset(self):

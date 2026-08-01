@@ -20,7 +20,7 @@ app/
 
 - **DI**: all objects created and wired in `main.py`
 - **CQS**: PieceCounter mutates state (Command), CounterService queries and builds results
-- **Signal-driven UI**: UIService emits `biz_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
+- **Signal-driven UI**: UIService emits `count_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
 - **No bare attribute access**: Controller communicates with services through methods only
 - **Model layer is Qt-free**: unit-testable without a GUI, no I/O (see Params vs ConfigService split)
 - **Business services are Qt-free**: `CounterService` and `CheckerService` are plain Python classes; I/O and UI-facing services (`SerialService`, `UIService`, etc.) inherit `QObject`
@@ -42,7 +42,7 @@ app/
 uv sync                          # Install dependencies
 uv run main.py                   # Run the app
 uv run pyinstaller main.spec     # Package to dist/WeightCounter/
-uv run pytest tests/ -v          # Run all 117 tests
+uv run pytest tests/ -v          # Run all 119 tests
 uv run mypy app                  # Type check
 ```
 
@@ -84,10 +84,11 @@ The app requires a serial port with a connected electronic scale. Without hardwa
 
 `config.toml` controls serial port, baud rate, weight params, counting tolerance, etc.
 
-- **`Params`** (`app/models/params.py`): `@dataclass` holding all parameter values — pure data, no I/O.
+- **`Params`** (`app/models/params.py`): `@dataclass` holding all parameter values — pure data, no I/O. One shared instance is injected into controller / window / services; **freshness rules differ by field** (below).
 - **`ConfigService`** (`app/services/config_service.py`): loads/saves only the fields listed in `_SECTION_MAP` ↔ `config.toml`. Not every `Params` field is persisted.
-- **Start-sync params**: UI-editable `[parameters]` fields (except `target_pieces`) sync to `CounterService` and `CheckerService` via `apply_params()` when the user clicks Start (`MainController.start()`).
+- **Start-sync params**: UI-editable `[parameters]` fields (except `target_pieces` / hot decimal places) sync to `CounterService` and `CheckerService` via `apply_params()` when the user clicks Start (`MainController.start()`). Editing them mid-run does **not** affect the algorithm until the next Start (unless noted below).
 - **`target_pieces` (runtime-only, not persisted)**: batch production target — lives on `Params` and in the UI spinbox, but is **excluded from `_SECTION_MAP`**. `CounterService.process()` reads it live from the shared `Params` object on every stable frame, so the operator can change the target mid-run without restart. Default `100`; not saved to `config.toml` on exit.
+- **`decimal_places` (hot-update)**: changing the UI spinbox calls `MainController.sync_decimal_places()` → `CounterService.set_decimal_places()` only (does **not** run full `apply_params()`).
 
 ## Core Algorithms
 

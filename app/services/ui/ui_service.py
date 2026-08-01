@@ -1,37 +1,41 @@
 # app/services/ui/ui_service.py
 from PySide6.QtCore import QObject, Signal
 
-from app.models.biz_result import BizResult
-from app.services.ui.builders import BizBuilder, BarStatusBuilder
-from app.services.ui.models import BizSnapshot, ButtonStatus, BarStatus
+from app.models.count_result import CountResult
+from app.services.ui.builders import CountBuilder, BarStatusBuilder
+from app.services.ui.models import CountSnapshot, ButtonStatus, BarStatus
 
 
 class UIService(QObject):
-    biz_changed = Signal(BizSnapshot)
+    count_changed = Signal(CountSnapshot)
     bar_status_changed = Signal(BarStatus)
     button_status_changed = Signal(ButtonStatus)
     actual_weight_changed = Signal(str)
 
     def __init__(self) -> None:
         super().__init__()
-        self._last_biz: BizSnapshot | None = None
+        self._last_count: CountSnapshot | None = None
         self._last_bar: BarStatus | None = None
         self._last_button: ButtonStatus | None = None
         self._last_weight: str | None = None
 
-    def update_biz(self, biz: BizResult) -> None:
-        data = BizBuilder.build(biz)
-        if data != self._last_biz:
-            self._last_biz = data
-            self.biz_changed.emit(data)
+    def update_count(self, result: CountResult) -> None:
+        data = CountBuilder.build(result)
+        if data != self._last_count:
+            self._last_count = data
+            self.count_changed.emit(data)
 
     def update_bar_status(
         self,
         parse_ok: bool = True,
         comm_ok: bool = True,
-        exception_text: str | None = None,
+        status_message: str | None = None,
+        *,
+        info: bool = False,
     ) -> None:
-        data = BarStatusBuilder.build(parse_ok, comm_ok, exception_text)
+        data = BarStatusBuilder.build(
+            parse_ok, comm_ok, status_message, info=info
+        )
         if data != self._last_bar:
             self._last_bar = data
             self.bar_status_changed.emit(data)
@@ -48,8 +52,8 @@ class UIService(QObject):
             self.actual_weight_changed.emit(text)
 
     def refresh(self) -> None:
-        if self._last_biz:
-            self.biz_changed.emit(self._last_biz)
+        if self._last_count:
+            self.count_changed.emit(self._last_count)
         if self._last_bar:
             self.bar_status_changed.emit(self._last_bar)
         if self._last_button:

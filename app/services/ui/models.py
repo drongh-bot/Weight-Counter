@@ -14,7 +14,7 @@ class LabelItem:
 class BarStatus:
     parse: LabelItem
     comm: LabelItem
-    exception: LabelItem
+    message: LabelItem
 
 
 @dataclass
@@ -26,7 +26,7 @@ class ButtonStatus:
 
 
 @dataclass
-class BizSnapshot:
+class CountSnapshot:
     delta_weight: LabelItem
     state: LabelItem
     avg_weight: str

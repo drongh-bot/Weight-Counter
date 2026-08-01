@@ -383,7 +383,7 @@ class PieceCounter:
     # ---------------------------------------------------------
     # Force Calibration
     # ---------------------------------------------------------
-    def force_accept(self, stable_weight: float, force_pieces: int) -> None:
+    def force_calibrate(self, stable_weight: float, force_pieces: int) -> None:
         if stable_weight < self.thresholds.initial_mini_weight or force_pieces <= 0:
             return
 

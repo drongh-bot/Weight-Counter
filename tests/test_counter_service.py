@@ -130,23 +130,23 @@ class TestCounterServiceProcess:
         result = svc.process(10.0)  # 无变化
         assert result.added is False
 
-    def test_force_accept(self):
+    def test_force_calibrate(self):
         svc = self._make_service()
         svc._piece_counter.last_stable_weight = 100.0
-        assert svc.force_accept(100.0, 10) is True
+        assert svc.force_calibrate(100.0, 10) is True
         result = svc.current_result()
         assert result.total_pieces == 10
 
-    def test_force_accept_returns_false_when_invalid(self):
+    def test_force_calibrate_returns_false_when_invalid(self):
         svc = self._make_service()
         svc.process(10.0)
-        assert svc.force_accept(0.3, 5) is False
+        assert svc.force_calibrate(0.3, 5) is False
         assert svc.current_result().total_pieces == 1
 
-    def test_force_accept_target_edge(self):
+    def test_force_calibrate_target_edge(self):
         svc = self._make_service(target=3)
         svc.process(10.0)
-        assert svc.force_accept(30.0, 3) is True
+        assert svc.force_calibrate(30.0, 3) is True
         assert svc.consume_target_edge() is True
         assert svc.process(30.0).total_pieces == 3
         assert svc.consume_target_edge() is False
