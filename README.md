@@ -24,7 +24,7 @@ Serial Port
 ```
 app/
 ├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
-├── models/                Pure business logic (PieceCounter, WeightStabilityChecker, Params)
+├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilityChecker, Params)
 ├── services/              Service layer (serial, weight_input, counter, sound, log, config, ui)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
@@ -131,7 +131,7 @@ splitter_sizes = [140, 199]
 ## Testing
 
 ```bash
-uv run pytest tests/ -v          # 121 tests: model → service → controller
+uv run pytest tests/ -v          # 122 tests: model → service → controller
 uv run mypy app                  # Type check
 ```
 
@@ -142,7 +142,7 @@ uv run mypy app                  # Type check
 | model      | 48 (Qt-free, plain pytest)                |
 | builder    | 10 (Qt-free)                              |
 | service    | 44 (config/weight_input/counter Qt-free; ui needs `qapp`) |
-| controller | 19 (uses `qapp` fixture)                  |
+| controller | 20 (uses `qapp` fixture)                  |
 
 ---
 

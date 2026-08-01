@@ -30,10 +30,10 @@ class CountSnapshot:
     delta_weight: LabelItem
     state: LabelItem
     avg_weight: str
-    tol_high: str
-    tol_low: str
+    tolerance_high: str
+    tolerance_low: str
     total_pieces: str
     last_stable_weight: str
-    last_base_weight: str
-    weights: list[float]
+    baseline_weight: str
+    piece_weights: list[float]
     decimal_places: int

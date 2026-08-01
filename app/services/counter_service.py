@@ -116,12 +116,12 @@ class CounterService:
             state=self._piece_counter.state,
             delta=self._piece_counter.delta,
             avg_weight=self._piece_counter.avg_weight,
-            tol_high=self._piece_counter.tolerance.high,
-            tol_low=self._piece_counter.tolerance.low,
+            tolerance_high=self._piece_counter.tolerance.high,
+            tolerance_low=self._piece_counter.tolerance.low,
             total_pieces=self._piece_counter.total_pieces,
             last_stable_weight=self._piece_counter.last_stable_weight,
-            last_base_weight=self._piece_counter.last_base_weight,
-            weights=self._piece_counter.piece_weights,
+            baseline_weight=self._piece_counter.baseline_weight,
+            piece_weights=self._piece_counter.piece_weights,
             decimal_places=self._piece_counter.decimal_places,
         )
 

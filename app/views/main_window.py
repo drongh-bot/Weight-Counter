@@ -116,14 +116,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.lblState.setStyleSheet(snap.state.style)
 
             self.lblAvgWeight.setText(snap.avg_weight)
-            self.lblTolHigh.setText(snap.tol_high)
-            self.lblTolLow.setText(snap.tol_low)
+            self.lblTolHigh.setText(snap.tolerance_high)
+            self.lblTolLow.setText(snap.tolerance_low)
             self.lblTotalPieces.setText(snap.total_pieces)
             self.lblLastStableWeight.setText(snap.last_stable_weight)
-            self.lblLastBaseWeight.setText(snap.last_base_weight)
+            self.lblBaselineWeight.setText(snap.baseline_weight)
 
-            self.wgtPieceTable.update_table(snap.weights)
-            self.wgtPieceChart.update_chart(snap.weights)
+            self.wgtPieceTable.update_table(snap.piece_weights)
+            self.wgtPieceChart.update_chart(snap.piece_weights)
 
         except Exception as e:
             logger.exception("UI更新失败")
@@ -254,7 +254,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     # ============================================================
     def closeEvent(self, event: QCloseEvent) -> None:
         self.hide()
-
         try:
             self.save_params()
         finally:

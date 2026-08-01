@@ -13,12 +13,12 @@ class TestCountBuilder:
             state=CounterState.ZERO,
             delta=0.0,
             avg_weight=0.0,
-            tol_high=0.0,
-            tol_low=0.0,
+            tolerance_high=0.0,
+            tolerance_low=0.0,
             total_pieces=0,
             last_stable_weight=0.0,
-            last_base_weight=0.0,
-            weights=[],
+            baseline_weight=0.0,
+            piece_weights=[],
         )
         data = CountBuilder.build(result)
         assert data.state.text == "等待第一件"
@@ -33,12 +33,12 @@ class TestCountBuilder:
             state=CounterState.NORMAL,
             delta=10.0,
             avg_weight=10.0,
-            tol_high=11.0,
-            tol_low=9.0,
+            tolerance_high=11.0,
+            tolerance_low=9.0,
             total_pieces=5,
             last_stable_weight=50.0,
-            last_base_weight=40.0,
-            weights=[10.0, 10.0, 10.0, 10.0, 10.0],
+            baseline_weight=40.0,
+            piece_weights=[10.0, 10.0, 10.0, 10.0, 10.0],
         )
         data = CountBuilder.build(result)
         assert data.state.text == "正常"
@@ -56,12 +56,12 @@ class TestCountBuilder:
             state=CounterState.ABNORMAL,
             delta=15.0,
             avg_weight=10.0,
-            tol_high=11.0,
-            tol_low=9.0,
+            tolerance_high=11.0,
+            tolerance_low=9.0,
             total_pieces=3,
             last_stable_weight=45.0,
-            last_base_weight=30.0,
-            weights=[10.0, 10.0, 10.0],
+            baseline_weight=30.0,
+            piece_weights=[10.0, 10.0, 10.0],
         )
         data = CountBuilder.build(result)
         assert data.state.text == "异常（偏高）"
@@ -76,12 +76,12 @@ class TestCountBuilder:
             state=CounterState.ABNORMAL,
             delta=-5.0,
             avg_weight=10.0,
-            tol_high=11.0,
-            tol_low=9.0,
+            tolerance_high=11.0,
+            tolerance_low=9.0,
             total_pieces=2,
             last_stable_weight=15.0,
-            last_base_weight=20.0,
-            weights=[10.0, 10.0],
+            baseline_weight=20.0,
+            piece_weights=[10.0, 10.0],
         )
         data = CountBuilder.build(result)
         assert data.state.text == "异常（偏低）"
@@ -96,19 +96,19 @@ class TestCountBuilder:
             state=CounterState.NORMAL,
             delta=3.14159,
             avg_weight=10.0,
-            tol_high=11.0,
-            tol_low=9.0,
+            tolerance_high=11.0,
+            tolerance_low=9.0,
             total_pieces=1,
             last_stable_weight=10.0,
-            last_base_weight=0.0,
-            weights=[10.0],
+            baseline_weight=0.0,
+            piece_weights=[10.0],
         )
         data = CountBuilder.build(result)
         assert data.delta_weight.text == "3.14"
-        assert data.tol_high == "11.00"
-        assert data.tol_low == "9.00"
+        assert data.tolerance_high == "11.00"
+        assert data.tolerance_low == "9.00"
         assert data.last_stable_weight == "10.00"
-        assert data.last_base_weight == "0.00"
+        assert data.baseline_weight == "0.00"
 
 
 class TestBarStatusBuilder:

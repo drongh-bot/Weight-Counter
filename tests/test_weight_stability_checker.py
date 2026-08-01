@@ -8,7 +8,7 @@ class TestStableDetection:
             short_win=4,
             long_win=8,
             stable_count=3,
-            base_threshold=0.02,
+            stability_threshold=0.02,
         )
         value = 100.0
         # 前 7 帧填充长窗口，返回 None
@@ -29,7 +29,7 @@ class TestStableDetection:
             short_win=4,
             long_win=8,
             stable_count=3,
-            base_threshold=0.02,
+            stability_threshold=0.02,
         )
         # 先填充窗口
         for _ in range(8):
@@ -44,7 +44,7 @@ class TestStableDetection:
             short_win=4,
             long_win=8,
             stable_count=3,
-            base_threshold=0.02,
+            stability_threshold=0.02,
         )
         # 逐步上升
         for i in range(8):
@@ -59,7 +59,7 @@ class TestStableDetection:
             short_win=4,
             long_win=8,
             stable_count=3,
-            base_threshold=0.02,
+            stability_threshold=0.02,
         )
         values = [100.0, 100.5, 99.5, 101.0, 98.0, 102.0, 100.0, 101.5]
         for v in values:
@@ -75,7 +75,7 @@ class TestLockAndUnlock:
             short_win=4,
             long_win=8,
             stable_count=3,
-            base_threshold=0.02,
+            stability_threshold=0.02,
             unlock_factor=2.5,
         )
         value = 50.0
@@ -94,14 +94,14 @@ class TestLockAndUnlock:
             stable_count=3,
             unlock_confirm=2,
             unlock_factor=2.5,
-            base_threshold=0.02,
+            stability_threshold=0.02,
         )
         value = 50.0
         for _ in range(10):
             checker.check_stability(value)
         # 锁定中
         assert checker.locked
-        # 突变超过锁定值 + unlock_factor * base_threshold
+        # 突变超过锁定值 + unlock_factor * stability_threshold
         jump = 50.0 + 2.5 * 0.02 + 0.01
         # 第一帧仍锁定
         result = checker.check_stability(jump)
@@ -118,7 +118,7 @@ class TestLockAndUnlock:
             long_win=8,
             stable_count=3,
             unlock_factor=2.5,
-            base_threshold=0.02,
+            stability_threshold=0.02,
         )
         value = 50.0
         for _ in range(10):
@@ -157,12 +157,12 @@ class TestEdgeCases:
         assert checker.last_stable_weight is None
 
     def test_hot_update_threshold(self):
-        """set_base_threshold 立即生效"""
+        """set_stability_threshold 立即生效"""
         checker = WeightStabilityChecker(
-            base_threshold=10.0,
+            stability_threshold=10.0,
         )
-        checker.set_base_threshold(0.001)
-        assert checker.base_threshold == 0.001
+        checker.set_stability_threshold(0.001)
+        assert checker.stability_threshold == 0.001
 
     def test_hot_update_stable_count(self):
         """set_stable_count 立即生效"""
@@ -176,7 +176,7 @@ class TestEdgeCases:
             short_win=4,
             long_win=8,
             stable_count=3,
-            base_threshold=0.02,
+            stability_threshold=0.02,
         )
         # 用递增序列填充窗口，使元素各不相同
         for i in range(12):

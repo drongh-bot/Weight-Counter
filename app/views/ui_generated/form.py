@@ -295,11 +295,11 @@ class Ui_MainWindow(object):
 
         self.formLayout.setWidget(5, QFormLayout.LabelRole, self.label_12)
 
-        self.lblLastBaseWeight = QLabel(self.groupBox)
-        self.lblLastBaseWeight.setObjectName(u"lblLastBaseWeight")
-        self.lblLastBaseWeight.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.lblBaselineWeight = QLabel(self.groupBox)
+        self.lblBaselineWeight.setObjectName(u"lblBaselineWeight")
+        self.lblBaselineWeight.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.formLayout.setWidget(5, QFormLayout.FieldRole, self.lblLastBaseWeight)
+        self.formLayout.setWidget(5, QFormLayout.FieldRole, self.lblBaselineWeight)
 
         self.label_15 = QLabel(self.groupBox)
         self.label_15.setObjectName(u"label_15")
@@ -558,7 +558,7 @@ class Ui_MainWindow(object):
         self.label_11.setText(QCoreApplication.translate("MainWindow", u"\u5355\u5f20\u4e0b\u9650\u91cd\u91cf:", None))
         self.lblTolLow.setText(QCoreApplication.translate("MainWindow", u"0.00", None))
         self.label_12.setText(QCoreApplication.translate("MainWindow", u"\u4e0a\u6b21\u57fa\u51c6\u91cd\u91cf:", None))
-        self.lblLastBaseWeight.setText(QCoreApplication.translate("MainWindow", u"0.00", None))
+        self.lblBaselineWeight.setText(QCoreApplication.translate("MainWindow", u"0.00", None))
         self.label_15.setText(QCoreApplication.translate("MainWindow", u"\u4e0a\u6b21\u7a33\u5b9a\u91cd\u91cf:", None))
         self.lblLastStableWeight.setText(QCoreApplication.translate("MainWindow", u"0.00", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", u"\u91c7\u6837\u4e0e\u5224\u5b9a", None))

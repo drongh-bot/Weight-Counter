@@ -13,10 +13,10 @@ class CountResult:
     state: CounterState
     delta: float
     avg_weight: float
-    tol_high: float
-    tol_low: float
+    tolerance_high: float
+    tolerance_low: float
     total_pieces: int
     last_stable_weight: float
-    last_base_weight: float
-    weights: list[float]
+    baseline_weight: float
+    piece_weights: list[float]
     decimal_places: int = 2

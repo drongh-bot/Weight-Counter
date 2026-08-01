@@ -19,8 +19,8 @@ class TestUIService:
         result = CountResult(
             added=True, abnormal_high=False, abnormal_low=False,
             state=CounterState.NORMAL, delta=10.0, avg_weight=10.0,
-            tol_high=11.0, tol_low=9.0, total_pieces=1,
-            last_stable_weight=10.0, last_base_weight=0.0, weights=[10.0],
+            tolerance_high=11.0, tolerance_low=9.0, total_pieces=1,
+            last_stable_weight=10.0, baseline_weight=0.0, piece_weights=[10.0],
         )
         svc.update_count(result)
 
@@ -35,8 +35,8 @@ class TestUIService:
         result = CountResult(
             added=False, abnormal_high=False, abnormal_low=False,
             state=CounterState.ZERO, delta=0.0, avg_weight=0.0,
-            tol_high=0.0, tol_low=0.0, total_pieces=0,
-            last_stable_weight=0.0, last_base_weight=0.0, weights=[],
+            tolerance_high=0.0, tolerance_low=0.0, total_pieces=0,
+            last_stable_weight=0.0, baseline_weight=0.0, piece_weights=[],
         )
         svc.update_count(result)
         assert spy.count() == 1
@@ -51,8 +51,8 @@ class TestUIService:
         result = CountResult(
             added=False, abnormal_high=False, abnormal_low=False,
             state=CounterState.ZERO, delta=0.0, avg_weight=0.0,
-            tol_high=0.0, tol_low=0.0, total_pieces=0,
-            last_stable_weight=0.0, last_base_weight=0.0, weights=[],
+            tolerance_high=0.0, tolerance_low=0.0, total_pieces=0,
+            last_stable_weight=0.0, baseline_weight=0.0, piece_weights=[],
         )
         svc.update_count(result)
         assert spy.count() == 1
@@ -60,8 +60,8 @@ class TestUIService:
         result2 = CountResult(
             added=True, abnormal_high=False, abnormal_low=False,
             state=CounterState.NORMAL, delta=10.0, avg_weight=10.0,
-            tol_high=11.0, tol_low=9.0, total_pieces=1,
-            last_stable_weight=10.0, last_base_weight=0.0, weights=[10.0],
+            tolerance_high=11.0, tolerance_low=9.0, total_pieces=1,
+            last_stable_weight=10.0, baseline_weight=0.0, piece_weights=[10.0],
         )
         svc.update_count(result2)
         assert spy.count() == 2
@@ -75,8 +75,8 @@ class TestUIService:
         result = CountResult(
             added=False, abnormal_high=False, abnormal_low=False,
             state=CounterState.ZERO, delta=0.0, avg_weight=0.0,
-            tol_high=0.0, tol_low=0.0, total_pieces=0,
-            last_stable_weight=0.0, last_base_weight=0.0, weights=[],
+            tolerance_high=0.0, tolerance_low=0.0, total_pieces=0,
+            last_stable_weight=0.0, baseline_weight=0.0, piece_weights=[],
         )
         svc.update_count(result)
         svc.update_bar_status()

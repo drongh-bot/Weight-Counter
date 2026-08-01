@@ -7,7 +7,7 @@ Industrial piece-counting desktop application — PySide6 + MVVM + Dependency In
 ```
 app/
 ├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
-├── models/                Pure business logic (PieceCounter, WeightStabilityChecker, Params)
+├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilityChecker, Params)
 ├── services/              Service layer (serial, weight_input, counter, sound, csv_log, config, ui)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
@@ -42,7 +42,7 @@ app/
 uv sync                          # Install dependencies
 uv run main.py                   # Run the app
 uv run pyinstaller main.spec     # Package to dist/WeightCounter/
-uv run pytest tests/ -v          # Run all 121 tests
+uv run pytest tests/ -v          # Run all 122 tests
 uv run mypy app                  # Type check
 ```
 
@@ -59,7 +59,7 @@ Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `UISe
 | `tests/test_counter_service.py` | service | 19 |
 | `tests/test_config_service.py` | service | 2 |
 | `tests/test_ui_service.py` | service | 9 |
-| `tests/test_controller.py` | controller | 19 |
+| `tests/test_controller.py` | controller | 20 |
 
 ## PySide6 QSignalSpy quirk (6.8.3)
 

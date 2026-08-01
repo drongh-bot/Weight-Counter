@@ -71,7 +71,7 @@ class TestCounterServiceProcess:
         pc = svc._piece_counter
         pc.piece_weights = [10.0] * 98
         pc.avg_weight = 10.0
-        pc.last_base_weight = 980.0
+        pc.baseline_weight = 980.0
         pc.last_stable_weight = 980.0
         pc.state = CounterState.NORMAL
         pc._sync_all()
@@ -92,7 +92,7 @@ class TestCounterServiceProcess:
         pc = svc._piece_counter
         pc.piece_weights = [10.0] * 100
         pc.avg_weight = 10.0
-        pc.last_base_weight = 1000.0
+        pc.baseline_weight = 1000.0
         pc.last_stable_weight = 1000.0
         pc.state = CounterState.NORMAL
         pc._sync_all()
@@ -183,7 +183,7 @@ class TestCounterServiceProcess:
         result = svc.current_result()
         assert result.total_pieces == 1
         assert result.avg_weight == 10.0
-        assert result.weights == [10.0]
+        assert result.piece_weights == [10.0]
 
     def test_apply_params_syncs_ui_editable_fields(self):
         params = Params(

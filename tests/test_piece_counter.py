@@ -1,11 +1,9 @@
 import pytest
 from app.models.counter_state import CounterState
-from app.models.piece_counter import (
-    PieceCounter,
-    Thresholds,
-    Tolerance,
-    WeightLearner,
-)
+from app.models.piece_counter import PieceCounter
+from app.models.thresholds import Thresholds
+from app.models.tolerance import Tolerance
+from app.models.weight_learner import WeightLearner
 
 
 class TestThresholds:
@@ -273,7 +271,7 @@ class TestPieceCounterFSM:
         assert counter.total_pieces == 10
         assert counter.avg_weight == pytest.approx(10.0)
         assert counter.state == CounterState.NORMAL
-        assert counter.last_base_weight == pytest.approx(100.0)
+        assert counter.baseline_weight == pytest.approx(100.0)
         assert counter.last_stable_weight == pytest.approx(100.0)
         # 基准点已更新，同重量不应多计
         counter.process(100.0)
@@ -284,7 +282,7 @@ class TestPieceCounterFSM:
         counter = PieceCounter(initial_min_weight=0.5)
         counter.force_calibrate(100.0, 10)
         assert counter.state == CounterState.NORMAL
-        assert counter.last_base_weight == pytest.approx(100.0)
+        assert counter.baseline_weight == pytest.approx(100.0)
         counter.process(100.0)
         assert counter.total_pieces == 10
 
@@ -295,7 +293,7 @@ class TestPieceCounterFSM:
         assert counter.total_pieces == 1
         counter.force_calibrate(30.0, 3)
         assert counter.total_pieces == 3
-        assert counter.last_base_weight == pytest.approx(30.0)
+        assert counter.baseline_weight == pytest.approx(30.0)
         counter.process(30.0)
         assert counter.total_pieces == 3
 

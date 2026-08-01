@@ -63,7 +63,7 @@ class TestWeightInputServiceParse:
         params.stability_threshold = 0.10
         svc.apply_params()
 
-        assert svc._stability_checker.base_threshold == 0.10
+        assert svc._stability_checker.stability_threshold == 0.10
 
     @staticmethod
     def _make_service() -> WeightInputService:

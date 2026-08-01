@@ -26,7 +26,7 @@ class WeightInputService:
             stable_count=params.stability_stable_count,
             unlock_confirm=params.stability_unlock_confirm,
             unlock_factor=params.stability_unlock_factor,
-            base_threshold=params.stability_threshold,
+            stability_threshold=params.stability_threshold,
         )
 
     # ============================================================
@@ -70,7 +70,7 @@ class WeightInputService:
         self._stability_checker.reset()
 
     def apply_params(self) -> None:
-        self._stability_checker.set_base_threshold(self.params.stability_threshold)
+        self._stability_checker.set_stability_threshold(self.params.stability_threshold)
 
     # ============================================================
     # Last stable value

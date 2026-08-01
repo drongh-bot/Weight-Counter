@@ -19,7 +19,7 @@ class WeightStabilityChecker:
         stable_count: int = 3,
         unlock_confirm: int = 2,
         unlock_factor: float = 2.5,
-        base_threshold: float = 0.02,
+        stability_threshold: float = 0.02,
     ) -> None:
         # Windows
         self.short_win: deque[float] = deque(maxlen=short_win)
@@ -39,7 +39,7 @@ class WeightStabilityChecker:
         self.unlock_pending: int = 0
 
         # Threshold
-        self.base_threshold: float = base_threshold
+        self.stability_threshold: float = stability_threshold
 
         # Output Cache
         self.last_stable_weight: float | None = None
@@ -47,9 +47,9 @@ class WeightStabilityChecker:
     # ============================================================
     # Hot Update Parameters
     # ============================================================
-    def set_base_threshold(self, base_threshold: float) -> None:
-        if base_threshold > 0:
-            self.base_threshold = base_threshold
+    def set_stability_threshold(self, stability_threshold: float) -> None:
+        if stability_threshold > 0:
+            self.stability_threshold = stability_threshold
 
     def set_stable_count(self, stable_count: int) -> None:
         if stable_count > 0:
@@ -78,7 +78,7 @@ class WeightStabilityChecker:
         Output: stable weight (None means unstable)
         """
         eps = 1e-6
-        base_threshold = max(self.base_threshold, eps)
+        stability_threshold = max(self.stability_threshold, eps)
 
         # Update Windows
         self.short_win.append(weight)
@@ -91,7 +91,7 @@ class WeightStabilityChecker:
 
         if self.locked:
             assert self.locked_weight is not None
-            unlock_threshold = base_threshold * self.unlock_factor
+            unlock_threshold = stability_threshold * self.unlock_factor
 
             if abs(weight - self.locked_weight) > unlock_threshold:
                 self.unlock_pending += 1
@@ -118,7 +118,7 @@ class WeightStabilityChecker:
             return None
 
         # Unified Threshold System
-        dynamic_threshold = max(base_threshold, abs(weight) * 0.001, eps)
+        dynamic_threshold = max(stability_threshold, abs(weight) * 0.001, eps)
         speed_limit = dynamic_threshold
         trend_limit = dynamic_threshold * 1.5
         std_limit = dynamic_threshold * 1.2

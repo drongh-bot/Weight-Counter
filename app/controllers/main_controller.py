@@ -17,6 +17,7 @@ from app.services.ui.ui_service import UIService
 logger = logging.getLogger(__name__)
 
 _MSG_WAIT_STABLE = "等待稳定重量…"
+_MSG_FORCE_DONE = "强制校准完成"
 
 
 class MainController(QObject):
@@ -55,20 +56,31 @@ class MainController(QObject):
         self._sync_count_ui()
         self.ui_service.update_bar_status()
 
-    @staticmethod
-    def _button_status(state: CounterState, is_active: bool) -> ButtonStatus:
+    def _button_status(self) -> ButtonStatus:
+        state = self.counter_service.current_result().state
+        pending_force = self._pending_force_pieces is not None
         abnormal = state == CounterState.ABNORMAL
         return ButtonStatus(
-            start_enabled=not is_active,
-            stop_enabled=is_active,
-            clear_enabled=abnormal and is_active,
-            force_enabled=is_active,
+            start_enabled=not self._is_active,
+            stop_enabled=self._is_active,
+            clear_enabled=abnormal and self._is_active and not pending_force,
+            force_enabled=self._is_active and not pending_force,
         )
+
+    def _sync_button_status(self) -> None:
+        self.ui_service.update_button_status(self._button_status())
 
     def _show_waiting_stable(self) -> None:
         self.ui_service.update_bar_status(
             parse_ok=True,
             status_message=_MSG_WAIT_STABLE,
+            info=True,
+        )
+
+    def _show_force_done(self) -> None:
+        self.ui_service.update_bar_status(
+            parse_ok=True,
+            status_message=_MSG_FORCE_DONE,
             info=True,
         )
 
@@ -83,9 +95,7 @@ class MainController(QObject):
     def _sync_count_ui(self) -> None:
         result = self.counter_service.current_result()
         self.ui_service.update_count(result)
-        self.ui_service.update_button_status(
-            self._button_status(result.state, self._is_active)
-        )
+        self._sync_button_status()
         self.ui_service.update_actual_weight(None, result.decimal_places)
 
     # ============================================================
@@ -113,31 +123,34 @@ class MainController(QObject):
             self.ui_service.update_bar_status(parse_ok=True)
             return
 
-        self.ui_service.update_bar_status(parse_ok=True)
-        self._apply_pending_action(stable_weight)
+        force_done = self._apply_pending_action(stable_weight)
         result = self.counter_service.process(stable_weight)
         self._handle_result(result, stable_weight)
+        if force_done:
+            self._show_force_done()
 
-    def _apply_pending_action(self, stable_weight: float) -> None:
+    def _apply_pending_action(self, stable_weight: float) -> bool:
+        """Apply pending force/clear. Returns True if force calibrate succeeded."""
         if self._pending_force_pieces is not None:
             pieces = self._pending_force_pieces
             self._pending_force_pieces = None
             if self.counter_service.force_calibrate(stable_weight, pieces):
                 result = self.counter_service.current_result()
-                if result.weights:
+                if result.piece_weights:
                     self.csv_log_service.record_production(
-                        result.weights[-1], result.total_pieces
+                        result.piece_weights[-1], result.total_pieces
                     )
-        elif self._pending_clear_abnormal:
+                return True
+            return False
+        if self._pending_clear_abnormal:
             self.counter_service.clear_abnormal(stable_weight)
             self._pending_clear_abnormal = False
+        return False
 
     def _handle_result(self, result: CountResult, stable_weight: float) -> None:
         self.ui_service.update_actual_weight(stable_weight, result.decimal_places)
         self.ui_service.update_count(result)
-        self.ui_service.update_button_status(
-            self._button_status(result.state, self._is_active)
-        )
+        self._sync_button_status()
         self._handle_sound_events()
         self._handle_logging(result)
 
@@ -148,9 +161,9 @@ class MainController(QObject):
             self.sound_service.play_alert()
 
     def _handle_logging(self, result: CountResult) -> None:
-        if result.added and result.weights:
+        if result.added and result.piece_weights:
             self.csv_log_service.record_production(
-                result.weights[-1], result.total_pieces
+                result.piece_weights[-1], result.total_pieces
             )
 
     # ============================================================
@@ -175,15 +188,20 @@ class MainController(QObject):
     # User Actions
     # ============================================================
     def force_calibrate(self, pieces: int) -> None:
-        if self._is_active and pieces > 0:
-            self._pending_force_pieces = pieces
-            self._pending_clear_abnormal = False
-            self._show_waiting_stable()
+        if not self._is_active or pieces <= 0:
+            return
+        if self._pending_force_pieces is not None:
+            return
+        self._pending_force_pieces = pieces
+        self._pending_clear_abnormal = False
+        self._sync_button_status()
+        self._show_waiting_stable()
 
     def clear_abnormal(self) -> None:
-        if self._is_active:
-            self._pending_clear_abnormal = True
-            self._pending_force_pieces = None
+        if not self._is_active or self._pending_force_pieces is not None:
+            return
+        self._pending_clear_abnormal = True
+        self._pending_force_pieces = None
 
     def sync_decimal_places(self) -> None:
         self.counter_service.set_decimal_places(self.params.decimal_places)

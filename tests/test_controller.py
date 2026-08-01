@@ -128,7 +128,7 @@ class TestControllerPipeline:
         result = controller.counter_service.current_result()
         assert result.state == CounterState.NORMAL
         assert result.total_pieces == 3
-        assert result.last_base_weight == pytest.approx(30.0)
+        assert result.baseline_weight == pytest.approx(30.0)
 
     def test_clear_abnormal_executes(self, qapp):
         controller, ui = self._make_controller(qapp)
@@ -197,10 +197,7 @@ class TestControllerPipeline:
         spy = QSignalSpy(ui.button_status_changed)
 
         controller._is_active = True
-        result = controller.counter_service.current_result()
-        controller.ui_service.update_button_status(
-            controller._button_status(result.state, controller._is_active)
-        )
+        controller._sync_button_status()
 
         d = spy.at(spy.count() - 1)[0]
         assert d.start_enabled is False
@@ -220,9 +217,24 @@ class TestControllerPipeline:
         result = controller.counter_service.current_result()
         assert result.state == CounterState.ABNORMAL
 
-        status = controller._button_status(result.state, controller._is_active)
+        status = controller._button_status()
         assert status.force_enabled is True
         assert status.clear_enabled is True
+
+    def test_force_pending_disables_force_button(self, qapp):
+        controller, ui = self._make_controller(qapp)
+        controller._is_active = True
+        for _ in range(12):
+            controller._on_raw_data("10.0 kg")
+
+        controller.force_calibrate(3)
+        status = controller._button_status()
+        assert status.force_enabled is False
+        assert controller._pending_force_pieces == 3
+
+        # duplicate request ignored while pending
+        controller.force_calibrate(5)
+        assert controller._pending_force_pieces == 3
 
     def test_raw_mismatches_stable(self, qapp):
         controller, ui = self._make_controller(qapp)
@@ -271,6 +283,9 @@ class TestControllerPipeline:
             controller._on_raw_data("30.0 kg")
         assert controller.counter_service.current_result().total_pieces == 3
         sound.play_alert.assert_called()
+        assert ui._last_bar is not None
+        assert ui._last_bar.message.text == "强制校准完成"
+        assert controller._button_status().force_enabled is True
 
     def test_parse_fail_clears_actual_weight(self, qapp):
         controller, ui = self._make_controller(qapp)

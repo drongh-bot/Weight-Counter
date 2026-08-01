@@ -33,12 +33,12 @@ class CountBuilder:
                 style=state_style,
             ),
             avg_weight=f"{result.avg_weight:.{dp}f}",
-            tol_high=f"{result.tol_high:.{dp}f}",
-            tol_low=f"{result.tol_low:.{dp}f}",
+            tolerance_high=f"{result.tolerance_high:.{dp}f}",
+            tolerance_low=f"{result.tolerance_low:.{dp}f}",
             total_pieces=str(result.total_pieces),
             last_stable_weight=f"{result.last_stable_weight:.{dp}f}",
-            last_base_weight=f"{result.last_base_weight:.{dp}f}",
-            weights=result.weights,
+            baseline_weight=f"{result.baseline_weight:.{dp}f}",
+            piece_weights=result.piece_weights,
             decimal_places=dp,
         )
 
