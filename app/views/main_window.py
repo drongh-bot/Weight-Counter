@@ -200,6 +200,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         places = int(self.spnDecimalPlaces.value())
         self.wgtPieceTable.set_decimal_places(places)
         self.wgtPieceChart.set_decimal_places(places)
+        self.controller.sync_decimal_places()
 
     def _init_port_list(self) -> None:
         self.cbPort.clear()

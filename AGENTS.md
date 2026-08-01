@@ -42,7 +42,7 @@ app/
 uv sync                          # Install dependencies
 uv run main.py                   # Run the app
 uv run pyinstaller main.spec     # Package to dist/WeightCounter/
-uv run pytest tests/ -v          # Run all 104 tests
+uv run pytest tests/ -v          # Run all 117 tests
 uv run mypy app                  # Type check
 ```
 

@@ -272,7 +272,32 @@ class TestPieceCounterFSM:
         counter.force_accept(100.0, 10)
         assert counter.total_pieces == 10
         assert counter.avg_weight == pytest.approx(10.0)
-        assert counter.state != CounterState.ABNORMAL
+        assert counter.state == CounterState.NORMAL
+        assert counter.last_base_weight == pytest.approx(100.0)
+        assert counter.last_stable_weight == pytest.approx(100.0)
+        # 基准点已更新，同重量不应多计
+        counter.process(100.0)
+        assert counter.total_pieces == 10
+
+    def test_force_accept_from_zero_resets_baseline(self):
+        """ZERO 状态强制校准也应更新基准点"""
+        counter = PieceCounter(initial_mini_weight=0.5)
+        counter.force_accept(100.0, 10)
+        assert counter.state == CounterState.NORMAL
+        assert counter.last_base_weight == pytest.approx(100.0)
+        counter.process(100.0)
+        assert counter.total_pieces == 10
+
+    def test_force_accept_from_normal_resets_baseline(self):
+        """NORMAL 状态强制校准应更新基准点至新 stable 重量"""
+        counter = PieceCounter(initial_mini_weight=0.5)
+        counter.process(10.0)
+        assert counter.total_pieces == 1
+        counter.force_accept(30.0, 3)
+        assert counter.total_pieces == 3
+        assert counter.last_base_weight == pytest.approx(30.0)
+        counter.process(30.0)
+        assert counter.total_pieces == 3
 
     def test_force_accept_below_threshold_ignored(self):
         """强制校准重量不足阈值，忽略"""

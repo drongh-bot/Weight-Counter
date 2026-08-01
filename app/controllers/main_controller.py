@@ -1,6 +1,5 @@
 # app/controllers/main_controller.py
 import logging
-from enum import Enum, auto
 
 from PySide6.QtCore import QObject
 
@@ -16,12 +15,6 @@ from app.services.ui.models import ButtonStatus
 from app.services.ui.ui_service import UIService
 
 logger = logging.getLogger(__name__)
-
-
-class PendingAction(Enum):
-    NONE = auto()
-    FORCE_ACCEPT = auto()
-    CLEAR_ABNORMAL = auto()
 
 
 class MainController(QObject):
@@ -46,8 +39,8 @@ class MainController(QObject):
         self.params: Params = params
 
         self._is_active: bool = False
-        self._pending_action: PendingAction = PendingAction.NONE
-        self._pending_force_pieces: int = 0
+        self._pending_force_pieces: int | None = None
+        self._pending_clear_abnormal: bool = False
 
         self.serial_service.data_received.connect(self._on_raw_data)
         self.serial_service.timeout_detected.connect(self._on_timeout)
@@ -66,9 +59,15 @@ class MainController(QObject):
         return ButtonStatus(
             start=not is_active,
             stop=is_active,
-            clear=abnormal,
-            force=abnormal,
+            clear=abnormal and is_active,
+            force=is_active,
         )
+
+    def _should_defer_pending(self, raw_weight: float, stable_weight: float) -> bool:
+        """Defer force calibration until raw weight matches stable lock."""
+        if self._pending_force_pieces is None:
+            return False
+        return abs(raw_weight - stable_weight) > self.params.stability_threshold
 
     def _sync_biz_ui(self) -> None:
         result = self.counter_service.current_result()
@@ -86,6 +85,9 @@ class MainController(QObject):
 
         if weight is None:
             self.ui_service.update_bar_status(parse_ok=False)
+            self.ui_service.update_actual_weight(
+                None, self.counter_service.current_result().decimal_places
+            )
             return
         self.ui_service.update_bar_status(parse_ok=True)
 
@@ -96,16 +98,29 @@ class MainController(QObject):
         if stable_weight is None:
             return
 
-        self._apply_pending_action(stable_weight)
+        if self._pending_force_pieces is not None:
+            if self._should_defer_pending(weight, stable_weight):
+                return
+            self._apply_pending_action(stable_weight)
+        elif self._pending_clear_abnormal:
+            self._apply_pending_action(stable_weight)
+
         result = self.counter_service.process(stable_weight)
         self._handle_result(result, stable_weight)
 
     def _apply_pending_action(self, stable_weight: float) -> None:
-        if self._pending_action is PendingAction.FORCE_ACCEPT:
-            self.counter_service.force_accept(stable_weight, self._pending_force_pieces)
-        elif self._pending_action is PendingAction.CLEAR_ABNORMAL:
+        if self._pending_force_pieces is not None:
+            pieces = self._pending_force_pieces
+            self._pending_force_pieces = None
+            if self.counter_service.force_accept(stable_weight, pieces):
+                result = self.counter_service.current_result()
+                if result.weights:
+                    self.csv_log_service.record_production(
+                        result.weights[-1], result.total_pieces
+                    )
+        elif self._pending_clear_abnormal:
             self.counter_service.clear_abnormal(stable_weight)
-        self._pending_action = PendingAction.NONE
+            self._pending_clear_abnormal = False
 
     def _handle_result(self, result: BizResult, stable_weight: float) -> None:
         self.ui_service.update_actual_weight(stable_weight, result.decimal_places)
@@ -133,11 +148,15 @@ class MainController(QObject):
     # ============================================================
     def _on_timeout(self) -> None:
         self.ui_service.update_bar_status(comm_ok=False)
-        self.ui_service.update_actual_weight(None, self.counter_service.current_result().decimal_places)
+        self.ui_service.update_actual_weight(
+            None, self.counter_service.current_result().decimal_places
+        )
 
     def _on_serial_error(self, msg: str) -> None:
         self.ui_service.update_bar_status(comm_ok=False, exception_text=msg)
-        self.ui_service.update_actual_weight(None, self.counter_service.current_result().decimal_places)
+        self.ui_service.update_actual_weight(
+            None, self.counter_service.current_result().decimal_places
+        )
 
     def _on_csv_error(self, msg: str) -> None:
         self.ui_service.update_bar_status(exception_text=msg)
@@ -146,13 +165,17 @@ class MainController(QObject):
     # User Actions
     # ============================================================
     def force_accept(self, pieces: int) -> None:
-        if self._is_active:
-            self._pending_action = PendingAction.FORCE_ACCEPT
+        if self._is_active and pieces > 0:
             self._pending_force_pieces = pieces
+            self._pending_clear_abnormal = False
 
     def clear_abnormal(self) -> None:
         if self._is_active:
-            self._pending_action = PendingAction.CLEAR_ABNORMAL
+            self._pending_clear_abnormal = True
+            self._pending_force_pieces = None
+
+    def sync_decimal_places(self) -> None:
+        self.counter_service.apply_params()
 
     # ============================================================
     # Lifecycle
@@ -184,7 +207,8 @@ class MainController(QObject):
 
     def stop(self) -> None:
         self._is_active = False
-        self._pending_action = PendingAction.NONE
+        self._pending_force_pieces = None
+        self._pending_clear_abnormal = False
         self._reset_all()
         self.serial_service.close()
         self.sound_service.stop()

@@ -25,7 +25,6 @@ class CounterService:
         # edge trigger flags
         self._abnormal_edge = False
         self._target_edge = False
-        self._previously_reached_target = False
 
         # core counter
         self._piece_counter = PieceCounter(
@@ -78,12 +77,15 @@ class CounterService:
         )
 
         # -------------------------
-        # Target edge trigger
+        # Target edge trigger (rising edge: cross target this frame)
         # -------------------------
         target = self.params.target_pieces
-        reached = 0 < target == new_count and new_state == CounterState.NORMAL
-        self._target_edge = (not self._previously_reached_target) and reached
-        self._previously_reached_target = reached
+        if (
+            0 < target
+            and old_count < target <= new_count
+            and new_state == CounterState.NORMAL
+        ):
+            self._target_edge = True
 
         # -------------------------
         # Whether added in this cycle
@@ -118,8 +120,22 @@ class CounterService:
     # ============================================================
     # Force accept / Clear abnormal
     # ============================================================
-    def force_accept(self, stable_weight: float, pieces: int) -> None:
+    def force_accept(self, stable_weight: float, pieces: int) -> bool:
+        """Force recalibration. Returns True if applied."""
+        old_count = self._piece_counter.total_pieces
         self._piece_counter.force_accept(stable_weight, pieces)
+        new_count = self._piece_counter.total_pieces
+        if new_count != pieces:
+            return False
+
+        target = self.params.target_pieces
+        if (
+            0 < target
+            and old_count < target <= new_count
+            and self._piece_counter.state == CounterState.NORMAL
+        ):
+            self._target_edge = True
+        return True
 
     def clear_abnormal(self, stable_weight: float) -> None:
         self._piece_counter.clear_abnormal(stable_weight)
@@ -131,7 +147,6 @@ class CounterService:
         self._piece_counter.reset()
         self._abnormal_edge = False
         self._target_edge = False
-        self._previously_reached_target = False
 
     # ============================================================
     # Edge flag consumption (read-then-clear, decouples external raw assignment)

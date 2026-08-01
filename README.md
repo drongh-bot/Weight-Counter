@@ -131,7 +131,7 @@ splitter_sizes = [140, 199]
 ## Testing
 
 ```bash
-uv run pytest tests/ -v          # 104 tests: model → service → controller
+uv run pytest tests/ -v          # 117 tests: model → service → controller
 uv run mypy app                  # Type check
 ```
 

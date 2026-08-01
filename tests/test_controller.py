@@ -1,8 +1,9 @@
 from unittest.mock import MagicMock
 
+import pytest
 from PySide6.QtTest import QSignalSpy
 
-from app.controllers.main_controller import MainController, PendingAction
+from app.controllers.main_controller import MainController
 from app.models.counter_state import CounterState
 from app.models.params import Params
 from app.services.checker_service import CheckerService
@@ -68,17 +69,25 @@ class TestControllerPipeline:
         d = spy.at(spy.count() - 1)[0]
         assert d.exception.text == "测试错误"
 
-    def test_force_accept_pending_action(self, qapp):
+    def test_force_accept_pending(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller._is_active = True
         controller.force_accept(5)
-        assert controller._pending_action == PendingAction.FORCE_ACCEPT
+        assert controller._pending_force_pieces == 5
+        assert controller._pending_clear_abnormal is False
 
-    def test_clear_abnormal_pending_action(self, qapp):
+    def test_force_accept_ignored_when_pieces_zero(self, qapp):
+        controller, ui = self._make_controller(qapp)
+        controller._is_active = True
+        controller.force_accept(0)
+        assert controller._pending_force_pieces is None
+
+    def test_clear_abnormal_pending(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller._is_active = True
         controller.clear_abnormal()
-        assert controller._pending_action == PendingAction.CLEAR_ABNORMAL
+        assert controller._pending_clear_abnormal is True
+        assert controller._pending_force_pieces is None
 
     def test_force_accept_executes_on_next_stable(self, qapp):
         controller, ui = self._make_controller(qapp)
@@ -88,14 +97,35 @@ class TestControllerPipeline:
             controller._on_raw_data("10.0 kg")
 
         controller.force_accept(3)
-        assert controller._pending_action == PendingAction.FORCE_ACCEPT
+        assert controller._pending_force_pieces == 3
 
         for _ in range(12):
             controller._on_raw_data("30.0 kg")
 
         result = controller.counter_service.current_result()
         assert result.total_pieces == 3
-        assert controller._pending_action == PendingAction.NONE
+        assert controller._pending_force_pieces is None
+
+    def test_force_accept_from_normal_without_abnormal(self, qapp):
+        """NORMAL 状态下也可强制校准，无需先进入异常"""
+        controller, ui = self._make_controller(qapp)
+        controller._is_active = True
+
+        for _ in range(12):
+            controller._on_raw_data("10.0 kg")
+        assert controller.counter_service.current_result().state == CounterState.NORMAL
+
+        # 先稳定在 30，再强制校准，避免 pending 在过渡帧用旧 stable 重量执行
+        for _ in range(12):
+            controller._on_raw_data("30.0 kg")
+        controller.force_accept(3)
+        for _ in range(12):
+            controller._on_raw_data("30.0 kg")
+
+        result = controller.counter_service.current_result()
+        assert result.state == CounterState.NORMAL
+        assert result.total_pieces == 3
+        assert result.last_base_weight == pytest.approx(30.0)
 
     def test_clear_abnormal_executes(self, qapp):
         controller, ui = self._make_controller(qapp)
@@ -113,17 +143,17 @@ class TestControllerPipeline:
 
         result = controller.counter_service.current_result()
         assert result.state != CounterState.ABNORMAL
-        assert controller._pending_action == PendingAction.NONE
+        assert controller._pending_clear_abnormal is False
 
-    def test_pending_action_only_when_running(self, qapp):
+    def test_pending_only_when_running(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller._is_active = False
 
         controller.force_accept(5)
-        assert controller._pending_action == PendingAction.NONE
+        assert controller._pending_force_pieces is None
 
         controller.clear_abnormal()
-        assert controller._pending_action == PendingAction.NONE
+        assert controller._pending_clear_abnormal is False
 
     def test_stop_resets_all(self, qapp):
         controller, ui = self._make_controller(qapp)
@@ -136,7 +166,8 @@ class TestControllerPipeline:
         controller.stop()
         assert controller._is_active is False
         assert controller.counter_service.current_result().total_pieces == 0
-        assert controller._pending_action == PendingAction.NONE
+        assert controller._pending_force_pieces is None
+        assert controller._pending_clear_abnormal is False
 
     def test_start_resets_and_starts_serial(self, qapp):
         controller, ui = self._make_controller(qapp)
@@ -164,11 +195,15 @@ class TestControllerPipeline:
 
         controller._is_active = True
         result = controller.counter_service.current_result()
-        controller.ui_service.update_button_status(controller._button_status(result.state, controller._is_active))
+        controller.ui_service.update_button_status(
+            controller._button_status(result.state, controller._is_active)
+        )
 
         d = spy.at(spy.count() - 1)[0]
         assert d.start is False
         assert d.stop is True
+        assert d.force is True
+        assert d.clear is False
 
     def test_ui_button_state_when_abnormal(self, qapp):
         controller, ui = self._make_controller(qapp)
@@ -181,3 +216,59 @@ class TestControllerPipeline:
 
         result = controller.counter_service.current_result()
         assert result.state == CounterState.ABNORMAL
+
+        status = controller._button_status(result.state, controller._is_active)
+        assert status.force is True
+        assert status.clear is True
+
+    def test_should_defer_pending_when_raw_stable_mismatch(self, qapp):
+        controller, ui = self._make_controller(qapp)
+        controller.params.stability_threshold = 0.02
+        controller._pending_force_pieces = 5
+        assert controller._should_defer_pending(30.0, 10.0) is True
+        assert controller._should_defer_pending(10.01, 10.0) is False
+        assert controller._should_defer_pending(10.0, 10.0) is False
+        controller._pending_force_pieces = None
+        controller._pending_clear_abnormal = True
+        assert controller._should_defer_pending(30.0, 10.0) is False
+
+    def test_force_accept_target_edge(self, qapp):
+        sound = MagicMock()
+        params = Params()
+        params.target_pieces = 3
+        ui = UIService()
+        controller = MainController(
+            ui,
+            SerialService(2000),
+            CounterService(params),
+            CheckerService(params),
+            sound,
+            CsvLogService(),
+            params,
+        )
+        controller._is_active = True
+        for _ in range(12):
+            controller._on_raw_data("10.0 kg")
+        assert controller.counter_service.current_result().total_pieces == 1
+        controller.force_accept(3)
+        for _ in range(12):
+            controller._on_raw_data("30.0 kg")
+        assert controller.counter_service.current_result().total_pieces == 3
+        sound.play_alert.assert_called()
+
+    def test_parse_fail_clears_actual_weight(self, qapp):
+        controller, ui = self._make_controller(qapp)
+        spy = QSignalSpy(ui.actual_weight_changed)
+        controller._is_active = True
+        for _ in range(12):
+            controller._on_raw_data("10.0 kg")
+        controller._on_raw_data("not-a-weight")
+        assert spy.at(spy.count() - 1)[0] == "-----"
+
+    def test_sync_decimal_places(self, qapp):
+        controller, ui = self._make_controller(qapp)
+        controller._is_active = True
+        controller.counter_service.process(10.0)
+        controller.params.decimal_places = 4
+        controller.sync_decimal_places()
+        assert controller.counter_service.current_result().decimal_places == 4
