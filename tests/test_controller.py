@@ -48,17 +48,14 @@ class TestControllerPipeline:
 
         assert spy.count() > initial_count
 
-    def test_unstable_shows_waiting_stable_message(self, qapp):
+    def test_unstable_does_not_overwrite_status_message(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller._is_running = True
+        ui.update_bar_status(status_message="测试保留信息")
 
-        controller._on_raw_data("10.0 kg")
+        controller._on_raw_data("10.0 kg")  # 未稳定，不应改写 message
         assert ui._last_bar is not None
-        assert ui._last_bar.message.text == "等待稳定重量…"
-
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
-        assert ui._last_bar.message.text == "无异常"
+        assert ui._last_bar.message.text == "测试保留信息"
 
     def test_on_timeout_updates_status(self, qapp):
         controller, ui = self._make_controller(qapp)

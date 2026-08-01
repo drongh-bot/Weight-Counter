@@ -134,7 +134,7 @@ class MainController(QObject):
                 self._show_waiting_stable()
                 return
         elif stable_weight is None:
-            self._show_waiting_stable()
+            # 日常未稳定：不计件即可，勿改写状态栏（避免覆盖错误/异常等提示）
             return
 
         self.ui_service.update_bar_status(parse_ok=True)
