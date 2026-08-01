@@ -9,31 +9,31 @@ from app.models.piece_counter import (
 
 
 class TestThresholds:
-    def test_dynamic_mini_weight_normal(self):
+    def test_dynamic_min_weight_normal(self):
         """avg_weight > 0 时 = max(avg * 0.5, initial * 0.3)"""
         th = Thresholds(
-            initial_mini_weight=0.5,
+            initial_min_weight=0.5,
             avg_weight=10.0,
             tolerance_percent=10.0,
             min_tol=0.04,
         )
         expected = max(10.0 * 0.5, 0.5 * 0.3)
-        assert th.dynamic_mini_weight == expected
+        assert th.dynamic_min_weight == expected
 
-    def test_dynamic_mini_weight_zero_avg(self):
-        """avg_weight = 0 时 = initial_mini_weight"""
+    def test_dynamic_min_weight_zero_avg(self):
+        """avg_weight = 0 时 = initial_min_weight"""
         th = Thresholds(
-            initial_mini_weight=0.5,
+            initial_min_weight=0.5,
             avg_weight=0.0,
             tolerance_percent=10.0,
             min_tol=0.04,
         )
-        assert th.dynamic_mini_weight == 0.5
+        assert th.dynamic_min_weight == 0.5
 
     def test_recover_threshold(self):
         """恢复正常阈值 = max(avg * tolerance%, min_tol)"""
         th = Thresholds(
-            initial_mini_weight=0.5,
+            initial_min_weight=0.5,
             avg_weight=5.0,
             tolerance_percent=20.0,
             min_tol=0.1,
@@ -44,7 +44,7 @@ class TestThresholds:
     def test_recover_threshold_zero_avg(self):
         """avg_weight = 0 时的恢复阈值"""
         th = Thresholds(
-            initial_mini_weight=0.5,
+            initial_min_weight=0.5,
             avg_weight=0.0,
             tolerance_percent=20.0,
             min_tol=0.1,
@@ -54,7 +54,7 @@ class TestThresholds:
     def test_update_changes_avg(self):
         """update 更新 avg_weight"""
         th = Thresholds(
-            initial_mini_weight=0.5,
+            initial_min_weight=0.5,
             avg_weight=3.0,
             tolerance_percent=10.0,
             min_tol=0.04,
@@ -178,15 +178,15 @@ class TestPieceCounterFSM:
         assert counter.total_pieces == 0
 
     def test_zero_below_threshold_stays_zero(self):
-        """重量 < initial_mini_weight，保持 ZERO"""
-        counter = PieceCounter(initial_mini_weight=0.5)
+        """重量 < initial_min_weight，保持 ZERO"""
+        counter = PieceCounter(initial_min_weight=0.5)
         counter.process(0.3)
         assert counter.state == CounterState.ZERO
         assert counter.total_pieces == 0
 
     def test_zero_to_normal(self):
-        """重量 > initial_mini_weight，ZERO → NORMAL，添加 1 件"""
-        counter = PieceCounter(initial_mini_weight=0.5)
+        """重量 > initial_min_weight，ZERO → NORMAL，添加 1 件"""
+        counter = PieceCounter(initial_min_weight=0.5)
         # base weight is 0, delta = 10.0
         counter.process(10.0)
         assert counter.state == CounterState.NORMAL
@@ -195,7 +195,7 @@ class TestPieceCounterFSM:
     def test_normal_add_pieces(self):
         """NORMAL 状态添加多件"""
         counter = PieceCounter(
-            initial_mini_weight=0.5,
+            initial_min_weight=0.5,
             tolerance_percent=10.0,
             max_batch_pieces=4,
         )
@@ -210,7 +210,7 @@ class TestPieceCounterFSM:
     def test_normal_to_abnormal(self):
         """增量无法匹配整数件数 → ABNORMAL"""
         counter = PieceCounter(
-            initial_mini_weight=0.5,
+            initial_min_weight=0.5,
             tolerance_percent=10.0,
             max_batch_pieces=4,
         )
@@ -224,13 +224,13 @@ class TestPieceCounterFSM:
     def test_abnormal_recovery(self):
         """ABNORMAL 下重量回到基准附近自动恢复"""
         counter = PieceCounter(
-            initial_mini_weight=0.5,
+            initial_min_weight=0.5,
             tolerance_percent=20.0,
             max_batch_pieces=4,
         )
         counter.process(10.0)
         assert counter.total_pieces == 1
-        # 增量超过 dynamic_mini_weight 且无法匹配 → 异常
+        # 增量超过 dynamic_min_weight 且无法匹配 → 异常
         counter.process(25.0)
         assert counter.state == CounterState.ABNORMAL
         # 回到基准附近触发恢复
@@ -240,7 +240,7 @@ class TestPieceCounterFSM:
     def test_abnormal_high_direction(self):
         """ABNORMAL 高位异常方向追踪"""
         counter = PieceCounter(
-            initial_mini_weight=0.5,
+            initial_min_weight=0.5,
             tolerance_percent=20.0,
         )
         counter.process(10.0)
@@ -252,7 +252,7 @@ class TestPieceCounterFSM:
     def test_abnormal_low_direction(self):
         """ABNORMAL 低位异常方向追踪（模拟减件异常）"""
         counter = PieceCounter(
-            initial_mini_weight=0.5,
+            initial_min_weight=0.5,
             tolerance_percent=20.0,
             max_batch_pieces=4,
         )
@@ -268,7 +268,7 @@ class TestPieceCounterFSM:
 
     def test_force_calibrate(self):
         """强制校准，重置为指定件数"""
-        counter = PieceCounter(initial_mini_weight=0.5)
+        counter = PieceCounter(initial_min_weight=0.5)
         counter.force_calibrate(100.0, 10)
         assert counter.total_pieces == 10
         assert counter.avg_weight == pytest.approx(10.0)
@@ -281,7 +281,7 @@ class TestPieceCounterFSM:
 
     def test_force_calibrate_from_zero_resets_baseline(self):
         """ZERO 状态强制校准也应更新基准点"""
-        counter = PieceCounter(initial_mini_weight=0.5)
+        counter = PieceCounter(initial_min_weight=0.5)
         counter.force_calibrate(100.0, 10)
         assert counter.state == CounterState.NORMAL
         assert counter.last_base_weight == pytest.approx(100.0)
@@ -290,7 +290,7 @@ class TestPieceCounterFSM:
 
     def test_force_calibrate_from_normal_resets_baseline(self):
         """NORMAL 状态强制校准应更新基准点至新 stable 重量"""
-        counter = PieceCounter(initial_mini_weight=0.5)
+        counter = PieceCounter(initial_min_weight=0.5)
         counter.process(10.0)
         assert counter.total_pieces == 1
         counter.force_calibrate(30.0, 3)
@@ -301,14 +301,14 @@ class TestPieceCounterFSM:
 
     def test_force_calibrate_below_threshold_ignored(self):
         """强制校准重量不足阈值，忽略"""
-        counter = PieceCounter(initial_mini_weight=1.0)
+        counter = PieceCounter(initial_min_weight=1.0)
         counter.process(10.0)  # 先建立一个正常状态
         counter.force_calibrate(0.3, 5)
         assert counter.total_pieces == 1  # 未改变
 
     def test_global_zero_reset(self):
         """任意状态下重量归零，全局复位"""
-        counter = PieceCounter(initial_mini_weight=0.5)
+        counter = PieceCounter(initial_min_weight=0.5)
         counter.process(10.0)   # NORMAL
         counter.process(15.0)   # ABNORMAL
         assert counter.state == CounterState.ABNORMAL
@@ -320,7 +320,7 @@ class TestPieceCounterFSM:
     def test_jitter_filter(self):
         """NORMAL 下微小波动被忽略"""
         counter = PieceCounter(
-            initial_mini_weight=0.5, tolerance_percent=10.0,
+            initial_min_weight=0.5, tolerance_percent=10.0,
         )
         counter.process(10.0)
         assert counter.total_pieces == 1
@@ -330,7 +330,7 @@ class TestPieceCounterFSM:
 
     def test_reset(self):
         """reset 后恢复初始状态"""
-        counter = PieceCounter(initial_mini_weight=0.5)
+        counter = PieceCounter(initial_min_weight=0.5)
         counter.process(10.0)
         counter.process(20.0)
         assert counter.total_pieces == 2
@@ -343,7 +343,7 @@ class TestPieceCounterFSM:
     def test_initial_single_pieces_limit(self):
         """学习阶段（件数 < initial_single_pieces）只能逐件添加"""
         counter = PieceCounter(
-            initial_mini_weight=0.5,
+            initial_min_weight=0.5,
             initial_single_pieces=5,
         )
         counter.process(10.0)
@@ -354,11 +354,11 @@ class TestPieceCounterFSM:
 
 
 class TestPieceCounterParamUpdate:
-    def test_set_initial_mini_weight(self):
-        counter = PieceCounter(initial_mini_weight=0.5)
-        counter.set_initial_mini_weight(1.0)
-        assert counter.initial_mini_weight == 1.0
-        assert counter.thresholds.initial_mini_weight == 1.0
+    def test_set_initial_min_weight(self):
+        counter = PieceCounter(initial_min_weight=0.5)
+        counter.set_initial_min_weight(1.0)
+        assert counter.initial_min_weight == 1.0
+        assert counter.thresholds.initial_min_weight == 1.0
 
     def test_set_decimal_places_recalcs_min_tol(self):
         counter = PieceCounter(decimal_places=2, stability_threshold=0.02)

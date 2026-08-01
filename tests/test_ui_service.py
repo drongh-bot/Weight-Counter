@@ -2,7 +2,7 @@ from PySide6.QtTest import QSignalSpy
 
 from app.models.count_result import CountResult
 from app.models.counter_state import CounterState
-from app.services.ui.models import ButtonStatus
+from app.services.ui.view_models import ButtonStatus
 from app.services.ui.styles import Styles
 from app.services.ui.ui_service import UIService
 

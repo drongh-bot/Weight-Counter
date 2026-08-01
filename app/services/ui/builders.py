@@ -1,7 +1,7 @@
 # app/services/ui/builders.py
 from app.models.count_result import CountResult
 from app.models.counter_state import CounterState
-from app.services.ui.models import BarStatus, CountSnapshot, LabelItem
+from app.services.ui.view_models import BarStatus, CountSnapshot, LabelItem
 from app.services.ui.styles import Styles
 
 

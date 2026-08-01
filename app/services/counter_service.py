@@ -27,7 +27,7 @@ class CounterService:
 
         # core counter
         self._piece_counter = PieceCounter(
-            initial_mini_weight=params.initial_mini_weight,
+            initial_min_weight=params.initial_min_weight,
             tolerance_percent=params.tolerance_percent,
             stability_threshold=params.stability_threshold,
             max_batch_pieces=params.max_batch_pieces,
@@ -51,7 +51,7 @@ class CounterService:
         self._piece_counter.set_initial_single_pieces(self.params.initial_single_pieces)
         self._piece_counter.set_max_batch_pieces(self.params.max_batch_pieces)
         self._piece_counter.set_tolerance_percent(self.params.tolerance_percent)
-        self._piece_counter.set_initial_mini_weight(self.params.initial_mini_weight)
+        self._piece_counter.set_initial_min_weight(self.params.initial_min_weight)
         self._piece_counter.set_decimal_places(self.params.decimal_places)
         self._piece_counter.set_stability_threshold(self.params.stability_threshold)
 

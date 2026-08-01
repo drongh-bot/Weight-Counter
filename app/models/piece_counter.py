@@ -8,14 +8,14 @@ from app.models.counter_state import CounterState
 class Thresholds:
     def __init__(
         self,
-        initial_mini_weight: float,
+        initial_min_weight: float,
         avg_weight: float,
         tolerance_percent: float,
         min_tol: float,
         dynamic_weight_ratio: float = 0.5,
         initial_min_ratio: float = 0.3,
     ) -> None:
-        self.initial_mini_weight: float = initial_mini_weight
+        self.initial_min_weight: float = initial_min_weight
         self.avg_weight: float = avg_weight
         self.tolerance_percent: float = tolerance_percent
         self.min_tol: float = min_tol
@@ -23,12 +23,12 @@ class Thresholds:
         self.initial_min_ratio: float = initial_min_ratio
 
     @property
-    def dynamic_mini_weight(self) -> float:
+    def dynamic_min_weight(self) -> float:
         if self.avg_weight <= 0:
-            return self.initial_mini_weight
+            return self.initial_min_weight
         return max(
             self.avg_weight * self.dynamic_weight_ratio,
-            self.initial_mini_weight * self.initial_min_ratio,
+            self.initial_min_weight * self.initial_min_ratio,
         )
 
     @property
@@ -39,7 +39,7 @@ class Thresholds:
         small for recovery).
         """
         if self.avg_weight <= 0:
-            return max(self.initial_mini_weight, self.min_tol)
+            return max(self.initial_min_weight, self.min_tol)
 
         threshold = self.avg_weight * (self.tolerance_percent / 100.0)
         return max(threshold, self.min_tol)
@@ -166,7 +166,7 @@ class Tolerance:
 class PieceCounter:
     def __init__(
         self,
-        initial_mini_weight: float = 0.5,
+        initial_min_weight: float = 0.5,
         tolerance_percent: float = 20.0,
         stability_threshold: float = 0.02,
         max_batch_pieces: int = 1,
@@ -184,7 +184,7 @@ class PieceCounter:
     ) -> None:
 
         # Fixed Configuration Parameters
-        self.initial_mini_weight: float = initial_mini_weight
+        self.initial_min_weight: float = initial_min_weight
         self.max_batch_pieces: int = max_batch_pieces
         self.initial_single_pieces: int = initial_single_pieces
         self.decimal_places: int = decimal_places
@@ -210,7 +210,7 @@ class PieceCounter:
 
         # Threshold Management
         self.thresholds: Thresholds = Thresholds(
-            initial_mini_weight=initial_mini_weight,
+            initial_min_weight=initial_min_weight,
             avg_weight=0.0,
             tolerance_percent=tolerance_percent,
             min_tol=min_tol,
@@ -285,12 +285,12 @@ class PieceCounter:
     # ZERO State: Detect First Piece
     # ---------------------------------------------------------
     def _handle_zero(self, stable_weight: float) -> None:
-        if stable_weight < self.thresholds.initial_mini_weight:
+        if stable_weight < self.thresholds.initial_min_weight:
             self.last_stable_weight = stable_weight
             return
 
         # First Piece Established
-        if abs(self.delta) >= self.thresholds.initial_mini_weight:
+        if abs(self.delta) >= self.thresholds.initial_min_weight:
             self._add_pieces(1, self.delta, stable_weight)
             self.state = CounterState.NORMAL
 
@@ -299,7 +299,7 @@ class PieceCounter:
     # ---------------------------------------------------------
     def _handle_normal(self, stable_weight: float) -> None:
         # Minimum Effective Change
-        if abs(self.delta) < self.thresholds.dynamic_mini_weight:
+        if abs(self.delta) < self.thresholds.dynamic_min_weight:
             self.last_stable_weight = stable_weight
             return
 
@@ -384,7 +384,7 @@ class PieceCounter:
     # Force Calibration
     # ---------------------------------------------------------
     def force_calibrate(self, stable_weight: float, force_pieces: int) -> None:
-        if stable_weight < self.thresholds.initial_mini_weight or force_pieces <= 0:
+        if stable_weight < self.thresholds.initial_min_weight or force_pieces <= 0:
             return
 
         # Rebuild Model
@@ -403,7 +403,7 @@ class PieceCounter:
     # ---------------------------------------------------------
     def _handle_zero_weight(self, stable_weight: float) -> bool:
         # Global Zero: Regardless of state, reset when weight drops to zero
-        if stable_weight < self.thresholds.initial_mini_weight:
+        if stable_weight < self.thresholds.initial_min_weight:
             self.reset()
             self.last_base_weight = stable_weight
             self.last_stable_weight = stable_weight
@@ -481,10 +481,10 @@ class PieceCounter:
             self.thresholds.tolerance_percent = tolerance_percent
             self._sync_all()
 
-    def set_initial_mini_weight(self, initial_mini_weight: float) -> None:
-        if initial_mini_weight > 0:
-            self.initial_mini_weight = initial_mini_weight
-            self.thresholds.initial_mini_weight = initial_mini_weight
+    def set_initial_min_weight(self, initial_min_weight: float) -> None:
+        if initial_min_weight > 0:
+            self.initial_min_weight = initial_min_weight
+            self.thresholds.initial_min_weight = initial_min_weight
 
     def set_decimal_places(self, decimal_places: int) -> None:
         if decimal_places >= 0:

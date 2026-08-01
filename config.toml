@@ -1,5 +1,5 @@
 [parameters]
-initial_mini_weight = 0.5
+initial_min_weight = 0.5
 tolerance_percent = 20.0
 stability_threshold = 0.02
 max_batch_pieces = 3

@@ -92,7 +92,7 @@ Edit `config.toml`:
 
 ```toml
 [parameters]
-initial_mini_weight = 0.5
+initial_min_weight = 0.5
 tolerance_percent = 20.0
 stability_threshold = 0.02
 max_batch_pieces = 1
@@ -131,7 +131,7 @@ splitter_sizes = [140, 199]
 ## Testing
 
 ```bash
-uv run pytest tests/ -v          # 119 tests: model → service → controller
+uv run pytest tests/ -v          # 121 tests: model → service → controller
 uv run mypy app                  # Type check
 ```
 
@@ -139,10 +139,10 @@ uv run mypy app                  # Type check
 
 | Layer      | Tests                                     |
 | ---------- | ----------------------------------------- |
-| model      | 46 (Qt-free, plain pytest)                |
-| builder    | 9 (Qt-free)                               |
-| service    | 37 (checker/counter Qt-free; ui needs `qapp`) |
-| controller | 12 (uses `qapp` fixture)                  |
+| model      | 48 (Qt-free, plain pytest)                |
+| builder    | 10 (Qt-free)                              |
+| service    | 44 (config/checker/counter Qt-free; ui needs `qapp`) |
+| controller | 19 (uses `qapp` fixture)                  |
 
 ---
 

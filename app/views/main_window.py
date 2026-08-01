@@ -15,7 +15,7 @@ from app.controllers.main_controller import MainController
 from app.core.resource_manager import ResourceManager
 from app.models.params import Params
 from app.services.config_service import ConfigService
-from app.services.ui.models import CountSnapshot, ButtonStatus, LabelItem, BarStatus
+from app.services.ui.view_models import CountSnapshot, ButtonStatus, LabelItem, BarStatus
 from app.services.ui.ui_service import UIService
 from app.views.ui_generated.form import Ui_MainWindow
 from app.views.widgets.piece_chart import PieceChart
@@ -182,7 +182,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
     def _load_params_to_ui(self) -> None:
-        self.dspnInitialMiniWeight.setValue(self.params.initial_mini_weight)
+        self.dspnInitialMiniWeight.setValue(self.params.initial_min_weight)
         self.dspnTolerancePercent.setValue(self.params.tolerance_percent)
         self.dspnStabilityThreshold.setValue(self.params.stability_threshold)
         self.spnMaxBatchPieces.setValue(self.params.max_batch_pieces)
@@ -191,7 +191,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.spnDecimalPlaces.setValue(self.params.decimal_places)
 
     def _sync_ui_to_params(self) -> None:
-        self.params.initial_mini_weight = float(self.dspnInitialMiniWeight.value())
+        self.params.initial_min_weight = float(self.dspnInitialMiniWeight.value())
         self.params.tolerance_percent = float(self.dspnTolerancePercent.value())
         self.params.stability_threshold = float(self.dspnStabilityThreshold.value())
         self.params.max_batch_pieces = int(self.spnMaxBatchPieces.value())

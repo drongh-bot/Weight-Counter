@@ -187,7 +187,7 @@ class TestCounterServiceProcess:
 
     def test_apply_params_syncs_ui_editable_fields(self):
         params = Params(
-            initial_mini_weight=0.5,
+            initial_min_weight=0.5,
             tolerance_percent=20.0,
             stability_threshold=0.02,
             max_batch_pieces=1,
@@ -196,7 +196,7 @@ class TestCounterServiceProcess:
         )
         svc = CounterService(params)
 
-        params.initial_mini_weight = 1.0
+        params.initial_min_weight = 1.0
         params.tolerance_percent = 15.0
         params.stability_threshold = 0.10
         params.max_batch_pieces = 2
@@ -206,7 +206,7 @@ class TestCounterServiceProcess:
         svc.apply_params()
 
         pc = svc._piece_counter
-        assert pc.initial_mini_weight == 1.0
+        assert pc.initial_min_weight == 1.0
         assert pc.tolerance.tolerance_percent == 15.0
         assert pc.max_batch_pieces == 2
         assert pc.initial_single_pieces == 8

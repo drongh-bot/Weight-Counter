@@ -7,7 +7,7 @@ class Params:
     """Pure data object — all application parameters, no I/O, Qt-free."""
 
     # [parameters] — runtime mutable
-    initial_mini_weight: float = 0.5
+    initial_min_weight: float = 0.5
     tolerance_percent: float = 20.0
     stability_threshold: float = 0.02
     max_batch_pieces: int = 1
