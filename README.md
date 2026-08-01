@@ -73,8 +73,20 @@ uv run main.py
 
 `config.toml` is the only configuration file. It is managed by:
 
-- **`Params`** (`app/models/params.py`) — pure `@dataclass` with all 22 typed fields, no I/O
-- **`ConfigService`** (`app/services/config_service.py`) — loads/saves `Params` ↔ `config.toml`
+- **`Params`** (`app/models/params.py`) — pure `@dataclass` holding all application parameters, no I/O
+- **`ConfigService`** (`app/services/config_service.py`) — loads/saves a **subset** of `Params` ↔ `config.toml`
+
+### Runtime-only parameters (not in `config.toml`)
+
+Some UI fields live on `Params` but are **not persisted** — they apply to the current production run only:
+
+| Field | Purpose |
+| ----- | ------- |
+| `target_pieces` | Batch target count; editable anytime during counting via the UI spinbox |
+
+`CounterService` reads `target_pieces` live from the shared `Params` object on every stable weight frame (no restart or Start click required). The default is `100` (`Params.target_pieces`); it is not written back to disk on exit.
+
+### Persisted parameters
 
 Edit `config.toml`:
 
@@ -85,7 +97,6 @@ tolerance_percent = 20.0
 stability_threshold = 0.02
 max_batch_pieces = 1
 initial_single_pieces = 5
-target_pieces = 30
 decimal_places = 2
 
 [stability]

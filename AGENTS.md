@@ -84,9 +84,10 @@ The app requires a serial port with a connected electronic scale. Without hardwa
 
 `config.toml` controls serial port, baud rate, weight params, counting tolerance, etc.
 
-- **`Params`** (`app/models/params.py`): `@dataclass` holding all config values — pure data, no I/O.
-- **`ConfigService`** (`app/services/config_service.py`): loads `Params` from TOML, persists `Params` back to TOML.
-- **Runtime params**: UI-editable `[parameters]` fields sync to `CounterService` and `CheckerService` via `apply_params()` when the user clicks Start (`MainController.start()`). `target_pieces` is read live from the shared `Params` object during counting.
+- **`Params`** (`app/models/params.py`): `@dataclass` holding all parameter values — pure data, no I/O.
+- **`ConfigService`** (`app/services/config_service.py`): loads/saves only the fields listed in `_SECTION_MAP` ↔ `config.toml`. Not every `Params` field is persisted.
+- **Start-sync params**: UI-editable `[parameters]` fields (except `target_pieces`) sync to `CounterService` and `CheckerService` via `apply_params()` when the user clicks Start (`MainController.start()`).
+- **`target_pieces` (runtime-only, not persisted)**: batch production target — lives on `Params` and in the UI spinbox, but is **excluded from `_SECTION_MAP`**. `CounterService.process()` reads it live from the shared `Params` object on every stable frame, so the operator can change the target mid-run without restart. Default `100`; not saved to `config.toml` on exit.
 
 ## Core Algorithms
 
