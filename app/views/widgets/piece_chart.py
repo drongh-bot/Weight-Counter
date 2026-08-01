@@ -160,7 +160,9 @@ class PieceChart(QWidget):
         self._update_x_range(count)
 
     def _update_scatter_and_ticks(self, count: int) -> None:
-        spots = [{"pos": (weight, i + 1)} for i, weight in enumerate(self._piece_weights)]
+        spots = [
+            {"pos": (weight, i + 1)} for i, weight in enumerate(self._piece_weights)
+        ]
         self.scatter.setData(spots)
 
         if count <= self._MAX_Y_TICK_LABELS:
