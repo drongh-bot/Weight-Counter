@@ -17,8 +17,7 @@ class ConfigService:
     _SECTION_MAP: dict[str, list[str]] = {
         "parameters": [
             "initial_mini_weight", "tolerance_percent", "stability_threshold",
-            "max_batch_pieces", "initial_single_pieces", "target_pieces",
-            "decimal_places",
+            "max_batch_pieces", "initial_single_pieces", "decimal_places",
         ],
         "stability": [
             "stability_short_win", "stability_long_win", "stability_stable_count",

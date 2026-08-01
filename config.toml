@@ -4,7 +4,6 @@ tolerance_percent = 20.0
 stability_threshold = 0.02
 max_batch_pieces = 1
 initial_single_pieces = 5
-target_pieces = 30
 decimal_places = 2
 
 [stability]
@@ -31,4 +30,4 @@ port = "COM1"
 baud_rate = 9600
 
 [ui]
-splitter_sizes = [ 773, 0,]
+splitter_sizes = [ 222, 551,]
