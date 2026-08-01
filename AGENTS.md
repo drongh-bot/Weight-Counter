@@ -7,7 +7,7 @@ Industrial piece-counting desktop application — PySide6 + MVVM + Dependency In
 ```
 app/
 ├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
-├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilityChecker, Params)
+├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
 ├── services/              Service layer (serial, weight_input, counter, sound, csv_log, config, ui)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
@@ -52,7 +52,7 @@ Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `UISe
 
 | File | Layer | Count |
 |------|-------|-------|
-| `tests/test_weight_stability_checker.py` | model | 12 |
+| `tests/test_weight_stabilizer.py` | model | 12 |
 | `tests/test_piece_counter.py` | model | 36 |
 | `tests/test_builders.py` | builder | 10 |
 | `tests/test_weight_input_service.py` | service | 14 |
@@ -93,5 +93,5 @@ The app requires a serial port with a connected electronic scale. Without hardwa
 
 ## Core Algorithms
 
-- **WeightStabilityChecker**: dual sliding windows (5-frame short, 10-frame long by default; configurable in `[stability]`) + triple checks (speed, trend, stddev) + hysteresis unlock
+- **WeightStabilizer**: dual sliding windows (5-frame short, 10-frame long by default; configurable in `[stability]`) + triple checks (speed, trend, stddev) + hysteresis unlock
 - **PieceCounter**: 3-state FSM (ZERO → NORMAL → ABNORMAL) + EMA weight learning + sqrt(n) statistical tolerance

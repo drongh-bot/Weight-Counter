@@ -2,7 +2,7 @@
 import logging
 
 from app.models.params import Params
-from app.models.weight_stability_checker import WeightStabilityChecker
+from app.models.weight_stabilizer import WeightStabilizer
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ class WeightInputService:
     """
     Weight input service:
     - Parse serial weight strings
-    - Stabilize via WeightStabilityChecker
+    - Stabilize via WeightStabilizer
     - No dependency on UI or Controller
     - Provides parse() / stabilize() / reset()
     """
@@ -19,8 +19,7 @@ class WeightInputService:
     def __init__(self, params: Params) -> None:
         self.params = params
 
-        # initialize stability checker (thresholds set once)
-        self._stability_checker = WeightStabilityChecker(
+        self._stabilizer = WeightStabilizer(
             short_win=params.stability_short_win,
             long_win=params.stability_long_win,
             stable_count=params.stability_stable_count,
@@ -54,27 +53,24 @@ class WeightInputService:
             logger.warning("解析失败: %s", raw)
             return None
 
-    # ============================================================
-    # Stability check
-    # ============================================================
     def stabilize(self, weight: float) -> float | None:
         """
         Returns the stable weight, or None if unstable
         """
-        return self._stability_checker.check_stability(weight)
+        return self._stabilizer.stabilize(weight)
 
     # ============================================================
     # Reset
     # ============================================================
     def reset(self) -> None:
-        self._stability_checker.reset()
+        self._stabilizer.reset()
 
     def apply_params(self) -> None:
-        self._stability_checker.set_stability_threshold(self.params.stability_threshold)
+        self._stabilizer.set_stability_threshold(self.params.stability_threshold)
 
     # ============================================================
     # Last stable value
     # ============================================================
     @property
     def last_stable_weight(self) -> float | None:
-        return self._stability_checker.last_stable_weight
+        return self._stabilizer.last_stable_weight

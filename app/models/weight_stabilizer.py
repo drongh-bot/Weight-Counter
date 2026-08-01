@@ -1,9 +1,9 @@
-# app/models/weight_stability_checker.py
+# app/models/weight_stabilizer.py
 import statistics
 from collections import deque
 
 
-class WeightStabilityChecker:
+class WeightStabilizer:
     """
     Industrial-grade stability detector (enhanced version)
     - Unified threshold system
@@ -72,7 +72,7 @@ class WeightStabilityChecker:
     # ============================================================
     # Main Logic
     # ============================================================
-    def check_stability(self, weight: float) -> float | None:
+    def stabilize(self, weight: float) -> float | None:
         """
         Input: current weight
         Output: stable weight (None means unstable)

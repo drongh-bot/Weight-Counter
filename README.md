@@ -24,7 +24,7 @@ Serial Port
 ```
 app/
 ├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
-├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilityChecker, Params)
+├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
 ├── services/              Service layer (serial, weight_input, counter, sound, log, config, ui)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
@@ -43,7 +43,7 @@ app/
 
 ### Core Algorithms
 
-**WeightStabilityChecker**
+**WeightStabilizer**
 
 - Dual sliding windows (5-frame short, 10-frame long — configurable via `[stability]` in `config.toml`)
 - Triple checks: speed (short-window range), trend (long-window range), standard deviation
