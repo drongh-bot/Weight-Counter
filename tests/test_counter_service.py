@@ -66,7 +66,7 @@ class TestCounterServiceProcess:
         params.max_batch_pieces = 5
         params.initial_single_pieces = 1
         svc = CounterService(params)
-        svc.apply_params()
+        svc.apply_start_params()
 
         pc = svc._piece_counter
         pc.piece_weights = [10.0] * 98
@@ -87,7 +87,7 @@ class TestCounterServiceProcess:
         params.max_batch_pieces = 5
         params.initial_single_pieces = 1
         svc = CounterService(params)
-        svc.apply_params()
+        svc.apply_start_params()
 
         pc = svc._piece_counter
         pc.piece_weights = [10.0] * 100
@@ -108,7 +108,7 @@ class TestCounterServiceProcess:
         params.max_batch_pieces = 4
         params.tolerance_percent = 25.0
         svc = CounterService(params)
-        svc.apply_params()
+        svc.apply_start_params()
 
         svc.process(10.0)
         svc.process(20.0)
@@ -185,7 +185,7 @@ class TestCounterServiceProcess:
         assert result.avg_weight == 10.0
         assert result.piece_weights == [10.0]
 
-    def test_apply_params_syncs_ui_editable_fields(self):
+    def test_apply_start_params_syncs_ui_editable_fields(self):
         params = Params(
             initial_min_weight=0.5,
             tolerance_percent=20.0,
@@ -203,7 +203,7 @@ class TestCounterServiceProcess:
         params.initial_single_pieces = 8
         params.decimal_places = 3
 
-        svc.apply_params()
+        svc.apply_start_params()
 
         pc = svc._piece_counter
         assert pc.initial_min_weight == 1.0

@@ -65,12 +65,6 @@ class WeightInputService:
     def reset(self) -> None:
         self._stabilizer.reset()
 
-    def apply_params(self) -> None:
+    def apply_start_params(self) -> None:
         self._stabilizer.set_stability_threshold(self.params.stability_threshold)
 
-    # ============================================================
-    # Last stable value
-    # ============================================================
-    @property
-    def last_stable_weight(self) -> float | None:
-        return self._stabilizer.last_stable_weight

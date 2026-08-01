@@ -89,7 +89,7 @@ The app requires a serial port with a connected electronic scale. Without hardwa
 
 - **`Params`** (`app/models/params.py`): `@dataclass` holding all parameter values — pure data, no I/O. One shared instance is injected into controller / window / services; **freshness rules differ by field** (below).
 - **`ConfigService`** (`app/services/config_service.py`): loads/saves only the fields listed in `_SECTION_MAP` ↔ `config.toml`. Not every `Params` field is persisted.
-- **Start-sync params**: UI-editable `[parameters]` fields (except `target_pieces`) sync to `CounterService` and `WeightInputService` via `apply_params()` when the user clicks Start (`MainController.start()`). This includes `decimal_places` (affects display formatting and `min_tol` / resolution). Editing them mid-run does **not** affect the algorithm until the next Start.
+- **Start-sync params**: UI-editable `[parameters]` fields (except `target_pieces`) sync to `CounterService` and `WeightInputService` via `apply_start_params()` when the user clicks Start (`MainController.start()`). This includes `decimal_places` (affects display formatting and `min_tol` / resolution). Editing them mid-run does **not** affect the algorithm until the next Start.
 - **`target_pieces` (runtime-only, not persisted)**: batch production target — lives on `Params` and in the UI spinbox, but is **excluded from `_SECTION_MAP`**. `CounterService.process()` reads it live from the shared `Params` object on every stable frame, so the operator can change the target mid-run without restart. Default `100`; not saved to `config.toml` on exit.
 
 ## Core Algorithms

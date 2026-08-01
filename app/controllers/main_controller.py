@@ -41,7 +41,7 @@ class MainController(QObject):
         self.csv_log_service: CsvLogService = csv_log_service
         self.params: Params = params
 
-        self._is_active: bool = False
+        self._is_running: bool = False
         self._pending_force_pieces: int | None = None
         self._pending_clear_abnormal: bool = False
 
@@ -61,10 +61,10 @@ class MainController(QObject):
         pending_force = self._pending_force_pieces is not None
         abnormal = state == CounterState.ABNORMAL
         return ButtonStatus(
-            start_enabled=not self._is_active,
-            stop_enabled=self._is_active,
-            clear_enabled=abnormal and self._is_active and not pending_force,
-            force_enabled=self._is_active and not pending_force,
+            start_enabled=not self._is_running,
+            stop_enabled=self._is_running,
+            clear_enabled=abnormal and self._is_running and not pending_force,
+            force_enabled=self._is_running and not pending_force,
         )
 
     def _sync_button_status(self) -> None:
@@ -188,7 +188,7 @@ class MainController(QObject):
     # User Actions
     # ============================================================
     def force_calibrate(self, pieces: int) -> None:
-        if not self._is_active or pieces <= 0:
+        if not self._is_running or pieces <= 0:
             return
         if self._pending_force_pieces is not None:
             return
@@ -198,7 +198,7 @@ class MainController(QObject):
         self._show_waiting_stable()
 
     def clear_abnormal(self) -> None:
-        if not self._is_active or self._pending_force_pieces is not None:
+        if not self._is_running or self._pending_force_pieces is not None:
             return
         self._pending_clear_abnormal = True
         self._pending_force_pieces = None
@@ -212,10 +212,10 @@ class MainController(QObject):
         self._sync_count_ui()
 
     def start(self, port: str, baud: int) -> bool:
-        self._is_active = True
+        self._is_running = True
         self._reset_all()
-        self.counter_service.apply_params()
-        self.weight_input_service.apply_params()
+        self.counter_service.apply_start_params()
+        self.weight_input_service.apply_start_params()
         try:
             self.serial_service.open(port, baud)
             return True
@@ -224,7 +224,7 @@ class MainController(QObject):
             return False
 
     def _handle_start_error(self, error: Exception) -> None:
-        self._is_active = False
+        self._is_running = False
         self._sync_count_ui()
         self.ui_service.update_bar_status(
             parse_ok=False, comm_ok=False, status_message=str(error)
@@ -232,7 +232,7 @@ class MainController(QObject):
         logger.exception("串口打开失败")
 
     def stop(self) -> None:
-        self._is_active = False
+        self._is_running = False
         self._clear_pending()
         self._reset_all()
         self.serial_service.close()

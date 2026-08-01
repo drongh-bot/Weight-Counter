@@ -47,7 +47,7 @@ class CounterService:
     # ============================================================
     # Parameter update
     # ============================================================
-    def apply_params(self) -> None:
+    def apply_start_params(self) -> None:
         self._piece_counter.set_initial_single_pieces(self.params.initial_single_pieces)
         self._piece_counter.set_max_batch_pieces(self.params.max_batch_pieces)
         self._piece_counter.set_tolerance_percent(self.params.tolerance_percent)

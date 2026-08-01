@@ -71,7 +71,7 @@ class TestControllerPipeline:
 
     def test_force_calibrate_pending(self, qapp):
         controller, ui = self._make_controller(qapp)
-        controller._is_active = True
+        controller._is_running = True
         spy = QSignalSpy(ui.bar_status_changed)
         controller.force_calibrate(5)
         assert controller._pending_force_pieces == 5
@@ -81,20 +81,20 @@ class TestControllerPipeline:
 
     def test_force_calibrate_ignored_when_pieces_zero(self, qapp):
         controller, ui = self._make_controller(qapp)
-        controller._is_active = True
+        controller._is_running = True
         controller.force_calibrate(0)
         assert controller._pending_force_pieces is None
 
     def test_clear_abnormal_pending(self, qapp):
         controller, ui = self._make_controller(qapp)
-        controller._is_active = True
+        controller._is_running = True
         controller.clear_abnormal()
         assert controller._pending_clear_abnormal is True
         assert controller._pending_force_pieces is None
 
     def test_force_calibrate_executes_on_next_stable(self, qapp):
         controller, ui = self._make_controller(qapp)
-        controller._is_active = True
+        controller._is_running = True
 
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
@@ -112,7 +112,7 @@ class TestControllerPipeline:
     def test_force_calibrate_from_normal_without_abnormal(self, qapp):
         """NORMAL 状态下也可强制校准，无需先进入异常"""
         controller, ui = self._make_controller(qapp)
-        controller._is_active = True
+        controller._is_running = True
 
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
@@ -132,7 +132,7 @@ class TestControllerPipeline:
 
     def test_clear_abnormal_executes(self, qapp):
         controller, ui = self._make_controller(qapp)
-        controller._is_active = True
+        controller._is_running = True
 
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
@@ -150,7 +150,7 @@ class TestControllerPipeline:
 
     def test_pending_only_when_running(self, qapp):
         controller, ui = self._make_controller(qapp)
-        controller._is_active = False
+        controller._is_running = False
 
         controller.force_calibrate(5)
         assert controller._pending_force_pieces is None
@@ -160,21 +160,21 @@ class TestControllerPipeline:
 
     def test_stop_resets_all(self, qapp):
         controller, ui = self._make_controller(qapp)
-        controller._is_active = True
+        controller._is_running = True
 
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
         assert controller.counter_service.current_result().total_pieces == 1
 
         controller.stop()
-        assert controller._is_active is False
+        assert controller._is_running is False
         assert controller.counter_service.current_result().total_pieces == 0
         assert controller._pending_force_pieces is None
         assert controller._pending_clear_abnormal is False
 
     def test_start_resets_and_starts_serial(self, qapp):
         controller, ui = self._make_controller(qapp)
-        controller._is_active = True
+        controller._is_running = True
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
 
@@ -185,7 +185,7 @@ class TestControllerPipeline:
 
         try:
             controller.start("COM99", 9600)
-            assert controller._is_active is True
+            assert controller._is_running is True
             assert controller.counter_service.current_result().total_pieces == 0
             controller.serial_service.open.assert_called_once_with("COM99", 9600)
         finally:
@@ -196,7 +196,7 @@ class TestControllerPipeline:
         controller, ui = self._make_controller(qapp)
         spy = QSignalSpy(ui.button_status_changed)
 
-        controller._is_active = True
+        controller._is_running = True
         controller._sync_button_status()
 
         d = spy.at(spy.count() - 1)[0]
@@ -207,7 +207,7 @@ class TestControllerPipeline:
 
     def test_ui_button_state_when_abnormal(self, qapp):
         controller, ui = self._make_controller(qapp)
-        controller._is_active = True
+        controller._is_running = True
 
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
@@ -223,7 +223,7 @@ class TestControllerPipeline:
 
     def test_force_pending_disables_force_button(self, qapp):
         controller, ui = self._make_controller(qapp)
-        controller._is_active = True
+        controller._is_running = True
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
 
@@ -246,7 +246,7 @@ class TestControllerPipeline:
     def test_force_calibrate_waits_when_raw_stable_mismatch(self, qapp):
         """NORMAL 下强制校准：raw/stable 不一致时保持等待，不立刻执行"""
         controller, ui = self._make_controller(qapp)
-        controller._is_active = True
+        controller._is_running = True
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
         assert controller.counter_service.current_result().total_pieces == 1
@@ -274,7 +274,7 @@ class TestControllerPipeline:
             CsvLogService(),
             params,
         )
-        controller._is_active = True
+        controller._is_running = True
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
         assert controller.counter_service.current_result().total_pieces == 1
@@ -290,7 +290,7 @@ class TestControllerPipeline:
     def test_parse_fail_clears_actual_weight(self, qapp):
         controller, ui = self._make_controller(qapp)
         spy = QSignalSpy(ui.actual_weight_changed)
-        controller._is_active = True
+        controller._is_running = True
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
         controller._on_raw_data("not-a-weight")
@@ -298,7 +298,7 @@ class TestControllerPipeline:
 
     def test_decimal_places_applies_on_start_only(self, qapp):
         controller, ui = self._make_controller(qapp)
-        controller._is_active = True
+        controller._is_running = True
         controller.counter_service.process(10.0)
         controller.params.decimal_places = 4
         # mid-run: Params changed but algorithm keeps old decimal places
