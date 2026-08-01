@@ -1,8 +1,8 @@
 from app.models.params import Params
-from app.services.checker_service import CheckerService
+from app.services.weight_input_service import WeightInputService
 
 
-class TestCheckerServiceParse:
+class TestWeightInputServiceParse:
     def test_simple_float(self):
         svc = self._make_service()
         assert svc.parse("10.5") == 10.5
@@ -58,7 +58,7 @@ class TestCheckerServiceParse:
 
     def test_apply_params_syncs_stability_threshold(self):
         params = Params(stability_threshold=0.02)
-        svc = CheckerService(params)
+        svc = WeightInputService(params)
 
         params.stability_threshold = 0.10
         svc.apply_params()
@@ -66,6 +66,6 @@ class TestCheckerServiceParse:
         assert svc._stability_checker.base_threshold == 0.10
 
     @staticmethod
-    def _make_service() -> CheckerService:
+    def _make_service() -> WeightInputService:
         params = Params()
-        return CheckerService(params)
+        return WeightInputService(params)

@@ -7,13 +7,13 @@ from PySide6.QtWidgets import QApplication
 from app.controllers.main_controller import MainController
 from app.core.log_config import setup_logging
 from app.core.resource_manager import ResourceManager
-from app.services.checker_service import CheckerService
 from app.services.config_service import ConfigService
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
 from app.services.sound_service import SoundService
 from app.services.ui.ui_service import UIService
+from app.services.weight_input_service import WeightInputService
 from app.views.main_window import MainWindow
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def main():
     ui_service = UIService()
     serial_service = SerialService(params.timeout_millis)
     counter_service = CounterService(params)
-    checker_service = CheckerService(params)
+    weight_input_service = WeightInputService(params)
     sound_service = SoundService()
     csv_log_service = CsvLogService()
 
@@ -42,7 +42,7 @@ def main():
         ui_service=ui_service,
         serial_service=serial_service,
         counter_service=counter_service,
-        checker_service=checker_service,
+        weight_input_service=weight_input_service,
         sound_service=sound_service,
         csv_log_service=csv_log_service,
         params=params,

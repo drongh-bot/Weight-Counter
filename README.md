@@ -13,9 +13,9 @@ all with live chart and table visualization.
 ```
 Serial Port
   → SerialService         (raw data receive, timeout detection)
-  → CheckerService        (parse + stability check via dual-window algorithm)
+  → WeightInputService    (parse + stability check via dual-window algorithm)
   → CounterService        (state machine ZERO→NORMAL→ABNORMAL + EMA weight learning)
-  → UIService             (ViewModel — builds snapshots, emits biz/bar/button/weight signals)
+  → UIService             (ViewModel — builds snapshots, emits count/bar/button/weight signals)
   → MainWindow            (pure rendering — labels, table, scatter chart)
 ```
 
@@ -25,7 +25,7 @@ Serial Port
 app/
 ├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
 ├── models/                Pure business logic (PieceCounter, WeightStabilityChecker, Params)
-├── services/              Service layer (serial, checker, counter, sound, log, config, ui)
+├── services/              Service layer (serial, weight_input, counter, sound, log, config, ui)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets
@@ -39,7 +39,7 @@ app/
 - **CQS** — PieceCounter mutates state (Command), CounterService queries and builds results
 - **Signal-driven UI** — UIService emits `count_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
 - **No bare attribute access** — Controller communicates with services through methods only
-- **Model layer is Qt-free** — unit-testable without a GUI; `CounterService` and `CheckerService` are also Qt-free
+- **Model layer is Qt-free** — unit-testable without a GUI; `CounterService` and `WeightInputService` are also Qt-free
 
 ### Core Algorithms
 
@@ -141,7 +141,7 @@ uv run mypy app                  # Type check
 | ---------- | ----------------------------------------- |
 | model      | 48 (Qt-free, plain pytest)                |
 | builder    | 10 (Qt-free)                              |
-| service    | 44 (config/checker/counter Qt-free; ui needs `qapp`) |
+| service    | 44 (config/weight_input/counter Qt-free; ui needs `qapp`) |
 | controller | 19 (uses `qapp` fixture)                  |
 
 ---

@@ -78,9 +78,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.lblParse = QLabel()
         self.lblComm = QLabel()
-        self.lblException = QLabel()
+        self.lblMessage = QLabel()
 
-        for lbl in [self.lblParse, self.lblComm, self.lblException]:
+        for lbl in [self.lblParse, self.lblComm, self.lblMessage]:
             lbl.setContentsMargins(5, 5, 5, 5)
             lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
@@ -88,7 +88,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         status_bar.setStyleSheet("QStatusBar::item { border: none; }")
         status_bar.addWidget(self.lblParse, 1)
         status_bar.addWidget(self.lblComm, 1)
-        status_bar.addWidget(self.lblException, 1)
+        status_bar.addWidget(self.lblMessage, 1)
 
     def _bind_ui_service_signals(self) -> None:
         self.ui_service.actual_weight_changed.connect(self.lblActWeight.setText)
@@ -99,13 +99,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _on_bar_status_changed(self, data: BarStatus) -> None:
         self._apply_bar_label_item(data.parse, self.lblParse)
         self._apply_bar_label_item(data.comm, self.lblComm)
-        self._apply_bar_label_item(data.message, self.lblException)
+        self._apply_bar_label_item(data.message, self.lblMessage)
 
     def _on_button_status_changed(self, state: ButtonStatus) -> None:
-        self.btnStart.setEnabled(state.start)
-        self.btnStop.setEnabled(state.stop)
-        self.btnClear.setEnabled(state.clear)
-        self.btnForce.setEnabled(state.force)
+        self.btnStart.setEnabled(state.start_enabled)
+        self.btnStop.setEnabled(state.stop_enabled)
+        self.btnClear.setEnabled(state.clear_enabled)
+        self.btnForce.setEnabled(state.force_enabled)
 
     def _on_count_changed(self, snap: CountSnapshot) -> None:
         try:

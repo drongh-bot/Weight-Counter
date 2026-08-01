@@ -8,7 +8,7 @@ Industrial piece-counting desktop application — PySide6 + MVVM + Dependency In
 app/
 ├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
 ├── models/                Pure business logic (PieceCounter, WeightStabilityChecker, Params)
-├── services/              Service layer (serial, checker, counter, sound, csv_log, config, ui)
+├── services/              Service layer (serial, weight_input, counter, sound, csv_log, config, ui)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets
@@ -23,7 +23,7 @@ app/
 - **Signal-driven UI**: UIService emits `count_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
 - **No bare attribute access**: Controller communicates with services through methods only
 - **Model layer is Qt-free**: unit-testable without a GUI, no I/O (see Params vs ConfigService split)
-- **Business services are Qt-free**: `CounterService` and `CheckerService` are plain Python classes; I/O and UI-facing services (`SerialService`, `UIService`, etc.) inherit `QObject`
+- **Business services are Qt-free**: `CounterService` and `WeightInputService` are plain Python classes; I/O and UI-facing services (`SerialService`, `UIService`, etc.) inherit `QObject`
 
 ## Tech Stack
 
@@ -48,14 +48,14 @@ uv run mypy app                  # Type check
 
 ## Test suite
 
-Model tests and `CounterService` / `CheckerService` tests are Qt-free; `UIService` and controller tests use the `qapp` fixture from `pytest-qt`.
+Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `UIService` and controller tests use the `qapp` fixture from `pytest-qt`.
 
 | File | Layer | Count |
 |------|-------|-------|
 | `tests/test_weight_stability_checker.py` | model | 12 |
 | `tests/test_piece_counter.py` | model | 36 |
 | `tests/test_builders.py` | builder | 10 |
-| `tests/test_checker_service.py` | service | 14 |
+| `tests/test_weight_input_service.py` | service | 14 |
 | `tests/test_counter_service.py` | service | 19 |
 | `tests/test_config_service.py` | service | 2 |
 | `tests/test_ui_service.py` | service | 9 |
@@ -87,7 +87,7 @@ The app requires a serial port with a connected electronic scale. Without hardwa
 
 - **`Params`** (`app/models/params.py`): `@dataclass` holding all parameter values — pure data, no I/O. One shared instance is injected into controller / window / services; **freshness rules differ by field** (below).
 - **`ConfigService`** (`app/services/config_service.py`): loads/saves only the fields listed in `_SECTION_MAP` ↔ `config.toml`. Not every `Params` field is persisted.
-- **Start-sync params**: UI-editable `[parameters]` fields (except `target_pieces` / hot decimal places) sync to `CounterService` and `CheckerService` via `apply_params()` when the user clicks Start (`MainController.start()`). Editing them mid-run does **not** affect the algorithm until the next Start (unless noted below).
+- **Start-sync params**: UI-editable `[parameters]` fields (except `target_pieces` / hot decimal places) sync to `CounterService` and `WeightInputService` via `apply_params()` when the user clicks Start (`MainController.start()`). Editing them mid-run does **not** affect the algorithm until the next Start (unless noted below).
 - **`target_pieces` (runtime-only, not persisted)**: batch production target — lives on `Params` and in the UI spinbox, but is **excluded from `_SECTION_MAP`**. `CounterService.process()` reads it live from the shared `Params` object on every stable frame, so the operator can change the target mid-run without restart. Default `100`; not saved to `config.toml` on exit.
 - **`decimal_places` (hot-update)**: changing the UI spinbox calls `MainController.sync_decimal_places()` → `CounterService.set_decimal_places()` only (does **not** run full `apply_params()`).
 

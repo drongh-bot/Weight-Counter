@@ -6,12 +6,12 @@ from PySide6.QtTest import QSignalSpy
 from app.controllers.main_controller import MainController
 from app.models.counter_state import CounterState
 from app.models.params import Params
-from app.services.checker_service import CheckerService
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
 from app.services.sound_service import SoundService
 from app.services.ui.ui_service import UIService
+from app.services.weight_input_service import WeightInputService
 
 
 class TestControllerPipeline:
@@ -24,7 +24,7 @@ class TestControllerPipeline:
         ui = UIService()
         serial = SerialService(2000)
         counter = CounterService(params)
-        checker = CheckerService(params)
+        weight_input = WeightInputService(params)
         sound = SoundService()
         csv_log = CsvLogService()
 
@@ -32,7 +32,7 @@ class TestControllerPipeline:
             ui_service=ui,
             serial_service=serial,
             counter_service=counter,
-            checker_service=checker,
+            weight_input_service=weight_input,
             sound_service=sound,
             csv_log_service=csv_log,
             params=params,
@@ -203,10 +203,10 @@ class TestControllerPipeline:
         )
 
         d = spy.at(spy.count() - 1)[0]
-        assert d.start is False
-        assert d.stop is True
-        assert d.force is True
-        assert d.clear is False
+        assert d.start_enabled is False
+        assert d.stop_enabled is True
+        assert d.force_enabled is True
+        assert d.clear_enabled is False
 
     def test_ui_button_state_when_abnormal(self, qapp):
         controller, ui = self._make_controller(qapp)
@@ -221,15 +221,15 @@ class TestControllerPipeline:
         assert result.state == CounterState.ABNORMAL
 
         status = controller._button_status(result.state, controller._is_active)
-        assert status.force is True
-        assert status.clear is True
+        assert status.force_enabled is True
+        assert status.clear_enabled is True
 
-    def test_should_defer_force_when_raw_stable_mismatch(self, qapp):
+    def test_raw_mismatches_stable(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller.params.stability_threshold = 0.02
-        assert controller._should_defer_force(30.0, 10.0) is True
-        assert controller._should_defer_force(10.01, 10.0) is False
-        assert controller._should_defer_force(10.0, 10.0) is False
+        assert controller._raw_mismatches_stable(30.0, 10.0) is True
+        assert controller._raw_mismatches_stable(10.01, 10.0) is False
+        assert controller._raw_mismatches_stable(10.0, 10.0) is False
 
     def test_force_calibrate_waits_when_raw_stable_mismatch(self, qapp):
         """NORMAL 下强制校准：raw/stable 不一致时保持等待，不立刻执行"""
@@ -257,7 +257,7 @@ class TestControllerPipeline:
             ui,
             SerialService(2000),
             CounterService(params),
-            CheckerService(params),
+            WeightInputService(params),
             sound,
             CsvLogService(),
             params,

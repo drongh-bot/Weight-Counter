@@ -16,13 +16,13 @@ class TestUIService:
         svc = UIService()
         spy = QSignalSpy(svc.count_changed)
 
-        biz = CountResult(
+        result = CountResult(
             added=True, abnormal_high=False, abnormal_low=False,
             state=CounterState.NORMAL, delta=10.0, avg_weight=10.0,
             tol_high=11.0, tol_low=9.0, total_pieces=1,
             last_stable_weight=10.0, last_base_weight=0.0, weights=[10.0],
         )
-        svc.update_count(biz)
+        svc.update_count(result)
 
         assert spy.count() == 1
         d = self._last(spy)
@@ -32,38 +32,38 @@ class TestUIService:
         svc = UIService()
         spy = QSignalSpy(svc.count_changed)
 
-        biz = CountResult(
+        result = CountResult(
             added=False, abnormal_high=False, abnormal_low=False,
             state=CounterState.ZERO, delta=0.0, avg_weight=0.0,
             tol_high=0.0, tol_low=0.0, total_pieces=0,
             last_stable_weight=0.0, last_base_weight=0.0, weights=[],
         )
-        svc.update_count(biz)
+        svc.update_count(result)
         assert spy.count() == 1
 
-        svc.update_count(biz)
+        svc.update_count(result)
         assert spy.count() == 1
 
     def test_count_different_data_emits_again(self, qapp):
         svc = UIService()
         spy = QSignalSpy(svc.count_changed)
 
-        biz = CountResult(
+        result = CountResult(
             added=False, abnormal_high=False, abnormal_low=False,
             state=CounterState.ZERO, delta=0.0, avg_weight=0.0,
             tol_high=0.0, tol_low=0.0, total_pieces=0,
             last_stable_weight=0.0, last_base_weight=0.0, weights=[],
         )
-        svc.update_count(biz)
+        svc.update_count(result)
         assert spy.count() == 1
 
-        biz2 = CountResult(
+        result2 = CountResult(
             added=True, abnormal_high=False, abnormal_low=False,
             state=CounterState.NORMAL, delta=10.0, avg_weight=10.0,
             tol_high=11.0, tol_low=9.0, total_pieces=1,
             last_stable_weight=10.0, last_base_weight=0.0, weights=[10.0],
         )
-        svc.update_count(biz2)
+        svc.update_count(result2)
         assert spy.count() == 2
 
     def test_refresh_re_emits_last(self, qapp):
@@ -128,17 +128,17 @@ class TestUIService:
         svc = UIService()
         spy = QSignalSpy(svc.button_status_changed)
 
-        svc.update_button_status(ButtonStatus(start=False, stop=True))
+        svc.update_button_status(ButtonStatus(start_enabled=False, stop_enabled=True))
         assert spy.count() == 1
         d = self._last(spy)
-        assert d.start is False
-        assert d.stop is True
+        assert d.start_enabled is False
+        assert d.stop_enabled is True
 
     def test_button_status_duplicate_not_emitted(self, qapp):
         svc = UIService()
         spy = QSignalSpy(svc.button_status_changed)
 
-        state = ButtonStatus(start=False, stop=True)
+        state = ButtonStatus(start_enabled=False, stop_enabled=True)
         svc.update_button_status(state)
         assert spy.count() == 1
         svc.update_button_status(state)

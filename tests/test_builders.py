@@ -6,7 +6,7 @@ from app.services.ui.styles import Styles
 
 class TestCountBuilder:
     def test_zero_state(self):
-        biz = CountResult(
+        result = CountResult(
             added=False,
             abnormal_high=False,
             abnormal_low=False,
@@ -20,13 +20,13 @@ class TestCountBuilder:
             last_base_weight=0.0,
             weights=[],
         )
-        data = CountBuilder.build(biz)
+        data = CountBuilder.build(result)
         assert data.state.text == "等待第一件"
         assert data.state.style == ""
         assert data.total_pieces == "0"
 
     def test_normal_state(self):
-        biz = CountResult(
+        result = CountResult(
             added=True,
             abnormal_high=False,
             abnormal_low=False,
@@ -40,7 +40,7 @@ class TestCountBuilder:
             last_base_weight=40.0,
             weights=[10.0, 10.0, 10.0, 10.0, 10.0],
         )
-        data = CountBuilder.build(biz)
+        data = CountBuilder.build(result)
         assert data.state.text == "正常"
         assert data.state.style == ""
         assert data.delta_weight.text == "10.00"
@@ -49,7 +49,7 @@ class TestCountBuilder:
         assert data.avg_weight == "10.00"
 
     def test_abnormal_high_state(self):
-        biz = CountResult(
+        result = CountResult(
             added=False,
             abnormal_high=True,
             abnormal_low=False,
@@ -63,13 +63,13 @@ class TestCountBuilder:
             last_base_weight=30.0,
             weights=[10.0, 10.0, 10.0],
         )
-        data = CountBuilder.build(biz)
+        data = CountBuilder.build(result)
         assert data.state.text == "异常（偏高）"
         assert data.state.style == Styles.ABNORMAL_HIGH
         assert data.delta_weight.style == Styles.ABNORMAL_HIGH
 
     def test_abnormal_low_state(self):
-        biz = CountResult(
+        result = CountResult(
             added=False,
             abnormal_high=False,
             abnormal_low=True,
@@ -83,13 +83,13 @@ class TestCountBuilder:
             last_base_weight=20.0,
             weights=[10.0, 10.0],
         )
-        data = CountBuilder.build(biz)
+        data = CountBuilder.build(result)
         assert data.state.text == "异常（偏低）"
         assert data.state.style == Styles.ABNORMAL_LOW
         assert data.delta_weight.style == Styles.ABNORMAL_LOW
 
     def test_delta_formatting(self):
-        biz = CountResult(
+        result = CountResult(
             added=False,
             abnormal_high=False,
             abnormal_low=False,
@@ -103,7 +103,7 @@ class TestCountBuilder:
             last_base_weight=0.0,
             weights=[10.0],
         )
-        data = CountBuilder.build(biz)
+        data = CountBuilder.build(result)
         assert data.delta_weight.text == "3.14"
         assert data.tol_high == "11.00"
         assert data.tol_low == "9.00"

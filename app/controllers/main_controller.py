@@ -6,7 +6,7 @@ from PySide6.QtCore import QObject
 from app.models.count_result import CountResult
 from app.models.counter_state import CounterState
 from app.models.params import Params
-from app.services.checker_service import CheckerService
+from app.services.weight_input_service import WeightInputService
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
@@ -25,7 +25,7 @@ class MainController(QObject):
         ui_service: UIService,
         serial_service: SerialService,
         counter_service: CounterService,
-        checker_service: CheckerService,
+        weight_input_service: WeightInputService,
         sound_service: SoundService,
         csv_log_service: CsvLogService,
         params: Params,
@@ -35,7 +35,7 @@ class MainController(QObject):
         self.ui_service: UIService = ui_service
         self.serial_service: SerialService = serial_service
         self.counter_service: CounterService = counter_service
-        self.checker_service: CheckerService = checker_service
+        self.weight_input_service: WeightInputService = weight_input_service
         self.sound_service: SoundService = sound_service
         self.csv_log_service: CsvLogService = csv_log_service
         self.params: Params = params
@@ -59,10 +59,10 @@ class MainController(QObject):
     def _button_status(state: CounterState, is_active: bool) -> ButtonStatus:
         abnormal = state == CounterState.ABNORMAL
         return ButtonStatus(
-            start=not is_active,
-            stop=is_active,
-            clear=abnormal and is_active,
-            force=is_active,
+            start_enabled=not is_active,
+            stop_enabled=is_active,
+            clear_enabled=abnormal and is_active,
+            force_enabled=is_active,
         )
 
     def _show_waiting_stable(self) -> None:
@@ -76,8 +76,8 @@ class MainController(QObject):
         self._pending_force_pieces = None
         self._pending_clear_abnormal = False
 
-    def _should_defer_force(self, raw_weight: float, stable_weight: float) -> bool:
-        """Defer force calibration until raw weight matches stable lock."""
+    def _raw_mismatches_stable(self, raw_weight: float, stable_weight: float) -> bool:
+        """True when actual and stable weight differ beyond tolerance (not ready to calibrate)."""
         return abs(raw_weight - stable_weight) > self.params.stability_threshold
 
     def _sync_count_ui(self) -> None:
@@ -92,7 +92,7 @@ class MainController(QObject):
     # Data Pipeline
     # ============================================================
     def _on_raw_data(self, raw_data: str) -> None:
-        weight = self.checker_service.parse(raw_data)
+        weight = self.weight_input_service.parse(raw_data)
 
         if weight is None:
             self.ui_service.update_bar_status(parse_ok=False)
@@ -101,12 +101,12 @@ class MainController(QObject):
             )
             return
 
-        stable_weight = self.checker_service.stabilize(weight)
+        stable_weight = self.weight_input_service.stabilize(weight)
         result = self.counter_service.current_result()
         self.ui_service.update_actual_weight(weight, result.decimal_places)
 
         if self._pending_force_pieces is not None:
-            if stable_weight is None or self._should_defer_force(weight, stable_weight):
+            if stable_weight is None or self._raw_mismatches_stable(weight, stable_weight):
                 self._show_waiting_stable()
                 return
         elif stable_weight is None:
@@ -193,14 +193,14 @@ class MainController(QObject):
     # ============================================================
     def _reset_all(self) -> None:
         self.counter_service.reset()
-        self.checker_service.reset()
+        self.weight_input_service.reset()
         self._sync_count_ui()
 
     def start(self, port: str, baud: int) -> bool:
         self._is_active = True
         self._reset_all()
         self.counter_service.apply_params()
-        self.checker_service.apply_params()
+        self.weight_input_service.apply_params()
         try:
             self.serial_service.open(port, baud)
             return True

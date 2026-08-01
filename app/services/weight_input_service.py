@@ -1,4 +1,4 @@
-# app/services/checker_service.py
+# app/services/weight_input_service.py
 import logging
 
 from app.models.params import Params
@@ -7,7 +7,7 @@ from app.models.weight_stability_checker import WeightStabilityChecker
 logger = logging.getLogger(__name__)
 
 
-class CheckerService:
+class WeightInputService:
     """
     Weight input service:
     - Parse serial weight strings

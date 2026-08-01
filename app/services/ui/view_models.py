@@ -19,10 +19,10 @@ class BarStatus:
 
 @dataclass
 class ButtonStatus:
-    start: bool = True
-    stop: bool = True
-    clear: bool = False
-    force: bool = False
+    start_enabled: bool = True
+    stop_enabled: bool = True
+    clear_enabled: bool = False
+    force_enabled: bool = False
 
 
 @dataclass
