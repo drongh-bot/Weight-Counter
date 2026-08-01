@@ -122,8 +122,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.lblLastStableWeight.setText(snap.last_stable_weight)
             self.lblBaselineWeight.setText(snap.baseline_weight)
 
-            self.wgtPieceTable.update_table(snap.piece_weights)
-            self.wgtPieceChart.update_chart(snap.piece_weights)
+            self.wgtPieceTable.update_piece_weights(snap.piece_weights)
+            self.wgtPieceChart.update_piece_weights(snap.piece_weights)
 
         except Exception as e:
             logger.exception("UI更新失败")

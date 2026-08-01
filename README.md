@@ -131,7 +131,7 @@ splitter_sizes = [140, 199]
 ## Testing
 
 ```bash
-uv run pytest tests/ -v          # 122 tests: model → service → controller
+uv run pytest tests/ -v          # 130 tests: model → service → view → controller
 uv run mypy app                  # Type check
 ```
 
@@ -142,6 +142,7 @@ uv run mypy app                  # Type check
 | model      | 48 (Qt-free, plain pytest)                |
 | builder    | 10 (Qt-free)                              |
 | service    | 44 (config/weight_input/counter Qt-free; ui needs `qapp`) |
+| view       | 8 (table/chart; needs `qapp`)             |
 | controller | 20 (uses `qapp` fixture)                  |
 
 ---

@@ -3,10 +3,9 @@ from PySide6.QtCore import QPointF, Qt
 from PySide6.QtWidgets import QHBoxLayout, QScrollBar, QVBoxLayout, QWidget
 
 
-# ============================
-#   Custom horizontal axis: fixed decimal places
-# ============================
 class FixedAxis(pg.AxisItem):
+    """Horizontal axis with fixed decimal places."""
+
     def __init__(self, orientation) -> None:
         super().__init__(orientation=orientation)
         self.decimals = 2
@@ -18,6 +17,7 @@ class FixedAxis(pg.AxisItem):
 
 class PieceChart(QWidget):
     _DEFAULT_Y_WINDOW_SIZE: int = 20
+    _MAX_Y_TICK_LABELS: int = 20
 
     def __init__(self, decimal_places: int = 2, parent=None) -> None:
         super().__init__(parent)
@@ -36,7 +36,21 @@ class PieceChart(QWidget):
         inner.setContentsMargins(0, 0, 0, 0)
         inner.setSpacing(0)
 
-        # Plot
+        self._setup_plot()
+        inner.addWidget(self.plot, 1)
+
+        self._setup_scrollbar()
+        inner.addWidget(self.scrollbar, 0)
+
+        outer.addLayout(inner)
+
+        self._setup_scatter()
+
+        scene = self.plot.scene()
+        scene.sigMouseMoved.connect(self._on_mouse_moved)
+        self.plot.getViewBox().sigRangeChanged.connect(self._on_range_changed)
+
+    def _setup_plot(self) -> None:
         self.plot = pg.PlotWidget(
             background="w",
             axisItems={
@@ -58,22 +72,11 @@ class PieceChart(QWidget):
         self.plot.getAxis("left").setTicks([])
         self.plot.getPlotItem().setMenuEnabled(False)
 
-        inner.addWidget(self.plot, 1)
-
-        # Scrollbar
-        self.scrollbar = QScrollBar(Qt.Orientation.Vertical)
-        self.scrollbar.setRange(0, 0)
-        self.scrollbar.hide()
-        self.scrollbar.valueChanged.connect(self._on_scrollbar_moved)
-        inner.addWidget(self.scrollbar, 0)
-
-        outer.addLayout(inner)
-
         plot_item = self.plot.getPlotItem()
         self.plot.setLabel("top", "重量", color="k", bold=True)
         plot_item.layout.setContentsMargins(30, 14, 2, 2)
 
-        # Scatter
+    def _setup_scatter(self) -> None:
         self.scatter = pg.ScatterPlotItem(
             size=10,
             brush=pg.mkBrush(0, 0, 255, 180),
@@ -82,7 +85,6 @@ class PieceChart(QWidget):
         self.scatter.setZValue(1)
         self.plot.addItem(self.scatter)
 
-        # Hover highlight point
         self.hover_point = pg.ScatterPlotItem(
             size=14,
             brush=pg.mkBrush(255, 0, 0, 220),
@@ -91,25 +93,58 @@ class PieceChart(QWidget):
         self.hover_point.setZValue(2)
         self.plot.addItem(self.hover_point)
 
-        scene = self.plot.scene()
-        scene.sigMouseMoved.connect(self.on_mouse_moved)
-
-        self.plot.getViewBox().sigRangeChanged.connect(self._on_range_changed)
+    def _setup_scrollbar(self) -> None:
+        self.scrollbar = QScrollBar(Qt.Orientation.Vertical)
+        self.scrollbar.setRange(0, 0)
+        self.scrollbar.hide()
+        self.scrollbar.valueChanged.connect(self._on_scrollbar_moved)
 
     # ---------------------------------------------------------
     #  Public API
     # ---------------------------------------------------------
-    def update_chart(self, new_list: list[float]) -> None:
-        self._piece_weights = list(new_list)
+    def update_piece_weights(self, piece_weights: list[float]) -> None:
+        if piece_weights == self._piece_weights:
+            return
+
+        self._piece_weights = list(piece_weights)
 
         if not self.isVisible():
             return
 
-        count = len(self._piece_weights)
-        if count == 0:
-            self._reset()
+        if not self._piece_weights:
+            self.reset()
             return
 
+        self._render()
+
+    def reset(self) -> None:
+        self._piece_weights = []
+        self._hovered_index = None
+        self._follow_latest = True
+        self.scatter.setData([])
+        self.hover_point.setData([])
+        self.plot.getAxis("left").setTicks([])
+        self.scrollbar.blockSignals(True)
+        self.scrollbar.setRange(0, 0)
+        self.scrollbar.hide()
+        self.scrollbar.blockSignals(False)
+
+    def set_decimal_places(self, places: int) -> None:
+        if places == self._decimal_places:
+            return
+        self._decimal_places = places
+        for name in ("bottom", "top"):
+            axis = self.plot.getAxis(name)
+            axis.decimals = places
+            axis.picture = None
+        if self._piece_weights and self.isVisible():
+            self.plot.scene().update()
+
+    # ---------------------------------------------------------
+    #  Render
+    # ---------------------------------------------------------
+    def _render(self) -> None:
+        count = len(self._piece_weights)
         self._update_scatter_and_ticks(count)
 
         if count <= self._DEFAULT_Y_WINDOW_SIZE:
@@ -128,11 +163,10 @@ class PieceChart(QWidget):
         spots = [{"pos": (weight, i + 1)} for i, weight in enumerate(self._piece_weights)]
         self.scatter.setData(spots)
 
-        max_labels = 20
-        if count <= max_labels:
+        if count <= self._MAX_Y_TICK_LABELS:
             ticks = [(i + 1, str(i + 1)) for i in range(count)]
         else:
-            step = max(count // max_labels, 1)
+            step = max(count // self._MAX_Y_TICK_LABELS, 1)
             ticks = [(i + 1, str(i + 1)) for i in range(0, count, step)]
         self.plot.getAxis("left").setTicks([ticks])
 
@@ -141,31 +175,22 @@ class PieceChart(QWidget):
         start_idx = max(0, int(vrange[0]) - 1)
         end_idx = min(count, int(vrange[1]) + 1)
         visible = self._piece_weights[start_idx:end_idx]
-        if visible:
-            x_min = min(visible)
-            x_max = max(visible)
-            span = x_max - x_min
-            if span < 1e-9:
-                margin = max(abs(x_min) * 0.05, 1.0)
-            else:
-                margin = max(span * 0.1, 0.05)
-            self.plot.setXRange(x_min - margin, x_max + margin, padding=0)
-
-    def set_decimal_places(self, places: int) -> None:
-        if places == self._decimal_places:
+        if not visible:
             return
-        self._decimal_places = places
-        for name in ("bottom", "top"):
-            axis = self.plot.getAxis(name)
-            axis.decimals = places
-            axis.picture = None
-        if self._piece_weights and self.isVisible():
-            self.plot.scene().update()
+
+        x_min = min(visible)
+        x_max = max(visible)
+        span = x_max - x_min
+        if span < 1e-9:
+            margin = max(abs(x_min) * 0.05, 1.0)
+        else:
+            margin = max(span * 0.1, 0.05)
+        self.plot.setXRange(x_min - margin, x_max + margin, padding=0)
 
     # ---------------------------------------------------------
     #  Hover
     # ---------------------------------------------------------
-    def on_mouse_moved(self, pos: QPointF) -> None:
+    def _on_mouse_moved(self, pos: QPointF) -> None:
         if not self._piece_weights:
             return
 
@@ -189,13 +214,12 @@ class PieceChart(QWidget):
         weight = self._piece_weights[index]
 
         self.hover_point.setData([{"pos": (weight, closest_y)}])
-
         self.plot.setToolTip(
             f"片号：{closest_y}\n重量：{weight:.{self._decimal_places}f}"
         )
 
     # ---------------------------------------------------------
-    #  Scrollbar → chart
+    #  Scrollbar ↔ chart
     # ---------------------------------------------------------
     def _on_scrollbar_moved(self, value: int) -> None:
         if self._setting_range or not self._piece_weights:
@@ -207,12 +231,8 @@ class PieceChart(QWidget):
         y_max = y_min + float(window)
 
         self._follow_latest = value == 0
-
         self._apply_y_range(y_min, y_max)
 
-    # ---------------------------------------------------------
-    #  Chart drag / wheel zoom → scrollbar
-    # ---------------------------------------------------------
     def _on_range_changed(self, _viewbox, ranges) -> None:
         if self._setting_range or not self._piece_weights:
             return
@@ -220,12 +240,8 @@ class PieceChart(QWidget):
         ymin = ranges[1][0]
         ymax = ranges[1][1]
         self._follow_latest = ymax >= len(self._piece_weights) - 0.5
-
         self._sync_scrollbar(ymin, ymax)
 
-    # ---------------------------------------------------------
-    #  Internal
-    # ---------------------------------------------------------
     def _apply_y_range(self, y_min: float, y_max: float) -> None:
         self._setting_range = True
         self.plot.setYRange(y_min, y_max, padding=0)
@@ -247,19 +263,7 @@ class PieceChart(QWidget):
         self.scrollbar.setValue(min(value, top))
         self.scrollbar.blockSignals(False)
 
-    def _reset(self) -> None:
-        self._piece_weights = []
-        self._hovered_index = None
-        self._follow_latest = True
-        self.scatter.setData([])
-        self.hover_point.setData([])
-        self.plot.getAxis("left").setTicks([])
-        self.scrollbar.blockSignals(True)
-        self.scrollbar.setRange(0, 0)
-        self.scrollbar.hide()
-        self.scrollbar.blockSignals(False)
-
     def showEvent(self, event) -> None:
         super().showEvent(event)
         if self._piece_weights:
-            self.update_chart(self._piece_weights)
+            self._render()
