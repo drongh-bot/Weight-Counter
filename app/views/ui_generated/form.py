@@ -393,17 +393,17 @@ class Ui_MainWindow(object):
 
         self.formLayout_4.setWidget(0, QFormLayout.LabelRole, self.label_13)
 
-        self.dspnInitialMiniWeight = QDoubleSpinBox(self.groupBox_3)
-        self.dspnInitialMiniWeight.setObjectName(u"dspnInitialMiniWeight")
-        self.dspnInitialMiniWeight.setMinimumSize(QSize(0, 0))
-        self.dspnInitialMiniWeight.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-        self.dspnInitialMiniWeight.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-        self.dspnInitialMiniWeight.setDecimals(2)
-        self.dspnInitialMiniWeight.setMinimum(0.020000000000000)
-        self.dspnInitialMiniWeight.setMaximum(100.000000000000000)
-        self.dspnInitialMiniWeight.setSingleStep(1.000000000000000)
+        self.dspnInitialMinWeight = QDoubleSpinBox(self.groupBox_3)
+        self.dspnInitialMinWeight.setObjectName(u"dspnInitialMinWeight")
+        self.dspnInitialMinWeight.setMinimumSize(QSize(0, 0))
+        self.dspnInitialMinWeight.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        self.dspnInitialMinWeight.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.dspnInitialMinWeight.setDecimals(2)
+        self.dspnInitialMinWeight.setMinimum(0.020000000000000)
+        self.dspnInitialMinWeight.setMaximum(100.000000000000000)
+        self.dspnInitialMinWeight.setSingleStep(1.000000000000000)
 
-        self.formLayout_4.setWidget(0, QFormLayout.FieldRole, self.dspnInitialMiniWeight)
+        self.formLayout_4.setWidget(0, QFormLayout.FieldRole, self.dspnInitialMinWeight)
 
         self.label_7 = QLabel(self.groupBox_3)
         self.label_7.setObjectName(u"label_7")
