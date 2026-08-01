@@ -59,13 +59,16 @@ class MainController(QObject):
 
     def _button_status(self) -> ButtonStatus:
         state = self.counter_service.current_result().state
-        pending_force = self._pending_force_pieces is not None
+        pending = (
+            self._pending_force_pieces is not None
+            or self._pending_clear_abnormal
+        )
         abnormal = state == CounterState.ABNORMAL
         return ButtonStatus(
             start_enabled=not self._is_running,
             stop_enabled=self._is_running,
-            clear_enabled=abnormal and self._is_running and not pending_force,
-            force_enabled=self._is_running and not pending_force,
+            clear_enabled=abnormal and self._is_running and not pending,
+            force_enabled=self._is_running and not pending,
         )
 
     def _sync_button_status(self) -> None:
@@ -122,7 +125,11 @@ class MainController(QObject):
         result = self.counter_service.current_result()
         self.ui_service.update_actual_weight(weight, result.decimal_places)
 
-        if self._pending_force_pieces is not None:
+        pending = (
+            self._pending_force_pieces is not None
+            or self._pending_clear_abnormal
+        )
+        if pending:
             if stable_weight is None or self._raw_mismatches_stable(weight, stable_weight):
                 self._show_waiting_stable()
                 return
@@ -200,7 +207,10 @@ class MainController(QObject):
     def force_calibrate(self, pieces: int) -> None:
         if not self._is_running or pieces <= 0:
             return
-        if self._pending_force_pieces is not None:
+        if (
+            self._pending_force_pieces is not None
+            or self._pending_clear_abnormal
+        ):
             return
         self._pending_force_pieces = pieces
         self._pending_clear_abnormal = False
@@ -208,10 +218,16 @@ class MainController(QObject):
         self._show_waiting_stable()
 
     def clear_abnormal(self) -> None:
-        if not self._is_running or self._pending_force_pieces is not None:
+        if not self._is_running:
+            return
+        if (
+            self._pending_force_pieces is not None
+            or self._pending_clear_abnormal
+        ):
             return
         self._pending_clear_abnormal = True
-        self._pending_force_pieces = None
+        self._sync_button_status()
+        self._show_waiting_stable()
 
     # ============================================================
     # Lifecycle

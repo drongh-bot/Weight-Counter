@@ -100,8 +100,26 @@ class TestControllerPipeline:
     def test_clear_abnormal_pending(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller._is_running = True
+        # Clear 仅在异常态可点；先造 ABNORMAL 以便测按钮
+        for _ in range(12):
+            controller._on_raw_data("10.0 kg")
+        for _ in range(12):
+            controller._on_raw_data("25.0 kg")
+        assert controller.counter_service.current_result().state == CounterState.ABNORMAL
+
         controller.clear_abnormal()
         assert controller._pending_clear_abnormal is True
+        assert controller._pending_force_pieces is None
+        assert ui._last_bar is not None
+        assert ui._last_bar.message.text == "等待稳定重量…"
+        status = controller._button_status()
+        assert status.clear_enabled is False
+        assert status.force_enabled is False
+
+        # 重复 Clear / Force 忽略
+        controller.clear_abnormal()
+        assert controller._pending_clear_abnormal is True
+        controller.force_calibrate(3)
         assert controller._pending_force_pieces is None
 
     def test_force_calibrate_executes_on_next_stable(self, qapp):
@@ -154,11 +172,13 @@ class TestControllerPipeline:
         assert result.state == CounterState.ABNORMAL
 
         controller.clear_abnormal()
-        controller._on_raw_data("10.0 kg")
+        # raw 与锁定 stable(25) 一致时才执行，避免 mismatch defer
+        controller._on_raw_data("25.0 kg")
 
         result = controller.counter_service.current_result()
         assert result.state != CounterState.ABNORMAL
         assert controller._pending_clear_abnormal is False
+        assert controller._button_status().force_enabled is True
 
     def test_pending_only_when_running(self, qapp):
         controller, ui = self._make_controller(qapp)
