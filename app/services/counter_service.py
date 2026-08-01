@@ -55,10 +55,6 @@ class CounterService:
         self._piece_counter.set_decimal_places(self.params.decimal_places)
         self._piece_counter.set_stability_threshold(self.params.stability_threshold)
 
-    def set_decimal_places(self, decimal_places: int) -> None:
-        """Hot-update decimal places only (no full apply_params)."""
-        self._piece_counter.set_decimal_places(decimal_places)
-
     def _mark_target_edge_if_crossed(
         self, old_count: int, new_count: int, state: CounterState
     ) -> None:

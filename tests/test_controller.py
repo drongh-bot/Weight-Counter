@@ -296,15 +296,15 @@ class TestControllerPipeline:
         controller._on_raw_data("not-a-weight")
         assert spy.at(spy.count() - 1)[0] == "-----"
 
-    def test_sync_decimal_places(self, qapp):
+    def test_decimal_places_applies_on_start_only(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller._is_active = True
         controller.counter_service.process(10.0)
         controller.params.decimal_places = 4
-        controller.params.tolerance_percent = 15.0  # 不应被 sync_decimal 同步
-        controller.sync_decimal_places()
+        # mid-run: Params changed but algorithm keeps old decimal places
+        assert controller.counter_service.current_result().decimal_places == 2
+
+        controller.serial_service.open = MagicMock()
+        controller.serial_service.close = MagicMock()
+        controller.start("COM99", 9600)
         assert controller.counter_service.current_result().decimal_places == 4
-        assert (
-            controller.counter_service._piece_counter.tolerance.tolerance_percent
-            == 20.0
-        )

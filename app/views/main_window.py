@@ -148,7 +148,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.spnForcePieces.valueChanged.connect(self._sync_ui_to_params)
         self.spnTargetPieces.valueChanged.connect(self._sync_ui_to_params)
         self.spnDecimalPlaces.valueChanged.connect(self._sync_ui_to_params)
-        self.spnDecimalPlaces.valueChanged.connect(self._decimal_places_changed)
 
     def start(self) -> None:
         port = self.cbPort.currentText()
@@ -161,6 +160,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._sync_ui_to_params()
         if not self.controller.start(port, baud_rate):
             QMessageBox.warning(self, "提示", f"无法打开串口 {port}")
+            return
+
+        places = self.params.decimal_places
+        self.wgtPieceTable.set_decimal_places(places)
+        self.wgtPieceChart.set_decimal_places(places)
 
     def stop(self) -> None:
         self.controller.stop()
@@ -203,12 +207,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.params.initial_single_pieces = int(self.spnInitialSinglePieces.value())
         self.params.target_pieces = int(self.spnTargetPieces.value())
         self.params.decimal_places = int(self.spnDecimalPlaces.value())
-
-    def _decimal_places_changed(self) -> None:
-        places = int(self.spnDecimalPlaces.value())
-        self.wgtPieceTable.set_decimal_places(places)
-        self.wgtPieceChart.set_decimal_places(places)
-        self.controller.sync_decimal_places()
 
     def _init_port_list(self) -> None:
         self.cbPort.clear()

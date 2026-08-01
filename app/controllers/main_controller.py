@@ -203,9 +203,6 @@ class MainController(QObject):
         self._pending_clear_abnormal = True
         self._pending_force_pieces = None
 
-    def sync_decimal_places(self) -> None:
-        self.counter_service.set_decimal_places(self.params.decimal_places)
-
     # ============================================================
     # Lifecycle
     # ============================================================
