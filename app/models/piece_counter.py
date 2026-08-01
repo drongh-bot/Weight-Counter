@@ -364,17 +364,21 @@ class PieceCounter:
 
         self.clear_abnormal(stable_weight)
 
+    def _reset_baseline(self, stable_weight: float) -> None:
+        """Reset counting anchor to stable_weight and return to NORMAL."""
+        self.state = CounterState.NORMAL
+        self.abnormal_high = False
+        self.abnormal_low = False
+        self.abnormal_weight = 0.0
+        self.last_stable_weight = stable_weight
+        self.last_base_weight = stable_weight
+
     # ---------------------------------------------------------
     # Manually Clear Abnormal
     # ---------------------------------------------------------
     def clear_abnormal(self, stable_weight: float) -> None:
         if self.state == CounterState.ABNORMAL:
-            self.state = CounterState.NORMAL
-            self.abnormal_high = False
-            self.abnormal_low = False
-            self.abnormal_weight = 0.0
-            self.last_stable_weight = stable_weight
-            self.last_base_weight = stable_weight
+            self._reset_baseline(stable_weight)
 
     # ---------------------------------------------------------
     # Force Calibration
@@ -392,7 +396,7 @@ class PieceCounter:
         self.avg_weight = piece_weight
         self._sync_all()
 
-        self.clear_abnormal(stable_weight)
+        self._reset_baseline(stable_weight)
 
     # ---------------------------------------------------------
     # Utility Functions
