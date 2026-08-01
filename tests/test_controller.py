@@ -48,6 +48,18 @@ class TestControllerPipeline:
 
         assert spy.count() > initial_count
 
+    def test_unstable_shows_waiting_stable_message(self, qapp):
+        controller, ui = self._make_controller(qapp)
+        controller._is_running = True
+
+        controller._on_raw_data("10.0 kg")
+        assert ui._last_bar is not None
+        assert ui._last_bar.message.text == "等待稳定重量…"
+
+        for _ in range(12):
+            controller._on_raw_data("10.0 kg")
+        assert ui._last_bar.message.text == "无异常"
+
     def test_on_timeout_updates_status(self, qapp):
         controller, ui = self._make_controller(qapp)
         spy = QSignalSpy(ui.bar_status_changed)

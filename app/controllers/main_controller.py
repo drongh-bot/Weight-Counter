@@ -120,9 +120,10 @@ class MainController(QObject):
                 self._show_waiting_stable()
                 return
         elif stable_weight is None:
-            self.ui_service.update_bar_status(parse_ok=True)
+            self._show_waiting_stable()
             return
 
+        self.ui_service.update_bar_status(parse_ok=True)
         force_done = self._apply_pending_action(stable_weight)
         result = self.counter_service.process(stable_weight)
         self._handle_result(result, stable_weight)
