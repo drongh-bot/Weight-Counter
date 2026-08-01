@@ -246,7 +246,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         self.hide()
 
-        self.save_params()
-        self.controller.shutdown()
-
-        event.accept()
+        try:
+            self.save_params()
+        finally:
+            self.controller.shutdown()
+            event.accept()
