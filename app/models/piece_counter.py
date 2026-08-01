@@ -1,166 +1,8 @@
 # app/models/piece_counter.py
 from app.models.counter_state import CounterState
-
-
-# ============================================================
-# Threshold Calculation Class
-# ============================================================
-class Thresholds:
-    def __init__(
-        self,
-        initial_min_weight: float,
-        avg_weight: float,
-        tolerance_percent: float,
-        min_tol: float,
-        dynamic_weight_ratio: float = 0.5,
-        initial_min_ratio: float = 0.3,
-    ) -> None:
-        self.initial_min_weight: float = initial_min_weight
-        self.avg_weight: float = avg_weight
-        self.tolerance_percent: float = tolerance_percent
-        self.min_tol: float = min_tol
-        self.dynamic_weight_ratio: float = dynamic_weight_ratio
-        self.initial_min_ratio: float = initial_min_ratio
-
-    @property
-    def dynamic_min_weight(self) -> float:
-        if self.avg_weight <= 0:
-            return self.initial_min_weight
-        return max(
-            self.avg_weight * self.dynamic_weight_ratio,
-            self.initial_min_weight * self.initial_min_ratio,
-        )
-
-    @property
-    def recover_threshold(self) -> float:
-        """
-        Abnormal recovery threshold: avg_weight * tolerance_percent.
-        Guaranteed not less than min_tol (to prevent tolerance being too
-        small for recovery).
-        """
-        if self.avg_weight <= 0:
-            return max(self.initial_min_weight, self.min_tol)
-
-        threshold = self.avg_weight * (self.tolerance_percent / 100.0)
-        return max(threshold, self.min_tol)
-
-    def update(self, avg_weight: float) -> None:
-        self.avg_weight = avg_weight
-
-
-# ============================================================
-# Average Piece Weight Learning Class
-# ============================================================
-class WeightLearner:
-    def __init__(
-        self,
-        jump_threshold_ratio: float = 0.5,
-        jump_confirm_times: int = 2,
-        early_learn_pieces: int = 5,
-        ema_alpha_min: float = 0.05,
-        ema_alpha_max: float = 0.30,
-    ) -> None:
-        self.jump_threshold_ratio: float = jump_threshold_ratio
-        self.jump_confirm_times: int = jump_confirm_times
-        self.early_learn_pieces: int = early_learn_pieces
-        self.ema_alpha_min: float = ema_alpha_min
-        self.ema_alpha_max: float = ema_alpha_max
-        self.jump_count: int = 0
-
-    def reset(self) -> None:
-        self.jump_count = 0
-
-    def update(
-        self, avg_weight: float, piece_weight: float, n: int, total_pieces: int
-    ) -> float:
-        if total_pieces <= 0:
-            return piece_weight
-
-        if total_pieces <= self.early_learn_pieces:
-            old_count = total_pieces - n
-            if old_count <= 0:
-                return piece_weight
-            return (avg_weight * old_count + piece_weight * n) / total_pieces
-
-        # ----------- Jump Detection -----------
-        if avg_weight > 0:
-            diff_ratio = abs(piece_weight - avg_weight) / avg_weight
-        else:
-            diff_ratio = 1.0
-
-        if diff_ratio > self.jump_threshold_ratio:
-            self.jump_count += 1
-            if self.jump_count >= self.jump_confirm_times:
-                # Trigger Jump: Reset Learning
-                self.jump_count = 0
-                return piece_weight
-        else:
-            self.jump_count = 0
-
-        # ----------- Dynamic EMA -----------
-        alpha = min(max(diff_ratio, self.ema_alpha_min), self.ema_alpha_max)
-
-        return alpha * piece_weight + (1 - alpha) * avg_weight
-
-
-# ============================================================
-# Tolerance Judgment Class
-# ============================================================
-class Tolerance:
-    def __init__(self, min_tol: float, tolerance_percent: float) -> None:
-        self.min_tol: float = min_tol
-        self.low: float = 0.0
-        self.high: float = 0.0
-        self.tolerance_percent: float = tolerance_percent
-        self.current_avg: float = 0.0
-        self.half_range: float = 0.0
-
-    def update(self, avg_weight: float) -> None:
-        """
-        Update tolerance range and cache avg_weight and half_range.
-        """
-        self.current_avg = avg_weight
-
-        if avg_weight <= 0:
-            self.low = 0
-            self.high = 0
-            self.half_range = 0
-            return
-
-        tol = self.tolerance_percent / 100.0
-
-        # Linear Tolerance Range (Single Piece)
-        low = avg_weight * (1 - tol)
-        high = avg_weight * (1 + tol)
-
-        # Add min_tol (Prevent Tolerance Too Small)
-        # Extend tolerance range outward by at least min_tol
-        self.low = min(
-            low, avg_weight - self.min_tol
-        )  # Lower bound smaller (wider tolerance)
-        self.high = max(
-            high, avg_weight + self.min_tol
-        )  # Upper bound larger (wider tolerance)
-
-        # Single Piece Error (Take the Larger Side)
-        self.half_range = max(avg_weight - self.low, self.high - avg_weight)
-
-    def is_within_tolerance(self, delta_abs: float, n: int) -> bool:
-        """
-        sqrt(n) tolerance model: statistics-based total weight judgment
-        """
-        if self.current_avg <= 0 or self.half_range <= 0:
-            return False
-
-        expected_total = self.current_avg * n
-        allowed_error = self.half_range * (n**0.5)
-
-        return abs(delta_abs - expected_total) <= allowed_error
-
-
-# ============================================================
-# Main Logic Class
-# ============================================================
+from app.models.thresholds import Thresholds
+from app.models.tolerance import Tolerance
+from app.models.weight_learner import WeightLearner
 
 
 class PieceCounter:
@@ -219,7 +61,7 @@ class PieceCounter:
         )
 
         self.piece_weights: list[float]
-        self.last_base_weight: float
+        self.baseline_weight: float
         self.last_stable_weight: float
         self.delta: float
         self.state: CounterState
@@ -232,7 +74,7 @@ class PieceCounter:
 
     def reset(self) -> None:
         self.piece_weights = []
-        self.last_base_weight = 0.0
+        self.baseline_weight = 0.0
         self.last_stable_weight = 0.0
 
         self.delta = 0.0
@@ -331,7 +173,7 @@ class PieceCounter:
     # ---------------------------------------------------------
     def _handle_abnormal(self, stable_weight: float) -> None:
 
-        current_delta = stable_weight - self.last_base_weight
+        current_delta = stable_weight - self.baseline_weight
 
         # If direction reverses, update high/low and abnormal reference point
         if current_delta > 0 and not self.abnormal_high:
@@ -371,7 +213,7 @@ class PieceCounter:
         self.abnormal_low = False
         self.abnormal_weight = 0.0
         self.last_stable_weight = stable_weight
-        self.last_base_weight = stable_weight
+        self.baseline_weight = stable_weight
 
     # ---------------------------------------------------------
     # Manually Clear Abnormal
@@ -405,13 +247,13 @@ class PieceCounter:
         # Global Zero: Regardless of state, reset when weight drops to zero
         if stable_weight < self.thresholds.initial_min_weight:
             self.reset()
-            self.last_base_weight = stable_weight
+            self.baseline_weight = stable_weight
             self.last_stable_weight = stable_weight
             return True
         return False
 
     def _update_delta(self, stable_weight: float) -> None:
-        self.delta = stable_weight - self.last_base_weight
+        self.delta = stable_weight - self.baseline_weight
 
     def _try_match_piece_count(self, delta: float, limit: int) -> int | None:
         if self.avg_weight <= 0:
@@ -447,7 +289,7 @@ class PieceCounter:
         self._sync_all()
 
         # Only update when this weight is truly accepted
-        self.last_base_weight = stable_weight
+        self.baseline_weight = stable_weight
         self.last_stable_weight = stable_weight
 
     def _remove_pieces(self, n: int, stable_weight: float) -> None:
@@ -460,7 +302,7 @@ class PieceCounter:
         self._sync_all()
 
         # Only update when this weight is truly accepted
-        self.last_base_weight = stable_weight
+        self.baseline_weight = stable_weight
         self.last_stable_weight = stable_weight
 
     def _sync_all(self) -> None:
