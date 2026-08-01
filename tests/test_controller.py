@@ -248,6 +248,20 @@ class TestControllerPipeline:
         controller.force_calibrate(5)
         assert controller._pending_force_pieces == 3
 
+    def test_force_calibrate_failed_shows_message(self, qapp):
+        controller, ui = self._make_controller(qapp)
+        controller._is_running = True
+        controller.force_calibrate(3)
+        assert controller._pending_force_pieces == 3
+
+        result = controller._apply_pending_action(0.01)
+        assert result is False
+        assert controller._pending_force_pieces is None
+        controller._show_force_failed()
+        assert ui._last_bar is not None
+        assert ui._last_bar.message.text == "强制校准失败：重量过轻"
+        assert controller._button_status().force_enabled is True
+
     def test_raw_mismatches_stable(self, qapp):
         controller, ui = self._make_controller(qapp)
         controller.params.stability_threshold = 0.02

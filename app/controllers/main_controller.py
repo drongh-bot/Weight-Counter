@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 _MSG_WAIT_STABLE = "等待稳定重量…"
 _MSG_FORCE_DONE = "强制校准完成"
+_MSG_FORCE_FAIL = "强制校准失败：重量过轻"
 
 
 class MainController(QObject):
@@ -84,6 +85,12 @@ class MainController(QObject):
             info=True,
         )
 
+    def _show_force_failed(self) -> None:
+        self.ui_service.update_bar_status(
+            parse_ok=True,
+            status_message=_MSG_FORCE_FAIL,
+        )
+
     def _clear_pending(self) -> None:
         self._pending_force_pieces = None
         self._pending_clear_abnormal = False
@@ -124,14 +131,16 @@ class MainController(QObject):
             return
 
         self.ui_service.update_bar_status(parse_ok=True)
-        force_done = self._apply_pending_action(stable_weight)
+        force_result = self._apply_pending_action(stable_weight)
         result = self.counter_service.process(stable_weight)
         self._handle_result(result, stable_weight)
-        if force_done:
+        if force_result is True:
             self._show_force_done()
+        elif force_result is False:
+            self._show_force_failed()
 
-    def _apply_pending_action(self, stable_weight: float) -> bool:
-        """Apply pending force/clear. Returns True if force calibrate succeeded."""
+    def _apply_pending_action(self, stable_weight: float) -> bool | None:
+        """Apply pending force/clear. True=force ok, False=force failed, None=no force."""
         if self._pending_force_pieces is not None:
             pieces = self._pending_force_pieces
             self._pending_force_pieces = None
@@ -146,7 +155,7 @@ class MainController(QObject):
         if self._pending_clear_abnormal:
             self.counter_service.clear_abnormal(stable_weight)
             self._pending_clear_abnormal = False
-        return False
+        return None
 
     def _handle_result(self, result: CountResult, stable_weight: float) -> None:
         self.ui_service.update_actual_weight(stable_weight, result.decimal_places)
