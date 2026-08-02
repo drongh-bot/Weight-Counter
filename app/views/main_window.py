@@ -141,7 +141,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         except Exception as e:
             logger.exception("UI更新失败")
-            QMessageBox.critical(self, "错误", f"UI更新时出错: {e}")
+            QMessageBox.critical(self, "错误", f"UI 更新时出错: {e}")
 
     def _apply_bar_label_item(self, item: LabelItem, label: QLabel) -> None:
         label.setText(item.text)
@@ -209,7 +209,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             port_names.sort(key=lambda x: int(x.replace("COM", "")))
         except Exception:
-            logger.warning("COM端口排序回退")
+            logger.warning("COM 端口排序回退")
             port_names.sort()
         self.cbPort.addItems(port_names)
 
@@ -234,7 +234,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             sizes = [int(x) for x in sizes]
         except Exception:
-            logger.warning("splitter_sizes格式错误, 使用默认值")
+            logger.warning("splitter_sizes 格式错误, 使用默认值")
             sizes = [400, 600]
         self.splitter.setSizes(sizes)
 
