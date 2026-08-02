@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'form.ui'
+## Form generated from reading UI file 'form - 副本.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.8.3
 ##
@@ -156,6 +156,13 @@ class Ui_MainWindow(object):
         self.btnStop.setFont(font2)
 
         self.verticalLayout.addWidget(self.btnStop)
+
+        self.btnClear = QPushButton(self.centralwidget)
+        self.btnClear.setObjectName(u"btnClear")
+        self.btnClear.setEnabled(False)
+        self.btnClear.setFont(font2)
+
+        self.verticalLayout.addWidget(self.btnClear)
 
         self.groupBox_5 = QGroupBox(self.centralwidget)
         self.groupBox_5.setObjectName(u"groupBox_5")
@@ -535,6 +542,7 @@ class Ui_MainWindow(object):
         self.lblActWeight.setText(QCoreApplication.translate("MainWindow", u"-----", None))
         self.btnStart.setText(QCoreApplication.translate("MainWindow", u"\u5f00\u59cb", None))
         self.btnStop.setText(QCoreApplication.translate("MainWindow", u"\u505c\u6b62", None))
+        self.btnClear.setText(QCoreApplication.translate("MainWindow", u"\u6e05\u9664\u5f02\u5e38", None))
         self.groupBox_5.setTitle(QCoreApplication.translate("MainWindow", u"\u5f3a\u5236\u6821\u51c6", None))
         self.label_20.setText(QCoreApplication.translate("MainWindow", u"\u6821\u51c6\u6570\u91cf:", None))
         self.btnForce.setText(QCoreApplication.translate("MainWindow", u"\u5f3a\u5236\u6821\u51c6", None))

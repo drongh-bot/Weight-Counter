@@ -21,7 +21,6 @@ class BarStatus:
 class ButtonStatus:
     start_enabled: bool = True
     stop_enabled: bool = True
-    clear_enabled: bool = False
     force_enabled: bool = False
 
 

@@ -151,13 +151,13 @@ class TestCounterServiceProcess:
         assert svc.process(30.0).total_pieces == 3
         assert svc.consume_target_edge() is False
 
-    def test_clear_abnormal(self):
+    def test_auto_recover_from_abnormal(self):
         svc = self._make_service()
         svc.process(10.0)
         svc.process(25.0)  # 进入异常
         assert svc._piece_counter.state == CounterState.ABNORMAL
-        svc.clear_abnormal(10.0)
-        assert svc._piece_counter.state == CounterState.NORMAL
+        result = svc.process(10.0)  # 重量回到基准附近 → 自动恢复
+        assert result.state == CounterState.NORMAL
 
     def test_reset(self):
         svc = self._make_service()

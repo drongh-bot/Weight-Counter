@@ -4,15 +4,14 @@ import logging
 from PySide6.QtCore import QObject
 
 from app.models.count_result import CountResult
-from app.models.counter_state import CounterState
 from app.models.params import Params
-from app.services.weight_input_service import WeightInputService
+from app.presentation.ui_service import UIService
+from app.presentation.view_models import ButtonStatus
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
 from app.services.sound_service import SoundService
-from app.presentation.view_models import ButtonStatus
-from app.presentation.ui_service import UIService
+from app.services.weight_input_service import WeightInputService
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +43,6 @@ class MainController(QObject):
 
         self._is_running: bool = False
         self._pending_force_pieces: int | None = None
-        self._pending_clear_abnormal: bool = False
 
         self.serial_service.data_received.connect(self._on_raw_data)
         self.serial_service.timeout_detected.connect(self._on_timeout)
@@ -58,17 +56,11 @@ class MainController(QObject):
         self.ui_service.update_bar_status()
 
     def _button_status(self) -> ButtonStatus:
-        state = self.counter_service.current_result().state
-        pending = (
-            self._pending_force_pieces is not None
-            or self._pending_clear_abnormal
-        )
-        abnormal = state == CounterState.ABNORMAL
+        pending_force = self._pending_force_pieces is not None
         return ButtonStatus(
             start_enabled=not self._is_running,
             stop_enabled=self._is_running,
-            clear_enabled=abnormal and self._is_running and not pending,
-            force_enabled=self._is_running and not pending,
+            force_enabled=self._is_running and not pending_force,
         )
 
     def _sync_button_status(self) -> None:
@@ -96,7 +88,6 @@ class MainController(QObject):
 
     def _clear_pending(self) -> None:
         self._pending_force_pieces = None
-        self._pending_clear_abnormal = False
 
     def _raw_mismatches_stable(self, raw_weight: float, stable_weight: float) -> bool:
         """True when actual and stable weight differ beyond tolerance (not ready to calibrate)."""
@@ -125,11 +116,7 @@ class MainController(QObject):
         result = self.counter_service.current_result()
         self.ui_service.update_actual_weight(weight, result.decimal_places)
 
-        pending = (
-            self._pending_force_pieces is not None
-            or self._pending_clear_abnormal
-        )
-        if pending:
+        if self._pending_force_pieces is not None:
             if stable_weight is None or self._raw_mismatches_stable(weight, stable_weight):
                 self._show_waiting_stable()
                 return
@@ -138,7 +125,7 @@ class MainController(QObject):
             return
 
         self.ui_service.update_bar_status(parse_ok=True)
-        force_result = self._apply_pending_action(stable_weight)
+        force_result = self._apply_pending_force(stable_weight)
         result = self.counter_service.process(stable_weight)
         self._handle_result(result, stable_weight)
         if force_result is True:
@@ -146,19 +133,16 @@ class MainController(QObject):
         elif force_result is False:
             self._show_force_failed()
 
-    def _apply_pending_action(self, stable_weight: float) -> bool | None:
-        """Apply pending force/clear. True=force ok, False=force failed, None=no force."""
-        if self._pending_force_pieces is not None:
-            pieces = self._pending_force_pieces
-            self._pending_force_pieces = None
-            if self.counter_service.force_calibrate(stable_weight, pieces):
-                self._record_production(self.counter_service.current_result())
-                return True
-            return False
-        if self._pending_clear_abnormal:
-            self.counter_service.clear_abnormal(stable_weight)
-            self._pending_clear_abnormal = False
-        return None
+    def _apply_pending_force(self, stable_weight: float) -> bool | None:
+        """True=force ok, False=force failed, None=no pending force."""
+        if self._pending_force_pieces is None:
+            return None
+        pieces = self._pending_force_pieces
+        self._pending_force_pieces = None
+        if self.counter_service.force_calibrate(stable_weight, pieces):
+            self._record_production(self.counter_service.current_result())
+            return True
+        return False
 
     def _handle_result(self, result: CountResult, stable_weight: float) -> None:
         self.ui_service.update_actual_weight(stable_weight, result.decimal_places)
@@ -204,25 +188,9 @@ class MainController(QObject):
     def force_calibrate(self, pieces: int) -> None:
         if not self._is_running or pieces <= 0:
             return
-        if (
-            self._pending_force_pieces is not None
-            or self._pending_clear_abnormal
-        ):
+        if self._pending_force_pieces is not None:
             return
         self._pending_force_pieces = pieces
-        self._pending_clear_abnormal = False
-        self._sync_button_status()
-        self._show_waiting_stable()
-
-    def clear_abnormal(self) -> None:
-        if not self._is_running:
-            return
-        if (
-            self._pending_force_pieces is not None
-            or self._pending_clear_abnormal
-        ):
-            return
-        self._pending_clear_abnormal = True
         self._sync_button_status()
         self._show_waiting_stable()
 

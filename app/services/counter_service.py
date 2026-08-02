@@ -122,7 +122,7 @@ class CounterService:
         )
 
     # ============================================================
-    # Force accept / Clear abnormal
+    # Force calibrate
     # ============================================================
     def force_calibrate(self, stable_weight: float, pieces: int) -> bool:
         """Force recalibration. Returns True if applied."""
@@ -136,9 +136,6 @@ class CounterService:
             old_count, new_count, self._piece_counter.state
         )
         return True
-
-    def clear_abnormal(self, stable_weight: float) -> None:
-        self._piece_counter.clear_abnormal(stable_weight)
 
     # ============================================================
     # Reset

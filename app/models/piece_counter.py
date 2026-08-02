@@ -216,7 +216,7 @@ class PieceCounter:
         self.baseline_weight = stable_weight
 
     # ---------------------------------------------------------
-    # Manually Clear Abnormal
+    # Exit abnormal (auto-recovery)
     # ---------------------------------------------------------
     def clear_abnormal(self, stable_weight: float) -> None:
         if self.state == CounterState.ABNORMAL:

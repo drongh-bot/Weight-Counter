@@ -104,7 +104,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _on_button_status_changed(self, state: ButtonStatus) -> None:
         self.btnStart.setEnabled(state.start_enabled)
         self.btnStop.setEnabled(state.stop_enabled)
-        self.btnClear.setEnabled(state.clear_enabled)
         self.btnForce.setEnabled(state.force_enabled)
 
     def _on_count_changed(self, snap: CountSnapshot) -> None:
@@ -137,7 +136,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnStart.clicked.connect(self.start)
         self.btnStop.clicked.connect(self.stop)
         self.btnForce.clicked.connect(self.force_calibrate)
-        self.btnClear.clicked.connect(self.clear_abnormal)
         self.btnSaveParams.clicked.connect(self.save_params)
 
         self.dspnInitialMinWeight.valueChanged.connect(self._sync_ui_to_params)
@@ -176,9 +174,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
         self.controller.force_calibrate(pieces)
         self.spnForcePieces.setValue(0)
-
-    def clear_abnormal(self) -> None:
-        self.controller.clear_abnormal()
 
     def save_params(self) -> None:
         """Sync UI → params, then persist all config to disk."""

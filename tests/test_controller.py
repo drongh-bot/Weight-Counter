@@ -52,7 +52,6 @@ class TestControllerPipeline:
         spy = QSignalSpy(ui.bar_status_changed)
         controller.force_calibrate(5)
         assert controller._pending_force_pieces == 5
-        assert controller._pending_clear_abnormal is False
         d = spy.at(spy.count() - 1)[0]
         assert d.message.text == "等待稳定重量…"
 
@@ -60,31 +59,6 @@ class TestControllerPipeline:
         controller, ui = make_controller()
         controller._is_running = True
         controller.force_calibrate(0)
-        assert controller._pending_force_pieces is None
-
-    def test_clear_abnormal_pending(self, make_controller):
-        controller, ui = make_controller()
-        controller._is_running = True
-        # Clear 仅在异常态可点；先造 ABNORMAL 以便测按钮
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
-        for _ in range(12):
-            controller._on_raw_data("25.0 kg")
-        assert controller.counter_service.current_result().state == CounterState.ABNORMAL
-
-        controller.clear_abnormal()
-        assert controller._pending_clear_abnormal is True
-        assert controller._pending_force_pieces is None
-        assert ui._last_bar is not None
-        assert ui._last_bar.message.text == "等待稳定重量…"
-        status = controller._button_status()
-        assert status.clear_enabled is False
-        assert status.force_enabled is False
-
-        # 重复 Clear / Force 忽略
-        controller.clear_abnormal()
-        assert controller._pending_clear_abnormal is True
-        controller.force_calibrate(3)
         assert controller._pending_force_pieces is None
 
     def test_force_calibrate_executes_on_next_stable(self, make_controller):
@@ -125,7 +99,7 @@ class TestControllerPipeline:
         assert result.total_pieces == 3
         assert result.baseline_weight == pytest.approx(30.0)
 
-    def test_clear_abnormal_executes(self, make_controller):
+    def test_abnormal_auto_recovers_when_weight_returns(self, make_controller):
         controller, ui = make_controller()
         controller._is_running = True
 
@@ -133,17 +107,11 @@ class TestControllerPipeline:
             controller._on_raw_data("10.0 kg")
         for _ in range(12):
             controller._on_raw_data("25.0 kg")
-        result = controller.counter_service.current_result()
-        assert result.state == CounterState.ABNORMAL
+        assert controller.counter_service.current_result().state == CounterState.ABNORMAL
 
-        controller.clear_abnormal()
-        # raw 与锁定 stable(25) 一致时才执行，避免 mismatch defer
-        controller._on_raw_data("25.0 kg")
-
-        result = controller.counter_service.current_result()
-        assert result.state != CounterState.ABNORMAL
-        assert controller._pending_clear_abnormal is False
-        assert controller._button_status().force_enabled is True
+        for _ in range(12):
+            controller._on_raw_data("10.0 kg")
+        assert controller.counter_service.current_result().state == CounterState.NORMAL
 
     def test_pending_only_when_running(self, make_controller):
         controller, ui = make_controller()
@@ -151,9 +119,6 @@ class TestControllerPipeline:
 
         controller.force_calibrate(5)
         assert controller._pending_force_pieces is None
-
-        controller.clear_abnormal()
-        assert controller._pending_clear_abnormal is False
 
     def test_stop_resets_all(self, make_controller):
         controller, ui = make_controller()
@@ -167,7 +132,6 @@ class TestControllerPipeline:
         assert controller._is_running is False
         assert controller.counter_service.current_result().total_pieces == 0
         assert controller._pending_force_pieces is None
-        assert controller._pending_clear_abnormal is False
 
     def test_start_resets_and_starts_serial(self, make_controller):
         controller, ui = make_controller()
@@ -200,7 +164,6 @@ class TestControllerPipeline:
         assert d.start_enabled is False
         assert d.stop_enabled is True
         assert d.force_enabled is True
-        assert d.clear_enabled is False
 
     def test_ui_button_state_when_abnormal(self, make_controller):
         controller, ui = make_controller()
@@ -216,7 +179,6 @@ class TestControllerPipeline:
 
         status = controller._button_status()
         assert status.force_enabled is True
-        assert status.clear_enabled is True
 
     def test_force_pending_disables_force_button(self, make_controller):
         controller, ui = make_controller()
@@ -239,7 +201,7 @@ class TestControllerPipeline:
         controller.force_calibrate(3)
         assert controller._pending_force_pieces == 3
 
-        result = controller._apply_pending_action(0.01)
+        result = controller._apply_pending_force(0.01)
         assert result is False
         assert controller._pending_force_pieces is None
         controller._show_force_failed()
