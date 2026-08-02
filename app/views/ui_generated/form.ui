@@ -705,7 +705,7 @@
             </sizepolicy>
            </property>
            <property name="text">
-            <string>最小识别重量:</string>
+            <string>最小单张重量:</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>

@@ -1,6 +1,6 @@
 from app.models.count_result import CountResult
 from app.models.counter_state import CounterState
-from app.presentation.builders import CountBuilder, BarStatusBuilder
+from app.presentation.count_builder import CountBuilder
 from app.presentation.styles import Styles
 
 
@@ -109,47 +109,3 @@ class TestCountBuilder:
         assert data.tolerance_low == "9.00"
         assert data.last_stable_weight == "10.00"
         assert data.baseline_weight == "0.00"
-
-
-class TestBarStatusBuilder:
-    def test_parse_ok_comm_ok(self):
-        status = BarStatusBuilder.build(parse_ok=True, comm_ok=True, status_message="")
-        assert status.parse.text == "解析正常"
-        assert status.parse.style == Styles.GREEN
-        assert status.comm.text == "通讯正常"
-        assert status.comm.style == Styles.GREEN
-        assert status.message.text == "无异常"
-        assert status.message.style == ""
-
-    def test_parse_fail_comm_fail(self):
-        status = BarStatusBuilder.build(parse_ok=False, comm_ok=False, status_message=None)
-        assert status.parse.text == "解析等待"
-        assert status.parse.style == Styles.GRAY
-        assert status.comm.text == "通讯等待"
-        assert status.comm.style == Styles.GRAY
-        assert status.message.text == "无异常"
-        assert status.message.style == ""
-
-    def test_parse_fail_comm_ok(self):
-        status = BarStatusBuilder.build(parse_ok=False, comm_ok=True, status_message="")
-        assert status.parse.text == "解析异常"
-        assert status.parse.style == Styles.RED
-        assert status.comm.text == "通讯正常"
-        assert status.comm.style == Styles.GREEN
-
-    def test_exception_display(self):
-        status = BarStatusBuilder.build(
-            parse_ok=True, comm_ok=True, status_message="串口打开失败"
-        )
-        assert status.message.text == "串口打开失败"
-        assert status.message.style == Styles.RED
-
-    def test_info_exception_uses_gray(self):
-        status = BarStatusBuilder.build(
-            parse_ok=True,
-            comm_ok=True,
-            status_message="等待稳定重量…",
-            info=True,
-        )
-        assert status.message.text == "等待稳定重量…"
-        assert status.message.style == Styles.GRAY

@@ -2,6 +2,7 @@ from PySide6.QtTest import QSignalSpy
 
 from app.models.count_result import CountResult
 from app.models.counter_state import CounterState
+from app.presentation.status_bar import StatusBar
 from app.presentation.styles import Styles
 from app.presentation.ui import Ui
 from app.presentation.view_models import ButtonStatus
@@ -69,7 +70,7 @@ class TestUi:
     def test_refresh_re_emits_last(self, qapp):
         ui = Ui()
         count_spy = QSignalSpy(ui.count_changed)
-        bar_spy = QSignalSpy(ui.bar_status_changed)
+        bar_spy = QSignalSpy(ui.bar_snapshot_changed)
         btn_spy = QSignalSpy(ui.button_status_changed)
 
         result = CountResult(
@@ -79,7 +80,7 @@ class TestUi:
             last_stable_weight=0.0, baseline_weight=0.0, piece_weights=[],
         )
         ui.update_count(result)
-        ui.update_bar_status()
+        ui.update_bar(StatusBar().reset())
         ui.update_button_status(ButtonStatus())
         assert count_spy.count() == 1
         assert bar_spy.count() == 1
@@ -90,13 +91,11 @@ class TestUi:
         assert bar_spy.count() == 2
         assert btn_spy.count() == 2
 
-    def test_bar_status_fields_propagated(self, qapp):
+    def test_update_bar_fields(self, qapp):
         ui = Ui()
-        spy = QSignalSpy(ui.bar_status_changed)
+        spy = QSignalSpy(ui.bar_snapshot_changed)
 
-        ui.update_bar_status(
-            parse_ok=True, comm_ok=False, status_message="测试异常"
-        )
+        ui.update_bar(StatusBar().on_serial_error("测试异常"))
 
         d = self._last(spy)
         assert d.parse.text == "解析等待"
@@ -106,13 +105,13 @@ class TestUi:
         assert d.message.text == "测试异常"
         assert d.message.style == Styles.RED
 
-    def test_bar_status_keep_message(self, qapp):
+    def test_update_bar_duplicate_not_emitted(self, qapp):
         ui = Ui()
-        ui.update_bar_status(status_message="保留信息", info=True)
-        ui.update_bar_status(comm_ok=False, keep_message=True)
-        assert ui._last_bar is not None
-        assert ui._last_bar.message.text == "保留信息"
-        assert ui._last_bar.comm.text == "通讯等待"
+        spy = QSignalSpy(ui.bar_snapshot_changed)
+        status = StatusBar().on_force_waiting()
+        ui.update_bar(status)
+        ui.update_bar(status)
+        assert spy.count() == 1
 
     def test_actual_weight_none_shows_dashes(self, qapp):
         ui = Ui()

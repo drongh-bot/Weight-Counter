@@ -10,7 +10,9 @@ class LabelItem:
 
 
 @dataclass
-class BarStatus:
+class BarSnapshot:
+    """One frame of the three status-bar labels."""
+
     parse: LabelItem
     comm: LabelItem
     message: LabelItem

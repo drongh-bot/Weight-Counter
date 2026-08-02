@@ -10,7 +10,7 @@ app/
 ├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
 ├── services/              Service layer (serial, weight_input, counter, sound, csv_log, config)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
-├── presentation/          ViewModel layer (Ui, builders, view_models, styles)
+├── presentation/          ViewModel layer (Ui, StatusBar, count_builder, view_models, styles)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets
 │   └── ui_generated/      Qt Designer generated
@@ -21,11 +21,12 @@ app/
 
 - **DI**: all objects created and wired in `main.py`
 - **CQS**: PieceCounter mutates state (Command), CounterService queries and builds results
-- **Signal-driven UI**: `presentation.Ui` emits `count_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
+- **Signal-driven UI**: `presentation.Ui` emits `count_changed`, `bar_snapshot_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
+- **Status bar**: `StatusBar` is the only public API for the three labels (`on_*` → `BarSnapshot`); link/message latches are internal
 - **No bare attribute access**: Controller communicates with services through methods only
 - **Model layer is Qt-free**: unit-testable without a GUI, no I/O (see Params vs ConfigService split)
 - **Business services are Qt-free**: `CounterService` and `WeightInputService` are plain Python classes; I/O services (`SerialService`, etc.) inherit `QObject`
-- **Presentation ≠ services**: ViewModel DTOs / builders / `Ui` live in `presentation/`, not under `services/`
+- **Presentation ≠ services**: ViewModel DTOs / `CountBuilder` / `Ui` live in `presentation/`, not under `services/`
 
 ## Tech Stack
 
@@ -44,7 +45,7 @@ app/
 uv sync                          # Install dependencies
 uv run main.py                   # Run the app
 uv run pyinstaller main.spec     # Package to dist/WeightCounter/
-uv run pytest tests/ -v          # Run all 138 tests
+uv run pytest tests/ -v          # Run all 145 tests
 uv run mypy app                  # Type check
 ```
 
@@ -56,14 +57,15 @@ Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `Ui` 
 |------|-------|-------|
 | `tests/test_weight_stabilizer.py` | model | 12 |
 | `tests/test_piece_counter.py` | model | 36 |
-| `tests/test_builders.py` | builder | 10 |
+| `tests/test_count_builder.py` | presentation | 5 |
 | `tests/test_weight_input_service.py` | service | 14 |
 | `tests/test_counter_service.py` | service | 19 |
 | `tests/test_config_service.py` | service | 2 |
+| `tests/test_status_bar.py` | presentation | 13 |
 | `tests/test_ui.py` | presentation | 10 |
 | `tests/test_piece_table.py` | view | 4 |
 | `tests/test_piece_chart.py` | view | 4 |
-| `tests/test_controller.py` | controller | 27 |
+| `tests/test_controller.py` | controller | 26 |
 
 ## PySide6 QSignalSpy quirk (6.8.3)
 

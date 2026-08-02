@@ -1,8 +1,8 @@
-# app/presentation/builders.py
+# app/presentation/count_builder.py
 from app.models.count_result import CountResult
 from app.models.counter_state import CounterState
-from app.presentation.view_models import BarStatus, CountSnapshot, LabelItem
 from app.presentation.styles import Styles
+from app.presentation.view_models import CountSnapshot, LabelItem
 
 
 class CountBuilder:
@@ -40,41 +40,4 @@ class CountBuilder:
             baseline_weight=f"{result.baseline_weight:.{dp}f}",
             piece_weights=result.piece_weights,
             decimal_places=dp,
-        )
-
-
-class BarStatusBuilder:
-    @staticmethod
-    def build(
-        parse_ok: bool,
-        comm_ok: bool,
-        status_message: str | None,
-        *,
-        info: bool = False,
-    ) -> BarStatus:
-        if not comm_ok:
-            parse_text = "解析等待"
-            parse_style = Styles.GRAY
-        elif not parse_ok:
-            parse_text = "解析异常"
-            parse_style = Styles.RED
-        else:
-            parse_text = "解析正常"
-            parse_style = Styles.GREEN
-
-        if status_message:
-            msg_style = Styles.GRAY if info else Styles.RED
-        else:
-            msg_style = ""
-
-        return BarStatus(
-            parse=LabelItem(text=parse_text, style=parse_style),
-            comm=LabelItem(
-                text="通讯正常" if comm_ok else "通讯等待",
-                style=Styles.GREEN if comm_ok else Styles.GRAY,
-            ),
-            message=LabelItem(
-                text=status_message or "无异常",
-                style=msg_style,
-            ),
         )

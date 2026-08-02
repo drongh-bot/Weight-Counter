@@ -17,7 +17,7 @@ from app.models.params import Params
 from app.services.config_service import ConfigService
 from app.presentation.ui import Ui
 from app.presentation.view_models import (
-    BarStatus,
+    BarSnapshot,
     ButtonStatus,
     CountSnapshot,
     LabelItem,
@@ -92,11 +92,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _connect_ui(self) -> None:
         self.ui.actual_weight_changed.connect(self.lblActWeight.setText)
-        self.ui.bar_status_changed.connect(self._on_bar_status_changed)
+        self.ui.bar_snapshot_changed.connect(self._on_bar_snapshot_changed)
         self.ui.button_status_changed.connect(self._on_button_status_changed)
         self.ui.count_changed.connect(self._on_count_changed)
 
-    def _on_bar_status_changed(self, data: BarStatus) -> None:
+    def _on_bar_snapshot_changed(self, data: BarSnapshot) -> None:
         self._apply_bar_label_item(data.parse, self.lblParse)
         self._apply_bar_label_item(data.comm, self.lblComm)
         self._apply_bar_label_item(data.message, self.lblMessage)

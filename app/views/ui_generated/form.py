@@ -559,7 +559,7 @@ class Ui_MainWindow(object):
         self.label_18.setText(QCoreApplication.translate("MainWindow", u"\u5355\u6b21\u53d6\u653e\u6570\u91cf:", None))
         self.label_22.setText(QCoreApplication.translate("MainWindow", u"\u521d\u59cb\u5355\u7247\u6570\u91cf:", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", u"\u7cfb\u7edf\u7a33\u5b9a\u6027", None))
-        self.label_13.setText(QCoreApplication.translate("MainWindow", u"\u6700\u5c0f\u8bc6\u522b\u91cd\u91cf:", None))
+        self.label_13.setText(QCoreApplication.translate("MainWindow", u"\u6700\u5c0f\u5355\u5f20\u91cd\u91cf:", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", u"\u7a33\u5b9a\u5224\u5b9a\u9608\u503c:", None))
         self.label_19.setText(QCoreApplication.translate("MainWindow", u"\u4eea\u8868\u5c0f\u6570\u4f4d\u6570:", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", u"\u4e32\u53e3\u8bbe\u7f6e", None))

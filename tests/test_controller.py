@@ -3,15 +3,15 @@ from unittest.mock import MagicMock
 import pytest
 from PySide6.QtTest import QSignalSpy
 
-from app.controllers.main_controller import (
-    _MSG_ABNORMAL,
-    _MSG_FORCE_DONE,
-    _MSG_FORCE_FAIL,
-    _MSG_TARGET,
-)
 from app.models.counter_state import CounterState
-
-
+from app.presentation.status_bar import (
+    MSG_ABNORMAL,
+    MSG_FORCE_DONE,
+    MSG_FORCE_FAIL,
+    MSG_TARGET,
+    MSG_WAIT_STABLE,
+    ForceOutcome,
+)
 class TestControllerPipeline:
     def test_raw_data_pipeline(self, make_controller):
         controller, ui = make_controller()
@@ -33,7 +33,7 @@ class TestControllerPipeline:
     def test_unstable_does_not_overwrite_status_message(self, make_controller):
         controller, ui = make_controller()
         controller._is_running = True
-        ui.update_bar_status(status_message="测试保留信息")
+        ui.update_bar(controller._bar.on_csv_error("测试保留信息"))
 
         controller._on_raw_data("10.0 kg")  # 未稳定，不应改写 message
         assert ui._last_bar is not None
@@ -41,7 +41,7 @@ class TestControllerPipeline:
 
     def test_on_timeout_updates_status(self, make_controller):
         controller, ui = make_controller()
-        spy = QSignalSpy(ui.bar_status_changed)
+        spy = QSignalSpy(ui.bar_snapshot_changed)
 
         controller._on_timeout()
 
@@ -52,17 +52,24 @@ class TestControllerPipeline:
 
     def test_on_timeout_preserves_status_message(self, make_controller):
         controller, ui = make_controller()
-        ui.update_bar_status(status_message=_MSG_ABNORMAL, info=True)
+        ui.update_bar(
+            controller._bar.on_stable_frame(
+                state=CounterState.ABNORMAL,
+                force=ForceOutcome.NONE,
+                target_reached=False,
+                piece_added=False,
+            )
+        )
 
         controller._on_timeout()
 
         assert ui._last_bar is not None
-        assert ui._last_bar.message.text == _MSG_ABNORMAL
+        assert ui._last_bar.message.text == MSG_ABNORMAL
         assert ui._last_bar.comm.text == "通讯等待"
 
     def test_on_error_updates_status(self, make_controller):
         controller, ui = make_controller()
-        spy = QSignalSpy(ui.bar_status_changed)
+        spy = QSignalSpy(ui.bar_snapshot_changed)
 
         controller._on_serial_error("测试错误")
 
@@ -73,11 +80,11 @@ class TestControllerPipeline:
     def test_force_calibrate_pending(self, make_controller):
         controller, ui = make_controller()
         controller._is_running = True
-        spy = QSignalSpy(ui.bar_status_changed)
+        spy = QSignalSpy(ui.bar_snapshot_changed)
         controller.force_calibrate(5)
         assert controller._pending_force_pieces == 5
         d = spy.at(spy.count() - 1)[0]
-        assert d.message.text == "等待稳定重量…"
+        assert d.message.text == MSG_WAIT_STABLE
 
     def test_force_calibrate_ignored_when_pieces_zero(self, make_controller):
         controller, ui = make_controller()
@@ -152,13 +159,13 @@ class TestControllerPipeline:
         assert controller.counter_service.current_result().state == CounterState.ABNORMAL
         sound.play_error.assert_called()
         assert ui._last_bar is not None
-        assert ui._last_bar.message.text == _MSG_ABNORMAL
+        assert ui._last_bar.message.text == MSG_ABNORMAL
 
         # still abnormal: message must stick across further stable frames
         for _ in range(5):
             controller._on_raw_data("25.0 kg")
         assert controller.counter_service.current_result().state == CounterState.ABNORMAL
-        assert ui._last_bar.message.text == _MSG_ABNORMAL
+        assert ui._last_bar.message.text == MSG_ABNORMAL
 
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
@@ -180,13 +187,13 @@ class TestControllerPipeline:
         assert controller.counter_service.current_result().total_pieces == 2
         sound.play_alert.assert_called()
         assert ui._last_bar is not None
-        assert ui._last_bar.message.text == _MSG_TARGET
+        assert ui._last_bar.message.text == MSG_TARGET
 
         # no new pieces: target message sticks
         for _ in range(5):
             controller._on_raw_data("20.0 kg")
         assert controller.counter_service.current_result().total_pieces == 2
-        assert ui._last_bar.message.text == _MSG_TARGET
+        assert ui._last_bar.message.text == MSG_TARGET
 
         # next add clears target hold
         for _ in range(12):
@@ -292,13 +299,18 @@ class TestControllerPipeline:
         assert controller._pending_force_pieces == 3
 
         result = controller._apply_pending_force(0.01)
-        assert result is False
+        assert result is ForceOutcome.FAIL
         assert controller._pending_force_pieces is None
-        controller._emit_stable_bar(
-            controller.counter_service.current_result(), False
+        ui.update_bar(
+            controller._bar.on_stable_frame(
+                state=controller.counter_service.current_result().state,
+                force=ForceOutcome.FAIL,
+                target_reached=False,
+                piece_added=False,
+            )
         )
         assert ui._last_bar is not None
-        assert ui._last_bar.message.text == _MSG_FORCE_FAIL
+        assert ui._last_bar.message.text == MSG_FORCE_FAIL
         assert controller._button_status().force_enabled is True
 
     def test_raw_mismatches_stable(self, make_controller):
@@ -318,12 +330,12 @@ class TestControllerPipeline:
 
         controller.force_calibrate(3)
         assert ui._last_bar is not None
-        assert ui._last_bar.message.text == "等待稳定重量…"
+        assert ui._last_bar.message.text == MSG_WAIT_STABLE
         # 重量跳到 30，但 stable 仍锁在 10 → 应 defer，件数不变
         controller._on_raw_data("30.0 kg")
         assert controller._pending_force_pieces == 3
         assert controller.counter_service.current_result().total_pieces == 1
-        assert ui._last_bar.message.text == "等待稳定重量…"
+        assert ui._last_bar.message.text == MSG_WAIT_STABLE
 
     def test_force_calibrate_target_edge(self, make_controller):
         sound = MagicMock()
@@ -337,36 +349,18 @@ class TestControllerPipeline:
         saw_force_done = False
         for _ in range(12):
             controller._on_raw_data("30.0 kg")
-            if ui._last_bar and ui._last_bar.message.text == _MSG_FORCE_DONE:
+            if ui._last_bar and ui._last_bar.message.text == MSG_FORCE_DONE:
                 saw_force_done = True
         assert controller.counter_service.current_result().total_pieces == 3
         sound.play_alert.assert_called()
         assert saw_force_done
-        assert controller._hold_target is True
+        assert controller._bar._hold_target is True
         # subsequent stable frames (no new add): sticky target
         for _ in range(3):
             controller._on_raw_data("30.0 kg")
         assert ui._last_bar is not None
-        assert ui._last_bar.message.text == _MSG_TARGET
+        assert ui._last_bar.message.text == MSG_TARGET
         assert controller._button_status().force_enabled is True
-
-    def test_bar_message_priority(self, make_controller):
-        controller, ui = make_controller()
-        controller._hold_target = True
-        result = controller.counter_service.current_result()
-
-        msg, info = controller._bar_message(result, force_result=False)
-        assert msg == _MSG_FORCE_FAIL
-        assert info is False
-
-        msg, info = controller._bar_message(result, force_result=True)
-        assert msg == _MSG_FORCE_DONE
-        assert info is True
-
-        # force none + hold target
-        msg, info = controller._bar_message(result, force_result=None)
-        assert msg == _MSG_TARGET
-        assert info is True
 
     def test_parse_fail_clears_actual_weight(self, make_controller):
         controller, ui = make_controller()
