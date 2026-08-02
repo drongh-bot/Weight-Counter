@@ -30,4 +30,4 @@ port = "COM1"
 baud_rate = 9600
 
 [ui]
-splitter_sizes = [ 146, 193,]
+splitter_sizes = [ 394, 403,]

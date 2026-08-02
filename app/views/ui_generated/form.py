@@ -504,18 +504,6 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_5.addItem(self.horizontalSpacer)
 
-        self.rightPanel = QWidget(self.centralwidget)
-        self.rightPanel.setObjectName(u"rightPanel")
-        self.horizontalLayout_4 = QHBoxLayout(self.rightPanel)
-        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
-        self.widget = QWidget(self.rightPanel)
-        self.widget.setObjectName(u"widget")
-
-        self.horizontalLayout_4.addWidget(self.widget)
-
-
-        self.horizontalLayout_5.addWidget(self.rightPanel)
-
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")

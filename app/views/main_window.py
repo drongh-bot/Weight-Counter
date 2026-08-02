@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QCloseEvent, QIcon
 from PySide6.QtSerialPort import QSerialPortInfo
 from PySide6.QtWidgets import (
+    QHBoxLayout,
     QLabel,
     QMainWindow,
     QMessageBox,
@@ -78,14 +79,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _init_extra_widgets(self) -> None:
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
-
         self.wgtPieceTable = PieceTable(self.params.decimal_places)
         self.wgtPieceChart = PieceChart(self.params.decimal_places)
-
         self.splitter.addWidget(self.wgtPieceTable)
         self.splitter.addWidget(self.wgtPieceChart)
 
-        self.rightPanel.layout().addWidget(self.splitter)
+        horizontal_layout = self.centralWidget().layout()
+        assert isinstance(horizontal_layout, QHBoxLayout)
+        horizontal_layout.addWidget(self.splitter, 1)
 
         self.lblParse = QLabel()
         self.lblComm = QLabel()
