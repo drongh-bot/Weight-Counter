@@ -1,8 +1,15 @@
 # app/models/piece_counter.py
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from app.models.counter_state import CounterState
 from app.models.thresholds import Thresholds
 from app.models.tolerance import Tolerance
 from app.models.weight_learner import WeightLearner
+
+if TYPE_CHECKING:
+    from app.models.params import Params
 
 
 class PieceCounter:
@@ -71,6 +78,35 @@ class PieceCounter:
         self.abnormal_weight: float
 
         self.reset()
+
+    @classmethod
+    def from_params(cls, params: Params) -> PieceCounter:
+        return cls(
+            initial_min_weight=params.initial_min_weight,
+            tolerance_percent=params.tolerance_percent,
+            stability_threshold=params.stability_threshold,
+            max_batch_pieces=params.max_batch_pieces,
+            initial_single_pieces=params.initial_single_pieces,
+            decimal_places=params.decimal_places,
+            dynamic_weight_ratio=params.dynamic_weight_ratio,
+            initial_min_ratio=params.initial_min_ratio,
+            jump_threshold_ratio=params.jump_threshold_ratio,
+            jump_confirm_times=params.jump_confirm_times,
+            early_learn_pieces=params.early_learn_pieces,
+            ema_alpha_min=params.ema_alpha_min,
+            ema_alpha_max=params.ema_alpha_max,
+            count_rounding_tolerance=params.count_rounding_tolerance,
+            abnormal_recover_factor=params.abnormal_recover_factor,
+        )
+
+    def apply_start_params(self, params: Params) -> None:
+        """Sync UI-editable start params (not target_pieces)."""
+        self.set_initial_single_pieces(params.initial_single_pieces)
+        self.set_max_batch_pieces(params.max_batch_pieces)
+        self.set_tolerance_percent(params.tolerance_percent)
+        self.set_initial_min_weight(params.initial_min_weight)
+        self.set_decimal_places(params.decimal_places)
+        self.set_stability_threshold(params.stability_threshold)
 
     def reset(self) -> None:
         self.piece_weights = []
@@ -225,9 +261,9 @@ class PieceCounter:
     # ---------------------------------------------------------
     # Force Calibration
     # ---------------------------------------------------------
-    def force_calibrate(self, stable_weight: float, force_pieces: int) -> None:
+    def force_calibrate(self, stable_weight: float, force_pieces: int) -> bool:
         if stable_weight < self.thresholds.initial_min_weight or force_pieces <= 0:
-            return
+            return False
 
         # Rebuild Model
         self.piece_weights.clear()
@@ -239,6 +275,7 @@ class PieceCounter:
         self._sync_all()
 
         self._reset_baseline(stable_weight)
+        return True
 
     # ---------------------------------------------------------
     # Utility Functions

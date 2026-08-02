@@ -1,6 +1,12 @@
 # app/models/weight_stabilizer.py
+from __future__ import annotations
+
 import statistics
 from collections import deque
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.params import Params
 
 
 class WeightStabilizer:
@@ -43,6 +49,21 @@ class WeightStabilizer:
 
         # Output Cache
         self.last_stable_weight: float | None = None
+
+    @classmethod
+    def from_params(cls, params: Params) -> WeightStabilizer:
+        return cls(
+            short_win=params.stability_short_win,
+            long_win=params.stability_long_win,
+            stable_count=params.stability_stable_count,
+            unlock_confirm=params.stability_unlock_confirm,
+            unlock_factor=params.stability_unlock_factor,
+            stability_threshold=params.stability_threshold,
+        )
+
+    def apply_start_params(self, params: Params) -> None:
+        """Sync UI-editable start params used by the stabilizer."""
+        self.set_stability_threshold(params.stability_threshold)
 
     # ============================================================
     # Hot Update Parameters

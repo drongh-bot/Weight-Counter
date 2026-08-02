@@ -28,6 +28,17 @@ from app.views.widgets.piece_table import PieceTable
 
 logger = logging.getLogger(__name__)
 
+# (Params attr, widget attr, cast on UI→Params, lock while running)
+_PARAM_FIELDS = (
+    ("initial_min_weight", "dspnInitialMinWeight", float, True),
+    ("tolerance_percent", "dspnTolerancePercent", float, True),
+    ("stability_threshold", "dspnStabilityThreshold", float, True),
+    ("max_batch_pieces", "spnMaxBatchPieces", int, True),
+    ("initial_single_pieces", "spnInitialSinglePieces", int, True),
+    ("target_pieces", "spnTargetPieces", int, False),
+    ("decimal_places", "spnDecimalPlaces", int, True),
+)
+
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(
@@ -105,13 +116,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnStart.setEnabled(state.start_enabled)
         self.btnStop.setEnabled(state.stop_enabled)
         self.btnForce.setEnabled(state.force_enabled)
-        enabled = state.start_params_enabled
-        self.dspnInitialMinWeight.setEnabled(enabled)
-        self.dspnTolerancePercent.setEnabled(enabled)
-        self.dspnStabilityThreshold.setEnabled(enabled)
-        self.spnMaxBatchPieces.setEnabled(enabled)
-        self.spnInitialSinglePieces.setEnabled(enabled)
-        self.spnDecimalPlaces.setEnabled(enabled)
+        for _, widget, _, lock_on_start in _PARAM_FIELDS:
+            if lock_on_start:
+                getattr(self, widget).setEnabled(state.start_params_enabled)
 
     def _on_count_changed(self, snap: CountSnapshot) -> None:
         try:
@@ -145,14 +152,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnForce.clicked.connect(self.force_calibrate)
         self.btnSaveParams.clicked.connect(self.save_params)
 
-        self.dspnInitialMinWeight.valueChanged.connect(self._sync_ui_to_params)
-        self.dspnTolerancePercent.valueChanged.connect(self._sync_ui_to_params)
-        self.dspnStabilityThreshold.valueChanged.connect(self._sync_ui_to_params)
-        self.spnMaxBatchPieces.valueChanged.connect(self._sync_ui_to_params)
-        self.spnInitialSinglePieces.valueChanged.connect(self._sync_ui_to_params)
-        self.spnForcePieces.valueChanged.connect(self._sync_ui_to_params)
-        self.spnTargetPieces.valueChanged.connect(self._sync_ui_to_params)
-        self.spnDecimalPlaces.valueChanged.connect(self._sync_ui_to_params)
+        for _, widget, _, _ in _PARAM_FIELDS:
+            getattr(self, widget).valueChanged.connect(self._sync_ui_to_params)
 
     def start(self) -> None:
         port = self.cbPort.currentText()
@@ -193,22 +194,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
     def _load_params_to_ui(self) -> None:
-        self.dspnInitialMinWeight.setValue(self.params.initial_min_weight)
-        self.dspnTolerancePercent.setValue(self.params.tolerance_percent)
-        self.dspnStabilityThreshold.setValue(self.params.stability_threshold)
-        self.spnMaxBatchPieces.setValue(self.params.max_batch_pieces)
-        self.spnInitialSinglePieces.setValue(self.params.initial_single_pieces)
-        self.spnTargetPieces.setValue(self.params.target_pieces)
-        self.spnDecimalPlaces.setValue(self.params.decimal_places)
+        for attr, widget, _, _ in _PARAM_FIELDS:
+            getattr(self, widget).setValue(getattr(self.params, attr))
 
     def _sync_ui_to_params(self) -> None:
-        self.params.initial_min_weight = float(self.dspnInitialMinWeight.value())
-        self.params.tolerance_percent = float(self.dspnTolerancePercent.value())
-        self.params.stability_threshold = float(self.dspnStabilityThreshold.value())
-        self.params.max_batch_pieces = int(self.spnMaxBatchPieces.value())
-        self.params.initial_single_pieces = int(self.spnInitialSinglePieces.value())
-        self.params.target_pieces = int(self.spnTargetPieces.value())
-        self.params.decimal_places = int(self.spnDecimalPlaces.value())
+        for attr, widget, cast, _ in _PARAM_FIELDS:
+            setattr(self.params, attr, cast(getattr(self, widget).value()))
 
     def _init_port_list(self) -> None:
         self.cbPort.clear()

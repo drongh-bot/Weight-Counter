@@ -18,15 +18,7 @@ class WeightInputService:
 
     def __init__(self, params: Params) -> None:
         self.params = params
-
-        self._stabilizer = WeightStabilizer(
-            short_win=params.stability_short_win,
-            long_win=params.stability_long_win,
-            stable_count=params.stability_stable_count,
-            unlock_confirm=params.stability_unlock_confirm,
-            unlock_factor=params.stability_unlock_factor,
-            stability_threshold=params.stability_threshold,
-        )
+        self._stabilizer = WeightStabilizer.from_params(params)
 
     # ============================================================
     # Parse weight (string -> float)
@@ -66,5 +58,5 @@ class WeightInputService:
         self._stabilizer.reset()
 
     def apply_start_params(self) -> None:
-        self._stabilizer.set_stability_threshold(self.params.stability_threshold)
+        self._stabilizer.apply_start_params(self.params)
 
