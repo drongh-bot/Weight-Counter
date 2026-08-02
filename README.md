@@ -15,7 +15,7 @@ Serial Port
   → SerialService         (raw data receive, timeout detection)
   → WeightInputService    (parse + stabilize via dual-window algorithm)
   → CounterService        (state machine ZERO→NORMAL→ABNORMAL + EMA weight learning)
-  → UIService             (presentation — builds snapshots, emits count/bar/button/weight signals)
+  → Ui                    (presentation — builds snapshots, emits count/bar/button/weight signals)
   → MainWindow            (pure rendering — labels, table, scatter chart)
 ```
 
@@ -27,7 +27,7 @@ app/
 ├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
 ├── services/              Service layer (serial, weight_input, counter, sound, log, config)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
-├── presentation/          ViewModel layer (UIService, builders, view_models, styles)
+├── presentation/          ViewModel layer (Ui, builders, view_models, styles)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets
 │   └── ui_generated/      Qt Designer generated
@@ -38,10 +38,10 @@ app/
 
 - **Dependency Injection** — all objects created and wired in `main.py`
 - **CQS** — PieceCounter mutates state (Command), CounterService queries and builds results
-- **Signal-driven UI** — `presentation.UIService` emits `count_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
+- **Signal-driven UI** — `presentation.Ui` emits `count_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
 - **No bare attribute access** — Controller communicates with services through methods only
 - **Model layer is Qt-free** — unit-testable without a GUI; `CounterService` and `WeightInputService` are also Qt-free
-- **Presentation ≠ services** — ViewModel DTOs / builders / `UIService` live in `presentation/`
+- **Presentation ≠ services** — ViewModel DTOs / builders / `Ui` live in `presentation/`
 
 ### Core Algorithms
 

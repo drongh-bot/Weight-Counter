@@ -5,7 +5,7 @@ from PySide6.QtCore import QObject
 
 from app.models.count_result import CountResult
 from app.models.params import Params
-from app.presentation.ui_service import UIService
+from app.presentation.ui import Ui
 from app.presentation.view_models import ButtonStatus
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
@@ -23,7 +23,7 @@ _MSG_FORCE_FAIL = "强制校准失败：重量过轻"
 class MainController(QObject):
     def __init__(
         self,
-        ui_service: UIService,
+        ui: Ui,
         serial_service: SerialService,
         counter_service: CounterService,
         weight_input_service: WeightInputService,
@@ -33,7 +33,7 @@ class MainController(QObject):
     ):
         super().__init__()
 
-        self.ui_service: UIService = ui_service
+        self.ui: Ui = ui
         self.serial_service: SerialService = serial_service
         self.counter_service: CounterService = counter_service
         self.weight_input_service: WeightInputService = weight_input_service
@@ -53,7 +53,7 @@ class MainController(QObject):
 
     def _init_ui(self) -> None:
         self._sync_count_ui()
-        self.ui_service.update_bar_status()
+        self.ui.update_bar_status()
 
     def _button_status(self) -> ButtonStatus:
         pending_force = self._pending_force_pieces is not None
@@ -64,24 +64,24 @@ class MainController(QObject):
         )
 
     def _sync_button_status(self) -> None:
-        self.ui_service.update_button_status(self._button_status())
+        self.ui.update_button_status(self._button_status())
 
     def _show_waiting_stable(self) -> None:
-        self.ui_service.update_bar_status(
+        self.ui.update_bar_status(
             parse_ok=True,
             status_message=_MSG_WAIT_STABLE,
             info=True,
         )
 
     def _show_force_done(self) -> None:
-        self.ui_service.update_bar_status(
+        self.ui.update_bar_status(
             parse_ok=True,
             status_message=_MSG_FORCE_DONE,
             info=True,
         )
 
     def _show_force_failed(self) -> None:
-        self.ui_service.update_bar_status(
+        self.ui.update_bar_status(
             parse_ok=True,
             status_message=_MSG_FORCE_FAIL,
         )
@@ -95,9 +95,9 @@ class MainController(QObject):
 
     def _sync_count_ui(self) -> None:
         result = self.counter_service.current_result()
-        self.ui_service.update_count(result)
+        self.ui.update_count(result)
         self._sync_button_status()
-        self.ui_service.update_actual_weight(None, result.decimal_places)
+        self.ui.update_actual_weight(None, result.decimal_places)
 
     # ============================================================
     # Data Pipeline
@@ -106,15 +106,15 @@ class MainController(QObject):
         weight = self.weight_input_service.parse(raw_data)
 
         if weight is None:
-            self.ui_service.update_bar_status(parse_ok=False)
-            self.ui_service.update_actual_weight(
+            self.ui.update_bar_status(parse_ok=False)
+            self.ui.update_actual_weight(
                 None, self.counter_service.current_result().decimal_places
             )
             return
 
         stable_weight = self.weight_input_service.stabilize(weight)
         result = self.counter_service.current_result()
-        self.ui_service.update_actual_weight(weight, result.decimal_places)
+        self.ui.update_actual_weight(weight, result.decimal_places)
 
         if self._pending_force_pieces is not None:
             if stable_weight is None or self._raw_mismatches_stable(weight, stable_weight):
@@ -124,7 +124,7 @@ class MainController(QObject):
             # 日常未稳定：不计件即可，勿改写状态栏（避免覆盖错误/异常等提示）
             return
 
-        self.ui_service.update_bar_status(parse_ok=True)
+        self.ui.update_bar_status(parse_ok=True)
         force_result = self._apply_pending_force(stable_weight)
         result = self.counter_service.process(stable_weight)
         self._handle_result(result, stable_weight)
@@ -145,8 +145,8 @@ class MainController(QObject):
         return False
 
     def _handle_result(self, result: CountResult, stable_weight: float) -> None:
-        self.ui_service.update_actual_weight(stable_weight, result.decimal_places)
-        self.ui_service.update_count(result)
+        self.ui.update_actual_weight(stable_weight, result.decimal_places)
+        self.ui.update_count(result)
         self._sync_button_status()
         self._handle_sound_events()
         if result.added:
@@ -168,19 +168,19 @@ class MainController(QObject):
     # Event Handling
     # ============================================================
     def _on_timeout(self) -> None:
-        self.ui_service.update_bar_status(comm_ok=False)
-        self.ui_service.update_actual_weight(
+        self.ui.update_bar_status(comm_ok=False)
+        self.ui.update_actual_weight(
             None, self.counter_service.current_result().decimal_places
         )
 
     def _on_serial_error(self, msg: str) -> None:
-        self.ui_service.update_bar_status(comm_ok=False, status_message=msg)
-        self.ui_service.update_actual_weight(
+        self.ui.update_bar_status(comm_ok=False, status_message=msg)
+        self.ui.update_actual_weight(
             None, self.counter_service.current_result().decimal_places
         )
 
     def _on_csv_error(self, msg: str) -> None:
-        self.ui_service.update_bar_status(status_message=msg)
+        self.ui.update_bar_status(status_message=msg)
 
     # ============================================================
     # User Actions
@@ -217,7 +217,7 @@ class MainController(QObject):
     def _handle_start_error(self, error: Exception) -> None:
         self._is_running = False
         self._sync_count_ui()
-        self.ui_service.update_bar_status(
+        self.ui.update_bar_status(
             parse_ok=False, comm_ok=False, status_message=str(error)
         )
         logger.exception("串口打开失败")

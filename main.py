@@ -12,7 +12,7 @@ from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
 from app.services.sound_service import SoundService
-from app.presentation.ui_service import UIService
+from app.presentation.ui import Ui
 from app.services.weight_input_service import WeightInputService
 from app.views.main_window import MainWindow
 
@@ -30,7 +30,7 @@ def main():
     params = config_service.load(ResourceManager.get_external_root() / "config.toml")
 
     # ---------------- Service Layer ----------------
-    ui_service = UIService()
+    ui = Ui()
     serial_service = SerialService(params.timeout_millis)
     counter_service = CounterService(params)
     weight_input_service = WeightInputService(params)
@@ -39,7 +39,7 @@ def main():
 
     # ---------------- Controller ----------------
     controller = MainController(
-        ui_service=ui_service,
+        ui=ui,
         serial_service=serial_service,
         counter_service=counter_service,
         weight_input_service=weight_input_service,
@@ -50,7 +50,7 @@ def main():
 
     # ---------------- UI Layer ----------------
     window = MainWindow(
-        ui_service=ui_service,
+        ui=ui,
         controller=controller,
         params=params,
         config_service=config_service,

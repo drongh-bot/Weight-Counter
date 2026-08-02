@@ -5,7 +5,6 @@ from dataclasses import dataclass
 @dataclass
 class LabelItem:
     """Generic label item: text + style."""
-
     text: str
     style: str
 

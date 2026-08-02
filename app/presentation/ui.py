@@ -1,4 +1,4 @@
-# app/presentation/ui_service.py
+# app/presentation/ui.py
 from PySide6.QtCore import QObject, Signal
 
 from app.models.count_result import CountResult
@@ -6,7 +6,7 @@ from app.presentation.builders import CountBuilder, BarStatusBuilder
 from app.presentation.view_models import CountSnapshot, ButtonStatus, BarStatus
 
 
-class UIService(QObject):
+class Ui(QObject):
     count_changed = Signal(CountSnapshot)
     bar_status_changed = Signal(BarStatus)
     button_status_changed = Signal(ButtonStatus)

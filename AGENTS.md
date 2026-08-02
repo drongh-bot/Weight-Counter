@@ -10,7 +10,7 @@ app/
 ├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
 ├── services/              Service layer (serial, weight_input, counter, sound, csv_log, config)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
-├── presentation/          ViewModel layer (UIService, builders, view_models, styles)
+├── presentation/          ViewModel layer (Ui, builders, view_models, styles)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets
 │   └── ui_generated/      Qt Designer generated
@@ -21,11 +21,11 @@ app/
 
 - **DI**: all objects created and wired in `main.py`
 - **CQS**: PieceCounter mutates state (Command), CounterService queries and builds results
-- **Signal-driven UI**: `presentation.UIService` emits `count_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
+- **Signal-driven UI**: `presentation.Ui` emits `count_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
 - **No bare attribute access**: Controller communicates with services through methods only
 - **Model layer is Qt-free**: unit-testable without a GUI, no I/O (see Params vs ConfigService split)
 - **Business services are Qt-free**: `CounterService` and `WeightInputService` are plain Python classes; I/O services (`SerialService`, etc.) inherit `QObject`
-- **Presentation ≠ services**: ViewModel DTOs / builders / `UIService` live in `presentation/`, not under `services/`
+- **Presentation ≠ services**: ViewModel DTOs / builders / `Ui` live in `presentation/`, not under `services/`
 
 ## Tech Stack
 
@@ -50,7 +50,7 @@ uv run mypy app                  # Type check
 
 ## Test suite
 
-Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `UIService` and controller tests use the `qapp` fixture from `pytest-qt`.
+Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `Ui` and controller tests use the `qapp` fixture from `pytest-qt`.
 
 | File | Layer | Count |
 |------|-------|-------|
@@ -60,7 +60,7 @@ Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `UISe
 | `tests/test_weight_input_service.py` | service | 14 |
 | `tests/test_counter_service.py` | service | 19 |
 | `tests/test_config_service.py` | service | 2 |
-| `tests/test_ui_service.py` | service | 9 |
+| `tests/test_ui.py` | presentation | 9 |
 | `tests/test_piece_table.py` | view | 4 |
 | `tests/test_piece_chart.py` | view | 4 |
 | `tests/test_controller.py` | controller | 21 |

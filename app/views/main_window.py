@@ -15,7 +15,7 @@ from app.controllers.main_controller import MainController
 from app.core.resource_manager import ResourceManager
 from app.models.params import Params
 from app.services.config_service import ConfigService
-from app.presentation.ui_service import UIService
+from app.presentation.ui import Ui
 from app.presentation.view_models import (
     BarStatus,
     ButtonStatus,
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(
         self,
-        ui_service: UIService,
+        ui: Ui,
         controller: MainController,
         params: Params,
         config_service: ConfigService,
@@ -45,7 +45,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             QIcon(ResourceManager.get_resource("app/resources/icons/app.ico"))
         )
 
-        self.ui_service: UIService = ui_service
+        self.ui: Ui = ui
         self.controller: MainController = controller
         self.params: Params = params
         self.config_service: ConfigService = config_service
@@ -59,11 +59,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self._load_params_to_ui()
 
-        self._bind_ui_service_signals()
+        self._connect_ui()
         self._bind_ui_signals()
 
         # Proactively refresh the bottom status labels once after init
-        self.ui_service.refresh()
+        self.ui.refresh()
 
     def _init_extra_widgets(self) -> None:
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -90,11 +90,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         status_bar.addWidget(self.lblComm, 1)
         status_bar.addWidget(self.lblMessage, 1)
 
-    def _bind_ui_service_signals(self) -> None:
-        self.ui_service.actual_weight_changed.connect(self.lblActWeight.setText)
-        self.ui_service.bar_status_changed.connect(self._on_bar_status_changed)
-        self.ui_service.button_status_changed.connect(self._on_button_status_changed)
-        self.ui_service.count_changed.connect(self._on_count_changed)
+    def _connect_ui(self) -> None:
+        self.ui.actual_weight_changed.connect(self.lblActWeight.setText)
+        self.ui.bar_status_changed.connect(self._on_bar_status_changed)
+        self.ui.button_status_changed.connect(self._on_button_status_changed)
+        self.ui.count_changed.connect(self._on_count_changed)
 
     def _on_bar_status_changed(self, data: BarStatus) -> None:
         self._apply_bar_label_item(data.parse, self.lblParse)
