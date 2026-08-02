@@ -38,6 +38,6 @@ class CountBuilder:
             total_pieces=str(result.total_pieces),
             last_stable_weight=f"{result.last_stable_weight:.{dp}f}",
             baseline_weight=f"{result.baseline_weight:.{dp}f}",
-            piece_weights=result.piece_weights,
+            piece_weights=list(result.piece_weights),
             decimal_places=dp,
         )

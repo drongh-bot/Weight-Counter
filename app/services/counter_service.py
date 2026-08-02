@@ -67,7 +67,7 @@ class CounterService:
             total_pieces=self._piece_counter.total_pieces,
             last_stable_weight=self._piece_counter.last_stable_weight,
             baseline_weight=self._piece_counter.baseline_weight,
-            piece_weights=self._piece_counter.piece_weights,
+            piece_weights=list(self._piece_counter.piece_weights),
             decimal_places=self._piece_counter.decimal_places,
         )
 
