@@ -3,44 +3,12 @@ from unittest.mock import MagicMock
 import pytest
 from PySide6.QtTest import QSignalSpy
 
-from app.controllers.main_controller import MainController
 from app.models.counter_state import CounterState
-from app.models.params import Params
-from app.services.counter_service import CounterService
-from app.services.csv_log_service import CsvLogService
-from app.services.serial_service import SerialService
-from app.services.sound_service import SoundService
-from app.services.ui.ui_service import UIService
-from app.services.weight_input_service import WeightInputService
 
 
 class TestControllerPipeline:
-    @staticmethod
-    def _make_controller(qapp):
-        params = Params()
-        params.target_pieces = 10
-        params.max_batch_pieces = 4
-
-        ui = UIService()
-        serial = SerialService(2000)
-        counter = CounterService(params)
-        weight_input = WeightInputService(params)
-        sound = SoundService()
-        csv_log = CsvLogService()
-
-        controller = MainController(
-            ui_service=ui,
-            serial_service=serial,
-            counter_service=counter,
-            weight_input_service=weight_input,
-            sound_service=sound,
-            csv_log_service=csv_log,
-            params=params,
-        )
-        return controller, ui
-
-    def test_raw_data_pipeline(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_raw_data_pipeline(self, make_controller):
+        controller, ui = make_controller()
         spy = QSignalSpy(ui.actual_weight_changed)
 
         initial_count = spy.count()
@@ -48,8 +16,8 @@ class TestControllerPipeline:
 
         assert spy.count() > initial_count
 
-    def test_unstable_does_not_overwrite_status_message(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_unstable_does_not_overwrite_status_message(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = True
         ui.update_bar_status(status_message="测试保留信息")
 
@@ -57,8 +25,8 @@ class TestControllerPipeline:
         assert ui._last_bar is not None
         assert ui._last_bar.message.text == "测试保留信息"
 
-    def test_on_timeout_updates_status(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_on_timeout_updates_status(self, make_controller):
+        controller, ui = make_controller()
         spy = QSignalSpy(ui.bar_status_changed)
 
         controller._on_timeout()
@@ -68,8 +36,8 @@ class TestControllerPipeline:
         assert d.parse.text == "解析等待"
         assert d.comm.text == "通讯等待"
 
-    def test_on_error_updates_status(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_on_error_updates_status(self, make_controller):
+        controller, ui = make_controller()
         spy = QSignalSpy(ui.bar_status_changed)
 
         controller._on_serial_error("测试错误")
@@ -78,8 +46,8 @@ class TestControllerPipeline:
         d = spy.at(spy.count() - 1)[0]
         assert d.message.text == "测试错误"
 
-    def test_force_calibrate_pending(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_force_calibrate_pending(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = True
         spy = QSignalSpy(ui.bar_status_changed)
         controller.force_calibrate(5)
@@ -88,14 +56,14 @@ class TestControllerPipeline:
         d = spy.at(spy.count() - 1)[0]
         assert d.message.text == "等待稳定重量…"
 
-    def test_force_calibrate_ignored_when_pieces_zero(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_force_calibrate_ignored_when_pieces_zero(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = True
         controller.force_calibrate(0)
         assert controller._pending_force_pieces is None
 
-    def test_clear_abnormal_pending(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_clear_abnormal_pending(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = True
         # Clear 仅在异常态可点；先造 ABNORMAL 以便测按钮
         for _ in range(12):
@@ -119,8 +87,8 @@ class TestControllerPipeline:
         controller.force_calibrate(3)
         assert controller._pending_force_pieces is None
 
-    def test_force_calibrate_executes_on_next_stable(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_force_calibrate_executes_on_next_stable(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = True
 
         for _ in range(12):
@@ -136,9 +104,9 @@ class TestControllerPipeline:
         assert result.total_pieces == 3
         assert controller._pending_force_pieces is None
 
-    def test_force_calibrate_from_normal_without_abnormal(self, qapp):
+    def test_force_calibrate_from_normal_without_abnormal(self, make_controller):
         """NORMAL 状态下也可强制校准，无需先进入异常"""
-        controller, ui = self._make_controller(qapp)
+        controller, ui = make_controller()
         controller._is_running = True
 
         for _ in range(12):
@@ -157,8 +125,8 @@ class TestControllerPipeline:
         assert result.total_pieces == 3
         assert result.baseline_weight == pytest.approx(30.0)
 
-    def test_clear_abnormal_executes(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_clear_abnormal_executes(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = True
 
         for _ in range(12):
@@ -177,8 +145,8 @@ class TestControllerPipeline:
         assert controller._pending_clear_abnormal is False
         assert controller._button_status().force_enabled is True
 
-    def test_pending_only_when_running(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_pending_only_when_running(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = False
 
         controller.force_calibrate(5)
@@ -187,8 +155,8 @@ class TestControllerPipeline:
         controller.clear_abnormal()
         assert controller._pending_clear_abnormal is False
 
-    def test_stop_resets_all(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_stop_resets_all(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = True
 
         for _ in range(12):
@@ -201,8 +169,8 @@ class TestControllerPipeline:
         assert controller._pending_force_pieces is None
         assert controller._pending_clear_abnormal is False
 
-    def test_start_resets_and_starts_serial(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_start_resets_and_starts_serial(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = True
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
@@ -221,8 +189,8 @@ class TestControllerPipeline:
             controller.serial_service.open = original_open
             controller.serial_service.close = original_close
 
-    def test_ui_button_state_when_running(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_ui_button_state_when_running(self, make_controller):
+        controller, ui = make_controller()
         spy = QSignalSpy(ui.button_status_changed)
 
         controller._is_running = True
@@ -234,8 +202,8 @@ class TestControllerPipeline:
         assert d.force_enabled is True
         assert d.clear_enabled is False
 
-    def test_ui_button_state_when_abnormal(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_ui_button_state_when_abnormal(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = True
 
         for _ in range(12):
@@ -250,8 +218,8 @@ class TestControllerPipeline:
         assert status.force_enabled is True
         assert status.clear_enabled is True
 
-    def test_force_pending_disables_force_button(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_force_pending_disables_force_button(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = True
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
@@ -265,8 +233,8 @@ class TestControllerPipeline:
         controller.force_calibrate(5)
         assert controller._pending_force_pieces == 3
 
-    def test_force_calibrate_failed_shows_message(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_force_calibrate_failed_shows_message(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = True
         controller.force_calibrate(3)
         assert controller._pending_force_pieces == 3
@@ -279,16 +247,16 @@ class TestControllerPipeline:
         assert ui._last_bar.message.text == "强制校准失败：重量过轻"
         assert controller._button_status().force_enabled is True
 
-    def test_raw_mismatches_stable(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_raw_mismatches_stable(self, make_controller):
+        controller, ui = make_controller()
         controller.params.stability_threshold = 0.02
         assert controller._raw_mismatches_stable(30.0, 10.0) is True
         assert controller._raw_mismatches_stable(10.01, 10.0) is False
         assert controller._raw_mismatches_stable(10.0, 10.0) is False
 
-    def test_force_calibrate_waits_when_raw_stable_mismatch(self, qapp):
+    def test_force_calibrate_waits_when_raw_stable_mismatch(self, make_controller):
         """NORMAL 下强制校准：raw/stable 不一致时保持等待，不立刻执行"""
-        controller, ui = self._make_controller(qapp)
+        controller, ui = make_controller()
         controller._is_running = True
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
@@ -303,20 +271,9 @@ class TestControllerPipeline:
         assert controller.counter_service.current_result().total_pieces == 1
         assert ui._last_bar.message.text == "等待稳定重量…"
 
-    def test_force_calibrate_target_edge(self, qapp):
+    def test_force_calibrate_target_edge(self, make_controller):
         sound = MagicMock()
-        params = Params()
-        params.target_pieces = 3
-        ui = UIService()
-        controller = MainController(
-            ui,
-            SerialService(2000),
-            CounterService(params),
-            WeightInputService(params),
-            sound,
-            CsvLogService(),
-            params,
-        )
+        controller, ui = make_controller(sound_service=sound, target_pieces=3)
         controller._is_running = True
         for _ in range(12):
             controller._on_raw_data("10.0 kg")
@@ -330,8 +287,8 @@ class TestControllerPipeline:
         assert ui._last_bar.message.text == "强制校准完成"
         assert controller._button_status().force_enabled is True
 
-    def test_parse_fail_clears_actual_weight(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_parse_fail_clears_actual_weight(self, make_controller):
+        controller, ui = make_controller()
         spy = QSignalSpy(ui.actual_weight_changed)
         controller._is_running = True
         for _ in range(12):
@@ -339,8 +296,8 @@ class TestControllerPipeline:
         controller._on_raw_data("not-a-weight")
         assert spy.at(spy.count() - 1)[0] == "-----"
 
-    def test_decimal_places_applies_on_start_only(self, qapp):
-        controller, ui = self._make_controller(qapp)
+    def test_decimal_places_applies_on_start_only(self, make_controller):
+        controller, ui = make_controller()
         controller._is_running = True
         controller.counter_service.process(10.0)
         controller.params.decimal_places = 4

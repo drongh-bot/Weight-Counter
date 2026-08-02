@@ -152,11 +152,7 @@ class MainController(QObject):
             pieces = self._pending_force_pieces
             self._pending_force_pieces = None
             if self.counter_service.force_calibrate(stable_weight, pieces):
-                result = self.counter_service.current_result()
-                if result.piece_weights:
-                    self.csv_log_service.record_production(
-                        result.piece_weights[-1], result.total_pieces
-                    )
+                self._record_production(self.counter_service.current_result())
                 return True
             return False
         if self._pending_clear_abnormal:
@@ -169,7 +165,8 @@ class MainController(QObject):
         self.ui_service.update_count(result)
         self._sync_button_status()
         self._handle_sound_events()
-        self._handle_logging(result)
+        if result.added:
+            self._record_production(result)
 
     def _handle_sound_events(self) -> None:
         if self.counter_service.consume_abnormal_edge():
@@ -177,8 +174,8 @@ class MainController(QObject):
         if self.counter_service.consume_target_edge():
             self.sound_service.play_alert()
 
-    def _handle_logging(self, result: CountResult) -> None:
-        if result.added and result.piece_weights:
+    def _record_production(self, result: CountResult) -> None:
+        if result.piece_weights:
             self.csv_log_service.record_production(
                 result.piece_weights[-1], result.total_pieces
             )
