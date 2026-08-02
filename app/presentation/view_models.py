@@ -1,4 +1,4 @@
-# app/services/ui/view_models.py
+# app/presentation/view_models.py
 from dataclasses import dataclass
 
 

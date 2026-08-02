@@ -12,7 +12,7 @@ from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
 from app.services.sound_service import SoundService
-from app.services.ui.ui_service import UIService
+from app.presentation.ui_service import UIService
 from app.services.weight_input_service import WeightInputService
 
 

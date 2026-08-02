@@ -1,9 +1,9 @@
-# app/services/ui/ui_service.py
+# app/presentation/ui_service.py
 from PySide6.QtCore import QObject, Signal
 
 from app.models.count_result import CountResult
-from app.services.ui.builders import CountBuilder, BarStatusBuilder
-from app.services.ui.view_models import CountSnapshot, ButtonStatus, BarStatus
+from app.presentation.builders import CountBuilder, BarStatusBuilder
+from app.presentation.view_models import CountSnapshot, ButtonStatus, BarStatus
 
 
 class UIService(QObject):

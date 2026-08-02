@@ -1,4 +1,4 @@
-# app/services/ui/styles.py
+# app/presentation/styles.py
 class Styles:
     GREEN = "color: green;"
     GRAY = "color: gray;"

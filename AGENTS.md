@@ -8,8 +8,9 @@ Industrial piece-counting desktop application — PySide6 + MVVM + Dependency In
 app/
 ├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
 ├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
-├── services/              Service layer (serial, weight_input, counter, sound, csv_log, config, ui)
+├── services/              Service layer (serial, weight_input, counter, sound, csv_log, config)
 ├── controllers/           Flow orchestration (MainController — pipeline pattern)
+├── presentation/          ViewModel layer (UIService, builders, view_models, styles)
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets
 │   └── ui_generated/      Qt Designer generated
@@ -20,10 +21,11 @@ app/
 
 - **DI**: all objects created and wired in `main.py`
 - **CQS**: PieceCounter mutates state (Command), CounterService queries and builds results
-- **Signal-driven UI**: UIService emits `count_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
+- **Signal-driven UI**: `presentation.UIService` emits `count_changed`, `bar_status_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
 - **No bare attribute access**: Controller communicates with services through methods only
 - **Model layer is Qt-free**: unit-testable without a GUI, no I/O (see Params vs ConfigService split)
-- **Business services are Qt-free**: `CounterService` and `WeightInputService` are plain Python classes; I/O and UI-facing services (`SerialService`, `UIService`, etc.) inherit `QObject`
+- **Business services are Qt-free**: `CounterService` and `WeightInputService` are plain Python classes; I/O services (`SerialService`, etc.) inherit `QObject`
+- **Presentation ≠ services**: ViewModel DTOs / builders / `UIService` live in `presentation/`, not under `services/`
 
 ## Tech Stack
 

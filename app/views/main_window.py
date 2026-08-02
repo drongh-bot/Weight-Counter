@@ -15,8 +15,8 @@ from app.controllers.main_controller import MainController
 from app.core.resource_manager import ResourceManager
 from app.models.params import Params
 from app.services.config_service import ConfigService
-from app.services.ui.ui_service import UIService
-from app.services.ui.view_models import (
+from app.presentation.ui_service import UIService
+from app.presentation.view_models import (
     BarStatus,
     ButtonStatus,
     CountSnapshot,
