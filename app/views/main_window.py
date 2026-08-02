@@ -105,6 +105,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnStart.setEnabled(state.start_enabled)
         self.btnStop.setEnabled(state.stop_enabled)
         self.btnForce.setEnabled(state.force_enabled)
+        enabled = state.start_params_enabled
+        self.dspnInitialMinWeight.setEnabled(enabled)
+        self.dspnTolerancePercent.setEnabled(enabled)
+        self.dspnStabilityThreshold.setEnabled(enabled)
+        self.spnMaxBatchPieces.setEnabled(enabled)
+        self.spnInitialSinglePieces.setEnabled(enabled)
+        self.spnDecimalPlaces.setEnabled(enabled)
 
     def _on_count_changed(self, snap: CountSnapshot) -> None:
         try:

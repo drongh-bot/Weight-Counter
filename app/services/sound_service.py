@@ -15,7 +15,7 @@ class SoundService(QObject):
     - Wraps SoundManager
     - Captures underlying errors
     - Emits Qt signals to UI or Controller
-    - Provides semantic business interfaces (play_add / play_error / play_alert)
+    - Provides semantic business interfaces (play_error / play_alert)
     """
 
     error_occurred = Signal(str)  # report sound errors to UI

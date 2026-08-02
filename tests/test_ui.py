@@ -106,6 +106,14 @@ class TestUi:
         assert d.message.text == "测试异常"
         assert d.message.style == Styles.RED
 
+    def test_bar_status_keep_message(self, qapp):
+        ui = Ui()
+        ui.update_bar_status(status_message="保留信息", info=True)
+        ui.update_bar_status(comm_ok=False, keep_message=True)
+        assert ui._last_bar is not None
+        assert ui._last_bar.message.text == "保留信息"
+        assert ui._last_bar.comm.text == "通讯等待"
+
     def test_actual_weight_none_shows_dashes(self, qapp):
         ui = Ui()
         spy = QSignalSpy(ui.actual_weight_changed)

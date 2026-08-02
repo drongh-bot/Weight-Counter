@@ -44,7 +44,7 @@ app/
 uv sync                          # Install dependencies
 uv run main.py                   # Run the app
 uv run pyinstaller main.spec     # Package to dist/WeightCounter/
-uv run pytest tests/ -v          # Run all 131 tests
+uv run pytest tests/ -v          # Run all 138 tests
 uv run mypy app                  # Type check
 ```
 
@@ -60,10 +60,10 @@ Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `Ui` 
 | `tests/test_weight_input_service.py` | service | 14 |
 | `tests/test_counter_service.py` | service | 19 |
 | `tests/test_config_service.py` | service | 2 |
-| `tests/test_ui.py` | presentation | 9 |
+| `tests/test_ui.py` | presentation | 10 |
 | `tests/test_piece_table.py` | view | 4 |
 | `tests/test_piece_chart.py` | view | 4 |
-| `tests/test_controller.py` | controller | 21 |
+| `tests/test_controller.py` | controller | 27 |
 
 ## PySide6 QSignalSpy quirk (6.8.3)
 

@@ -21,6 +21,7 @@ class ButtonStatus:
     start_enabled: bool = True
     stop_enabled: bool = True
     force_enabled: bool = False
+    start_params_enabled: bool = True
 
 
 @dataclass

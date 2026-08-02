@@ -4,6 +4,7 @@ import logging
 from PySide6.QtCore import QObject
 
 from app.models.count_result import CountResult
+from app.models.counter_state import CounterState
 from app.models.params import Params
 from app.presentation.ui import Ui
 from app.presentation.view_models import ButtonStatus
@@ -18,6 +19,8 @@ logger = logging.getLogger(__name__)
 _MSG_WAIT_STABLE = "等待稳定重量…"
 _MSG_FORCE_DONE = "强制校准完成"
 _MSG_FORCE_FAIL = "强制校准失败：重量过轻"
+_MSG_ABNORMAL = "计数异常：调回基准附近可自动恢复，或点强制校准"
+_MSG_TARGET = "已达目标件数"
 
 
 class MainController(QObject):
@@ -43,6 +46,7 @@ class MainController(QObject):
 
         self._is_running: bool = False
         self._pending_force_pieces: int | None = None
+        self._hold_target: bool = False
 
         self.serial_service.data_received.connect(self._on_raw_data)
         self.serial_service.timeout_detected.connect(self._on_timeout)
@@ -61,6 +65,7 @@ class MainController(QObject):
             start_enabled=not self._is_running,
             stop_enabled=self._is_running,
             force_enabled=self._is_running and not pending_force,
+            start_params_enabled=not self._is_running,
         )
 
     def _sync_button_status(self) -> None:
@@ -73,17 +78,28 @@ class MainController(QObject):
             info=True,
         )
 
-    def _show_force_done(self) -> None:
-        self.ui.update_bar_status(
-            parse_ok=True,
-            status_message=_MSG_FORCE_DONE,
-            info=True,
-        )
+    def _bar_message(
+        self,
+        result: CountResult,
+        force_result: bool | None,
+    ) -> tuple[str | None, bool]:
+        """Derive status-bar message for a stable frame. None → 无异常."""
+        if force_result is False:
+            return _MSG_FORCE_FAIL, False
+        if force_result is True:
+            return _MSG_FORCE_DONE, True
+        if result.state == CounterState.ABNORMAL:
+            return _MSG_ABNORMAL, True
+        if self._hold_target:
+            return _MSG_TARGET, True
+        return None, False
 
-    def _show_force_failed(self) -> None:
+    def _emit_stable_bar(
+        self, result: CountResult, force_result: bool | None
+    ) -> None:
+        msg, info = self._bar_message(result, force_result)
         self.ui.update_bar_status(
-            parse_ok=True,
-            status_message=_MSG_FORCE_FAIL,
+            parse_ok=True, status_message=msg, info=info
         )
 
     def _clear_pending(self) -> None:
@@ -103,6 +119,9 @@ class MainController(QObject):
     # Data Pipeline
     # ============================================================
     def _on_raw_data(self, raw_data: str) -> None:
+        if not self._is_running:
+            return
+
         weight = self.weight_input_service.parse(raw_data)
 
         if weight is None:
@@ -124,14 +143,10 @@ class MainController(QObject):
             # 日常未稳定：不计件即可，勿改写状态栏（避免覆盖错误/异常等提示）
             return
 
-        self.ui.update_bar_status(parse_ok=True)
         force_result = self._apply_pending_force(stable_weight)
         result = self.counter_service.process(stable_weight)
         self._handle_result(result, stable_weight)
-        if force_result is True:
-            self._show_force_done()
-        elif force_result is False:
-            self._show_force_failed()
+        self._emit_stable_bar(result, force_result)
 
     def _apply_pending_force(self, stable_weight: float) -> bool | None:
         """True=force ok, False=force failed, None=no pending force."""
@@ -148,15 +163,20 @@ class MainController(QObject):
         self.ui.update_actual_weight(stable_weight, result.decimal_places)
         self.ui.update_count(result)
         self._sync_button_status()
-        self._handle_sound_events()
+        self._handle_edge_events(result)
         if result.added:
             self._record_production(result)
 
-    def _handle_sound_events(self) -> None:
+    def _handle_edge_events(self, result: CountResult) -> None:
         if self.counter_service.consume_abnormal_edge():
             self.sound_service.play_error()
-        if self.counter_service.consume_target_edge():
+
+        reached_target = self.counter_service.consume_target_edge()
+        if reached_target:
             self.sound_service.play_alert()
+            self._hold_target = True
+        elif result.added and self._hold_target:
+            self._hold_target = False
 
     def _record_production(self, result: CountResult) -> None:
         if result.piece_weights:
@@ -168,7 +188,8 @@ class MainController(QObject):
     # Event Handling
     # ============================================================
     def _on_timeout(self) -> None:
-        self.ui.update_bar_status(comm_ok=False)
+        # 无新帧：只更新通讯指示，保留异常/达目标等粘性文案
+        self.ui.update_bar_status(comm_ok=False, keep_message=True)
         self.ui.update_actual_weight(
             None, self.counter_service.current_result().decimal_places
         )
@@ -198,6 +219,7 @@ class MainController(QObject):
     # Lifecycle
     # ============================================================
     def _reset_all(self) -> None:
+        self._hold_target = False
         self.counter_service.reset()
         self.weight_input_service.reset()
         self._sync_count_ui()

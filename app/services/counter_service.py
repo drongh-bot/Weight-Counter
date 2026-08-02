@@ -14,7 +14,7 @@ class CounterService:
     - Feed stable weight into PieceCounter for counting
     - Detect abnormal/target edge triggers (rising edge)
     - Build CountResult (unified data carrier)
-    - Force calibrate, clear abnormal, reset
+    - Force calibrate, reset
     - Consume edge flags (consume_*), avoiding external direct state manipulation
     """
 

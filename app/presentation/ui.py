@@ -32,10 +32,17 @@ class Ui(QObject):
         status_message: str | None = None,
         *,
         info: bool = False,
+        keep_message: bool = False,
     ) -> None:
         data = BarStatusBuilder.build(
             parse_ok, comm_ok, status_message, info=info
         )
+        if keep_message and self._last_bar is not None:
+            data = BarStatus(
+                parse=data.parse,
+                comm=data.comm,
+                message=self._last_bar.message,
+            )
         if data != self._last_bar:
             self._last_bar = data
             self.bar_status_changed.emit(data)
