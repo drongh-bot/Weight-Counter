@@ -30,7 +30,7 @@ class CsvLogService(QObject):
     def __init__(self) -> None:
         """启动后台写线程与生产日志 Writer。"""
         super().__init__()
-        base = ResourceManager.get_external_root() / "log"
+        base = ResourceManager.get_external("log")
         self._production_writer: CsvWriter | None = CsvWriter(
             base / "production", ("时间", "重量", "总件数")
         )

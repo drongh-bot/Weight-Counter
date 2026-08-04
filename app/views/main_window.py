@@ -67,7 +67,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setWindowTitle("称重计数 v1.3.5")
 
         self.setWindowIcon(
-            QIcon(ResourceManager.get_resource("app/resources/icons/app.ico"))
+            QIcon(str(ResourceManager.get_resource("app/resources/icons/app.ico")))
         )
 
         self.ui_bridge: UiBridge = ui_bridge
@@ -209,7 +209,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.params.baud_rate = int(self.cbBaudRate.currentText())
         self.params.splitter_sizes = self.splitter.sizes()
         self.config_service.save(
-            self.params, ResourceManager.get_external_root() / "config.toml"
+            self.params, ResourceManager.get_external("config.toml")
         )
 
     def _load_params_to_ui(self) -> None:

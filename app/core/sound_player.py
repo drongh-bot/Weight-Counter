@@ -5,6 +5,8 @@ import logging
 import os
 import winsound
 
+from pathlib import Path
+
 from app.core.resource_manager import ResourceManager
 
 logger = logging.getLogger(__name__)
@@ -25,16 +27,17 @@ class SoundPlayer:
         """停止当前播放。"""
         winsound.PlaySound(None, winsound.SND_PURGE)
 
-    def _play(self, full_path: str) -> None:
+    def _play(self, full_path: Path | str) -> None:
         """异步播放一次 wav。"""
         self.stop()
 
-        if not os.path.exists(full_path):
-            logger.error("播放失败：找不到音效文件 %s", full_path)
+        path = str(full_path)
+        if not os.path.exists(path):
+            logger.error("播放失败：找不到音效文件 %s", path)
             return
 
         flags = winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT
         try:
-            winsound.PlaySound(full_path, flags)
+            winsound.PlaySound(path, flags)
         except Exception as e:
-            logger.error("播放失败：无法播放 %s（%s）", full_path, e)
+            logger.error("播放失败：无法播放 %s（%s）", path, e)

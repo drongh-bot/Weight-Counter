@@ -23,10 +23,10 @@ def main():
     """应用入口：组装 DI 依赖并启动 Qt 主循环。"""
     app = QApplication(sys.argv)
 
-    setup_logging(ResourceManager.get_external_root() / "log")
+    setup_logging(ResourceManager.get_external("log"))
 
     config_service = ConfigService()
-    params = config_service.load(ResourceManager.get_external_root() / "config.toml")
+    params = config_service.load(ResourceManager.get_external("config.toml"))
 
     ui_bridge = UiBridge()
     serial_service = SerialService(params.timeout_millis)

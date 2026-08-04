@@ -1,5 +1,4 @@
 # app/core/csv_writer.py
-from __future__ import annotations
 
 import csv
 import datetime
@@ -58,9 +57,7 @@ class CsvWriter:
     def write(self, *cells: str) -> None:
         """写入一行并 flush；列数须与表头一致。"""
         if len(cells) != len(self._header):
-            raise ValueError(
-                f"列数不符：期望 {len(self._header)}，实际 {len(cells)}"
-            )
+            raise ValueError(f"列数不符：期望 {len(self._header)}，实际 {len(cells)}")
         with self._lock:
             self._ensure_file()
             if self._writer is None or self._file is None:
