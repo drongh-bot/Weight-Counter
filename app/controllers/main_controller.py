@@ -175,8 +175,8 @@ class MainController:
         """CSV 错误：仅更新状态栏消息。"""
         self.ui.update_bar(self._bar.on_csv_error(msg))
 
-    def force_calibrate(self, pieces: int) -> None:
-        """登记待强制校准片数，等待下一帧稳定重。"""
+    def request_force_calibrate(self, pieces: int) -> None:
+        """登记待强制校准片数，等待下一帧稳定重再由 CounterService 执行。"""
         if not self._is_running or pieces <= 0:
             return
         if self._pending_force_pieces is not None:

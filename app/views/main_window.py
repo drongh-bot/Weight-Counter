@@ -194,7 +194,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if pieces <= 0:
             QMessageBox.warning(self, "提示", "请先输入强制片数")
             return
-        self.controller.force_calibrate(pieces)
+        self.controller.request_force_calibrate(pieces)
         self.spnForcePieces.setValue(0)
 
     def save_params(self) -> None:

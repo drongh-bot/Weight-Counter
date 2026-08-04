@@ -84,7 +84,7 @@ class TestControllerPipeline:
         controller, ui = make_controller()
         controller._is_running = True
         spy = QSignalSpy(ui.bar_snapshot_changed)
-        controller.force_calibrate(5)
+        controller.request_force_calibrate(5)
         assert controller._pending_force_pieces == 5
         d = spy.at(spy.count() - 1)[0]
         assert d.message.text == MSG_WAIT_STABLE
@@ -92,7 +92,7 @@ class TestControllerPipeline:
     def test_force_calibrate_ignored_when_pieces_zero(self, make_controller):
         controller, ui = make_controller()
         controller._is_running = True
-        controller.force_calibrate(0)
+        controller.request_force_calibrate(0)
         assert controller._pending_force_pieces is None
 
     def test_force_calibrate_executes_on_next_stable(self, make_controller):
@@ -101,7 +101,7 @@ class TestControllerPipeline:
 
         feed_stable(controller, "10.0 kg")
 
-        controller.force_calibrate(3)
+        controller.request_force_calibrate(3)
         assert controller._pending_force_pieces == 3
 
         feed_stable(controller, "30.0 kg")
@@ -120,7 +120,7 @@ class TestControllerPipeline:
 
         # 先稳定在 30，再强制校准，避免 pending 在过渡帧用旧 stable 重量执行
         feed_stable(controller, "30.0 kg")
-        controller.force_calibrate(3)
+        controller.request_force_calibrate(3)
         feed_stable(controller, "30.0 kg")
 
         result = controller.counter_service.current_result()
@@ -199,7 +199,7 @@ class TestControllerPipeline:
         controller, ui = make_controller()
         controller._is_running = False
 
-        controller.force_calibrate(5)
+        controller.request_force_calibrate(5)
         assert controller._pending_force_pieces is None
 
     def test_stop_resets_all(self, make_controller):
@@ -270,19 +270,19 @@ class TestControllerPipeline:
         controller._is_running = True
         feed_stable(controller, "10.0 kg")
 
-        controller.force_calibrate(3)
+        controller.request_force_calibrate(3)
         status = controller._button_status()
         assert status.force_enabled is False
         assert controller._pending_force_pieces == 3
 
         # duplicate request ignored while pending
-        controller.force_calibrate(5)
+        controller.request_force_calibrate(5)
         assert controller._pending_force_pieces == 3
 
     def test_force_calibrate_failed_shows_message(self, make_controller):
         controller, ui = make_controller()
         controller._is_running = True
-        controller.force_calibrate(3)
+        controller.request_force_calibrate(3)
         assert controller._pending_force_pieces == 3
 
         force, _ = controller._resolve_stable_frame(0.01)
@@ -315,7 +315,7 @@ class TestControllerPipeline:
         feed_stable(controller, "10.0 kg")
         assert controller.counter_service.current_result().total_pieces == 1
 
-        controller.force_calibrate(3)
+        controller.request_force_calibrate(3)
         assert ui._last_bar is not None
         assert ui._last_bar.message.text == MSG_WAIT_STABLE
         # 重量跳到 30，但 stable 仍锁在 10 → 应 defer，件数不变
@@ -330,7 +330,7 @@ class TestControllerPipeline:
         controller._is_running = True
         feed_stable(controller, "10.0 kg")
         assert controller.counter_service.current_result().total_pieces == 1
-        controller.force_calibrate(3)
+        controller.request_force_calibrate(3)
 
         saw_force_done = False
         for _ in range(STABLE_FRAMES):
