@@ -2,7 +2,7 @@
 
 
 class Thresholds:
-    """动态最小重量 / 异常恢复阈值。avg、百分比、min_tol 均在调用时传入。"""
+    """动态最小重量阈值。avg 在调用时传入。"""
 
     def __init__(
         self,
@@ -23,16 +23,3 @@ class Thresholds:
             avg_weight * self.dynamic_weight_ratio,
             self.initial_min_weight * self.initial_min_ratio,
         )
-
-    def recover_threshold(
-        self,
-        avg_weight: float,
-        tolerance_percent: float,
-        min_tol: float,
-    ) -> float:
-        """异常恢复阈值：avg × 公差%，至少 min_tol。"""
-        if avg_weight <= 0:
-            return max(self.initial_min_weight, min_tol)
-
-        threshold = avg_weight * (tolerance_percent / 100.0)
-        return max(threshold, min_tol)

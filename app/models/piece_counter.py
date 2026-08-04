@@ -160,16 +160,20 @@ class PieceCounter:
 
         if (
             abs(current_delta)
-            > self.thresholds.recover_threshold(
-                self.avg_weight,
-                self.tolerance_percent,
-                self.tolerance.min_tol,
-            )
-            * self.abnormal_recover_factor
+            > self._recover_limit() * self.abnormal_recover_factor
         ):
             return
 
         self._reset_baseline(stable_weight)
+
+    def _recover_limit(self) -> float:
+        """异常恢复：相对基准允许的绝对偏差上限（avg×% 与 min_tol 取大）。"""
+        if self.avg_weight <= 0:
+            return self.tolerance.min_tol
+        return max(
+            self.avg_weight * (self.tolerance_percent / 100.0),
+            self.tolerance.min_tol,
+        )
 
     def _reset_baseline(self, stable_weight: float) -> None:
         """将计件锚点重置为 stable_weight 并回到 NORMAL。"""

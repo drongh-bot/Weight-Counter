@@ -2,7 +2,7 @@
 
 
 class Tolerance:
-    """单件公差带 + sqrt(n) 批量判定。avg 与百分比均在调用时传入。"""
+    """单件公差带 + sqrt(n) 批量判定。avg 与百分比在调用时传入。"""
 
     def __init__(self, min_tol: float) -> None:
         """保存最小公差（分辨率相关）。"""

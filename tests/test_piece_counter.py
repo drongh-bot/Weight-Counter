@@ -24,17 +24,6 @@ class TestThresholds:
         th = Thresholds(initial_min_weight=0.5)
         assert th.dynamic_min_weight(0.0) == 0.5
 
-    def test_recover_threshold(self):
-        """恢复正常阈值 = max(avg * tolerance%, min_tol)"""
-        th = Thresholds(initial_min_weight=0.5)
-        expected = max(5.0 * 0.20, 0.1)
-        assert th.recover_threshold(5.0, 20.0, 0.1) == expected
-
-    def test_recover_threshold_zero_avg(self):
-        """avg_weight = 0 时的恢复阈值"""
-        th = Thresholds(initial_min_weight=0.5)
-        assert th.recover_threshold(0.0, 20.0, 0.1) == max(0.5, 0.1)
-
 
 class TestWeightLearner:
     def test_first_piece(self):
@@ -173,6 +162,19 @@ class TestPieceCounterFSM:
         assert counter.state == CounterState.ABNORMAL
         counter.on_stable_weight(10.0)
         assert counter.state == CounterState.NORMAL
+
+    def test_recover_limit(self):
+        """恢复上限 = max(avg × 公差%, min_tol)"""
+        counter = _pc(tolerance_percent=20.0, stability_threshold=0.02)
+        counter.avg_weight = 5.0
+        expected = max(5.0 * 0.20, counter.tolerance.min_tol)
+        assert counter._recover_limit() == expected
+
+    def test_recover_limit_zero_avg(self):
+        """avg = 0 时恢复上限 = min_tol"""
+        counter = _pc(stability_threshold=0.05)
+        counter.avg_weight = 0.0
+        assert counter._recover_limit() == counter.tolerance.min_tol
 
     def test_abnormal_high_direction(self):
         counter = _pc(
