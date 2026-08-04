@@ -15,7 +15,7 @@ Serial Port
   → SerialService         (port I/O + timeout; single data_received outlet)
   → WeightInputService    (parse + stabilize via dual-window algorithm)
   → CounterService        (PieceCounter FSM + rising-edge events)
-  → UiBridge              (to_count_snapshot + signals for count/bar/button/weight)
+  → UiBridge              (to_count_view + signals for count/bar/button/weight)
   → MainWindow            (pure rendering — labels, table, scatter chart)
 ```
 
@@ -27,7 +27,7 @@ app/
 ├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
 ├── services/              serial, weight_input, counter, csv_log, config
 ├── controllers/           MainController — sequential per-frame orchestration
-├── presentation/          UiBridge, StatusBar, to_count_snapshot, view_models, styles
+├── presentation/          UiBridge, StatusBar, to_count_view, view_models, styles
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets
 │   └── ui_generated/      Qt Designer generated

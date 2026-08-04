@@ -5,7 +5,7 @@ from app.presentation.styles import Styles
 from app.presentation.view_models import CountView, LabelItem
 
 
-def to_count_snapshot(snap: CountSnapshot) -> CountView:
+def to_count_view(snap: CountSnapshot) -> CountView:
     """领域 CountSnapshot → 展示用 CountView（纯函数，无 Qt）。"""
     dp = snap.decimal_places
     if snap.state == CounterState.ZERO:

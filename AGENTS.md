@@ -10,7 +10,7 @@ app/
 ├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
 ├── services/              Serial (port+timeout), weight_input, counter, csv_log, config
 ├── controllers/           MainController — sequential per-frame orchestration
-├── presentation/          UiBridge, StatusBar, to_count_snapshot, view_models, styles
+├── presentation/          UiBridge, StatusBar, to_count_view, view_models, styles
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets
 │   └── ui_generated/      Qt Designer generated
@@ -26,7 +26,7 @@ app/
 - **No bare attribute access**: Controller communicates with services through methods only
 - **Model layer is Qt-free**: unit-testable without a GUI, no I/O (see Params vs ConfigService split)
 - **Business services / controller are Qt-free**: `CounterService`, `WeightInputService`, and `MainController` are plain Python classes; I/O services (`SerialService`, etc.) and `UiBridge` inherit `QObject`
-- **Presentation ≠ services**: ViewModel DTOs / `to_count_snapshot` / `UiBridge` live in `presentation/`, not under `services/`
+- **Presentation ≠ services**: ViewModel DTOs / `to_count_view` / `UiBridge` live in `presentation/`, not under `services/`
 
 ## Tech Stack
 

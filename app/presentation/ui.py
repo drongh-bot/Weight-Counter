@@ -2,7 +2,7 @@
 from PySide6.QtCore import QObject, Signal
 
 from app.models.count_snapshot import CountSnapshot
-from app.presentation.count_builder import to_count_snapshot
+from app.presentation.count_builder import to_count_view
 from app.presentation.view_models import BarSnapshot, ButtonStatus, CountView
 
 
@@ -28,10 +28,10 @@ class UiBridge(QObject):
 
     def update_count(self, snap: CountSnapshot) -> None:
         """把计件快照转成展示数据，有变化时通知窗口刷新件数/公差等标签。"""
-        data = to_count_snapshot(snap)
-        if data != self._last_count:
-            self._last_count = data
-            self.count_changed.emit(data)
+        count_view = to_count_view(snap)
+        if count_view != self._last_count:
+            self._last_count = count_view
+            self.count_changed.emit(count_view)
 
     def update_bar(self, snapshot: BarSnapshot) -> None:
         """推送状态栏三格（解析 / 通讯 / 消息）的完整一帧快照。"""
