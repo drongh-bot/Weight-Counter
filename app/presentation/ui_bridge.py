@@ -1,4 +1,4 @@
-# app/presentation/ui.py
+# app/presentation/ui_bridge.py
 from PySide6.QtCore import QObject, Signal
 
 from app.models.count_snapshot import CountSnapshot

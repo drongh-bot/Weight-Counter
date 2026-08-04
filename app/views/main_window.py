@@ -16,7 +16,7 @@ from app.controllers.main_controller import MainController
 from app.core.resource_manager import ResourceManager
 from app.models.params import Params
 from app.services.config_service import ConfigService
-from app.presentation.ui import UiBridge
+from app.presentation.ui_bridge import UiBridge
 from app.presentation.view_models import (
     BarSnapshot,
     ButtonStatus,

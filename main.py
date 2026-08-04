@@ -8,7 +8,7 @@ from app.controllers.main_controller import MainController
 from app.core.log_config import setup_logging
 from app.core.resource_manager import ResourceManager
 from app.core.sound_player import SoundPlayer
-from app.presentation.ui import UiBridge
+from app.presentation.ui_bridge import UiBridge
 from app.services.config_service import ConfigService
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService

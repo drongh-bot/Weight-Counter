@@ -3,7 +3,7 @@ from PySide6.QtTest import QSignalSpy
 from app.models.counter_state import CounterState
 from app.presentation.status_bar import StatusBar
 from app.presentation.styles import Styles
-from app.presentation.ui import UiBridge
+from app.presentation.ui_bridge import UiBridge
 from app.presentation.view_models import ButtonStatus
 from tests.conftest import make_count_snapshot
 

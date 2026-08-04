@@ -62,7 +62,7 @@ Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `UiBr
 | `tests/test_counter_service.py` | service | 19 |
 | `tests/test_config_service.py` | service | 5 |
 | `tests/test_status_bar.py` | presentation | 13 |
-| `tests/test_ui.py` | presentation | 10 |
+| `tests/test_ui_bridge.py` | presentation | 10 |
 | `tests/test_piece_table.py` | view | 4 |
 | `tests/test_piece_chart.py` | view | 4 |
 | `tests/test_controller.py` | controller | 26 |

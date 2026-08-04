@@ -10,7 +10,7 @@ from app.controllers.main_controller import MainController
 from app.models.count_snapshot import CountSnapshot
 from app.models.counter_state import CounterState
 from app.models.params import Params
-from app.presentation.ui import UiBridge
+from app.presentation.ui_bridge import UiBridge
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService

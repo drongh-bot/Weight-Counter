@@ -3,7 +3,7 @@ import logging
 
 from app.models.count_snapshot import CountFrame, CountSnapshot
 from app.presentation.status_bar import StatusBar
-from app.presentation.ui import UiBridge
+from app.presentation.ui_bridge import UiBridge
 from app.presentation.view_models import BarSnapshot, ButtonStatus
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
