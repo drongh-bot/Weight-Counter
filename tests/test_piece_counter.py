@@ -15,37 +15,25 @@ def _pc(**kwargs) -> PieceCounter:
 class TestThresholds:
     def test_dynamic_min_weight_normal(self):
         """avg_weight > 0 时 = max(avg * 0.5, initial * 0.3)"""
-        th = Thresholds(
-            initial_min_weight=0.5,
-            min_tol=0.04,
-        )
+        th = Thresholds(initial_min_weight=0.5)
         expected = max(10.0 * 0.5, 0.5 * 0.3)
         assert th.dynamic_min_weight(10.0) == expected
 
     def test_dynamic_min_weight_zero_avg(self):
         """avg_weight = 0 时 = initial_min_weight"""
-        th = Thresholds(
-            initial_min_weight=0.5,
-            min_tol=0.04,
-        )
+        th = Thresholds(initial_min_weight=0.5)
         assert th.dynamic_min_weight(0.0) == 0.5
 
     def test_recover_threshold(self):
         """恢复正常阈值 = max(avg * tolerance%, min_tol)"""
-        th = Thresholds(
-            initial_min_weight=0.5,
-            min_tol=0.1,
-        )
+        th = Thresholds(initial_min_weight=0.5)
         expected = max(5.0 * 0.20, 0.1)
-        assert th.recover_threshold(5.0, 20.0) == expected
+        assert th.recover_threshold(5.0, 20.0, 0.1) == expected
 
     def test_recover_threshold_zero_avg(self):
         """avg_weight = 0 时的恢复阈值"""
-        th = Thresholds(
-            initial_min_weight=0.5,
-            min_tol=0.1,
-        )
-        assert th.recover_threshold(0.0, 20.0) == max(0.5, 0.1)
+        th = Thresholds(initial_min_weight=0.5)
+        assert th.recover_threshold(0.0, 20.0, 0.1) == max(0.5, 0.1)
 
 
 class TestWeightLearner:
@@ -304,7 +292,6 @@ class TestPieceCounterParamUpdate:
         counter = _pc(decimal_places=2, stability_threshold=0.02)
         counter.apply_start_params(Params(decimal_places=2, stability_threshold=0.10))
         assert counter.tolerance.min_tol == max(0.02, 0.20)
-        assert counter.thresholds.min_tol == counter.tolerance.min_tol
 
     def test_mid_run_params_mutation_does_not_affect_copy(self):
         """共享 Params 的中途修改在 apply_start_params 前不得泄漏进计件器。"""

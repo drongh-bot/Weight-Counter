@@ -34,7 +34,6 @@ class WeightStabilizer:
         self.unlock_confirm_required: int = unlock_confirm
         self.unlock_pending: int = 0
         self.stability_threshold: float = stability_threshold
-        self.last_stable_weight: float | None = None
 
     @classmethod
     def from_params(cls, params: Params) -> "WeightStabilizer":
@@ -61,7 +60,6 @@ class WeightStabilizer:
         self.locked = False
         self.locked_weight = None
         self.unlock_pending = 0
-        self.last_stable_weight = None
 
     def stabilize(self, weight: float) -> float | None:
         """
@@ -75,25 +73,29 @@ class WeightStabilizer:
         self.long_win.append(weight)
 
         if self.locked:
-            assert self.locked_weight is not None
-            unlock_threshold = stability_threshold * self.unlock_factor
-
-            if abs(weight - self.locked_weight) > unlock_threshold:
-                self.unlock_pending += 1
-            else:
-                self.unlock_pending = 0
-
-            if self.unlock_pending >= self.unlock_confirm_required:
+            locked_weight = self.locked_weight
+            if locked_weight is None:
                 self.locked = False
-                self.locked_weight = None
                 self.unlock_pending = 0
                 self.stable_counter = 0
             else:
-                self.last_stable_weight = self.locked_weight
-                return self.locked_weight
+                unlock_threshold = stability_threshold * self.unlock_factor
 
-        assert self.long_win.maxlen is not None
-        if len(self.long_win) < self.long_win.maxlen:
+                if abs(weight - locked_weight) > unlock_threshold:
+                    self.unlock_pending += 1
+                else:
+                    self.unlock_pending = 0
+
+                if self.unlock_pending >= self.unlock_confirm_required:
+                    self.locked = False
+                    self.locked_weight = None
+                    self.unlock_pending = 0
+                    self.stable_counter = 0
+                else:
+                    return locked_weight
+
+        long_maxlen = self.long_win.maxlen
+        if long_maxlen is None or len(self.long_win) < long_maxlen:
             self.stable_counter = 0
             return None
 
@@ -121,5 +123,4 @@ class WeightStabilizer:
         stable_weight = statistics.median(self.long_win)
         self.locked = True
         self.locked_weight = stable_weight
-        self.last_stable_weight = stable_weight
         return stable_weight

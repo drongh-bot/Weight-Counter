@@ -99,4 +99,4 @@ The app requires a serial port with a connected electronic scale. Without hardwa
 ## Core Algorithms
 
 - **WeightStabilizer**: dual sliding windows (5-frame short, 10-frame long by default; configurable in `[stability]`) + triple checks (speed, trend, stddev) + hysteresis unlock
-- **PieceCounter**: 3-state FSM (ZERO → NORMAL → ABNORMAL) + EMA weight learning + sqrt(n) statistical tolerance (`Tolerance.band` / `is_within_tolerance(..., avg_weight)`)
+- **PieceCounter**: 3-state FSM (ZERO → NORMAL → ABNORMAL) + EMA weight learning + sqrt(n) statistical tolerance (`Tolerance.band` / `is_within_tolerance(..., avg_weight, tolerance_percent)`; `min_tol` only on `Tolerance`)

@@ -53,3 +53,8 @@ class WeightInputService:
         """Start 时将 START_SYNC 稳定阈值复制进 stabilizer。"""
         self._stabilizer.apply_start_params(self.params)
 
+    @property
+    def stability_threshold(self) -> float:
+        """当前生效的稳定阈值（Start 快照）。"""
+        return self._stabilizer.stability_threshold
+

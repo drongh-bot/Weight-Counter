@@ -12,48 +12,39 @@ class PieceCounter:
     def __init__(self, params: Params | None = None) -> None:
         """从 Params 拷贝算法字段并初始化辅助对象。"""
         p = Params() if params is None else params
-        self._load_construct_fields(p)
-        self._build_helpers(initial_min_weight=p.initial_min_weight)
+        self._load_start_fields(p)
+        self._build_helpers(p)
         self.reset()
 
-    def _load_construct_fields(self, p: Params) -> None:
-        """把 Params 中的计件相关字段拷贝到实例属性。"""
+    def _load_start_fields(self, p: Params) -> None:
+        """拷贝 Start 可同步 / 运行期会读的字段。"""
         self.max_batch_pieces = p.max_batch_pieces
         self.initial_single_pieces = p.initial_single_pieces
         self.decimal_places = p.decimal_places
         self.count_rounding_tolerance = p.count_rounding_tolerance
         self.abnormal_recover_factor = p.abnormal_recover_factor
-        self._stability_threshold = p.stability_threshold
-        self._tolerance_percent = p.tolerance_percent
-        self._dynamic_weight_ratio = p.dynamic_weight_ratio
-        self._initial_min_ratio = p.initial_min_ratio
-        self._jump_threshold_ratio = p.jump_threshold_ratio
-        self._jump_confirm_times = p.jump_confirm_times
-        self._early_learn_pieces = p.early_learn_pieces
-        self._ema_alpha_min = p.ema_alpha_min
-        self._ema_alpha_max = p.ema_alpha_max
+        self.stability_threshold = p.stability_threshold
+        self.tolerance_percent = p.tolerance_percent
 
     def _min_tol(self) -> float:
         """由小数位与稳定阈值推导最小公差。"""
         resolution = 10 ** (-self.decimal_places)
-        return max(resolution * 2, self._stability_threshold * 2)
+        return max(resolution * 2, self.stability_threshold * 2)
 
-    def _build_helpers(self, *, initial_min_weight: float) -> None:
-        """构造 Tolerance / WeightLearner / Thresholds。"""
-        min_tol = self._min_tol()
-        self.tolerance = Tolerance(min_tol=min_tol)
+    def _build_helpers(self, p: Params) -> None:
+        """用 Params 构造期字段创建 Tolerance / WeightLearner / Thresholds。"""
+        self.tolerance = Tolerance(min_tol=self._min_tol())
         self.learner = WeightLearner(
-            jump_threshold_ratio=self._jump_threshold_ratio,
-            jump_confirm_times=self._jump_confirm_times,
-            early_learn_pieces=self._early_learn_pieces,
-            ema_alpha_min=self._ema_alpha_min,
-            ema_alpha_max=self._ema_alpha_max,
+            jump_threshold_ratio=p.jump_threshold_ratio,
+            jump_confirm_times=p.jump_confirm_times,
+            early_learn_pieces=p.early_learn_pieces,
+            ema_alpha_min=p.ema_alpha_min,
+            ema_alpha_max=p.ema_alpha_max,
         )
         self.thresholds = Thresholds(
-            initial_min_weight=initial_min_weight,
-            min_tol=min_tol,
-            dynamic_weight_ratio=self._dynamic_weight_ratio,
-            initial_min_ratio=self._initial_min_ratio,
+            initial_min_weight=p.initial_min_weight,
+            dynamic_weight_ratio=p.dynamic_weight_ratio,
+            initial_min_ratio=p.initial_min_ratio,
         )
 
     def apply_start_params(self, params: Params) -> None:
@@ -63,13 +54,13 @@ class PieceCounter:
         if params.max_batch_pieces > 0:
             self.max_batch_pieces = params.max_batch_pieces
         if 0.0 < params.tolerance_percent < 100.0:
-            self._tolerance_percent = params.tolerance_percent
+            self.tolerance_percent = params.tolerance_percent
         if params.initial_min_weight > 0:
             self.thresholds.initial_min_weight = params.initial_min_weight
         if params.decimal_places >= 0:
             self.decimal_places = params.decimal_places
         if params.stability_threshold > 0:
-            self._stability_threshold = params.stability_threshold
+            self.stability_threshold = params.stability_threshold
         self._recalc_min_tol()
 
     def reset(self) -> None:
@@ -89,11 +80,6 @@ class PieceCounter:
     def total_pieces(self) -> int:
         """当前已计件数。"""
         return len(self.piece_weights)
-
-    @property
-    def tolerance_percent(self) -> float:
-        """当前生效的公差百分比（Start 快照）。"""
-        return self._tolerance_percent
 
     def on_stable_weight(self, stable_weight: float) -> None:
         """处理一次稳定重量样本（会改变 FSM 状态）。"""
@@ -152,7 +138,7 @@ class PieceCounter:
             self.abnormal_anchor = stable_weight
 
     def _handle_abnormal(self, stable_weight: float) -> None:
-        """ABNORMAL 态：跟踪锚点，满足恢复条件则 clear_abnormal。"""
+        """ABNORMAL 态：跟踪锚点，满足恢复条件则退出异常。"""
         current_delta = stable_weight - self.baseline_weight
 
         if current_delta > 0 and not self.abnormal_high:
@@ -175,13 +161,15 @@ class PieceCounter:
         if (
             abs(current_delta)
             > self.thresholds.recover_threshold(
-                self.avg_weight, self._tolerance_percent
+                self.avg_weight,
+                self.tolerance_percent,
+                self.tolerance.min_tol,
             )
             * self.abnormal_recover_factor
         ):
             return
 
-        self.clear_abnormal(stable_weight)
+        self._clear_abnormal(stable_weight)
 
     def _reset_baseline(self, stable_weight: float) -> None:
         """将计件锚点重置为 stable_weight 并回到 NORMAL。"""
@@ -192,7 +180,7 @@ class PieceCounter:
         self.last_stable_weight = stable_weight
         self.baseline_weight = stable_weight
 
-    def clear_abnormal(self, stable_weight: float) -> None:
+    def _clear_abnormal(self, stable_weight: float) -> None:
         """退出异常：仅在 ABNORMAL 时重置基准。"""
         if self.state == CounterState.ABNORMAL:
             self._reset_baseline(stable_weight)
@@ -239,7 +227,7 @@ class PieceCounter:
             return None
 
         if not self.tolerance.is_within_tolerance(
-            abs(delta), n, self.avg_weight, self._tolerance_percent
+            abs(delta), n, self.avg_weight, self.tolerance_percent
         ):
             return None
 
@@ -268,7 +256,5 @@ class PieceCounter:
         self.last_stable_weight = stable_weight
 
     def _recalc_min_tol(self) -> None:
-        """小数位或稳定阈值变化后重算 min_tol。"""
-        min_tol = self._min_tol()
-        self.tolerance.min_tol = min_tol
-        self.thresholds.min_tol = min_tol
+        """小数位或稳定阈值变化后重算 Tolerance.min_tol（唯一存放处）。"""
+        self.tolerance.min_tol = self._min_tol()

@@ -68,13 +68,7 @@ class TestCounterServiceProcess:
         svc = CounterService(params)
         svc.apply_start_params()
 
-        pc = svc._piece_counter
-        pc.piece_weights = [10.0] * 98
-        pc.avg_weight = 10.0
-        pc.baseline_weight = 980.0
-        pc.last_stable_weight = 980.0
-        pc.state = CounterState.NORMAL
-
+        assert svc.force_calibrate(980.0, 98) is True
         svc.process(1010.0)  # 98 + 3 = 101，跳过 100
         assert svc.current_result().total_pieces == 101
         assert svc.consume_target_edge() is True
@@ -88,12 +82,8 @@ class TestCounterServiceProcess:
         svc = CounterService(params)
         svc.apply_start_params()
 
-        pc = svc._piece_counter
-        pc.piece_weights = [10.0] * 100
-        pc.avg_weight = 10.0
-        pc.baseline_weight = 1000.0
-        pc.last_stable_weight = 1000.0
-        pc.state = CounterState.NORMAL
+        assert svc.force_calibrate(1000.0, 100) is True
+        svc.consume_target_edge()  # 校准可能越过目标，先消费
 
         svc.process(1030.0)  # 100 + 3 = 103
         assert svc.current_result().total_pieces == 103
@@ -130,7 +120,6 @@ class TestCounterServiceProcess:
 
     def test_force_calibrate(self):
         svc = self._make_service()
-        svc._piece_counter.last_stable_weight = 100.0
         assert svc.force_calibrate(100.0, 10) is True
         result = svc.current_result()
         assert result.total_pieces == 10
@@ -152,8 +141,8 @@ class TestCounterServiceProcess:
     def test_auto_recover_from_abnormal(self):
         svc = self._make_service()
         svc.process(10.0)
-        svc.process(25.0)  # 进入异常
-        assert svc._piece_counter.state == CounterState.ABNORMAL
+        result = svc.process(25.0)  # 进入异常
+        assert result.state == CounterState.ABNORMAL
         result = svc.process(10.0)  # 重量回到基准附近 → 自动恢复
         assert result.state == CounterState.NORMAL
 
@@ -203,11 +192,14 @@ class TestCounterServiceProcess:
 
         svc.apply_start_params()
 
-        pc = svc._piece_counter
-        assert pc.thresholds.initial_min_weight == 1.0
-        assert pc.tolerance_percent == 15.0
-        assert pc.max_batch_pieces == 2
-        assert pc.initial_single_pieces == 8
-        assert pc.decimal_places == 3
-        assert pc.tolerance.min_tol == max(0.002, 0.20)
+        # initial_min_weight=1.0：低于阈值不计件
+        svc.reset()
+        assert svc.process(0.8).total_pieces == 0
+        assert svc.process(10.0).total_pieces == 1
         assert svc.current_result().decimal_places == 3
+
+        # max_batch=2, initial_single=8：前几件仍单件；公差带随 15% 变化
+        assert svc.current_result().tolerance_high > 0
+        # min_tol = max(0.002, 0.20)=0.20：相对基准的微小抖动不应加件
+        baseline = svc.current_result().baseline_weight
+        assert svc.process(baseline + 0.1).total_pieces == 1

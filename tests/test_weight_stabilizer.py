@@ -154,7 +154,6 @@ class TestEdgeCases:
         assert len(stabilizer.short_win) == 0
         assert len(stabilizer.long_win) == 0
         assert stabilizer.stable_counter == 0
-        assert stabilizer.last_stable_weight is None
 
     def test_apply_start_params_threshold(self):
         """apply_start_params 将 stability_threshold 复制进实例"""
