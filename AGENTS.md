@@ -1,59 +1,59 @@
-# Weight Counter — Project Guidelines
+# Weight Counter — 项目指南
 
-Industrial piece-counting desktop application — PySide6 + manual DI.
+工业计件桌面应用：PySide6 + 手工依赖注入。
 
-## Architecture
+## 架构
 
 ```
 app/
-├── core/                  Drivers (csv_writer, sound_player, log_config, resources)
-├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
-├── services/              Serial (port+timeout), weight_input, counter, csv_log, config
-├── controllers/           MainController — sequential per-frame orchestration
-├── presentation/          UiBridge, StatusBar, to_count_view, view_models, styles
-├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
-│   ├── widgets/           Custom widgets
-│   └── ui_generated/      Qt Designer generated
-└── resources/             Icons, sounds
+├── core/                  驱动（csv_writer、sound_player、log_config、resource_manager）
+├── models/                纯业务（PieceCounter、Thresholds、Tolerance、WeightLearner、WeightStabilizer、Params、CountSnapshot）
+├── services/              串口、重量输入、计件、生产 CSV、配置
+├── controllers/           MainController — 每帧顺序编排
+├── presentation/          UiBridge、StatusBar、to_count_view、view_models、styles
+├── views/                 界面渲染（MainWindow、PieceTable、PieceChart）
+│   ├── widgets/           自定义控件
+│   └── ui_generated/      Qt Designer 生成代码
+└── resources/             图标、音效
 ```
 
-## Design Principles (must follow)
+## 设计原则（必须遵守）
 
-- **DI**: all objects created and wired in `main.py`
-- **FSM vs facade**: `PieceCounter.on_stable_weight` mutates state; `CounterService.process` detects edges and builds `CountFrame`
-- **Signal-driven UI**: `presentation.UiBridge` emits `count_changed`, `bar_snapshot_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic. Do not confuse with Qt Designer `Ui_MainWindow`.
-- **Status bar**: `StatusBar` is the only public API for the three labels (`on_*` → `BarSnapshot`); parse/comm and message latches are internal
-- **No bare attribute access**: Controller communicates with services through methods only
-- **Model layer is Qt-free**: unit-testable without a GUI, no I/O (see Params vs ConfigService split)
-- **Business services / controller are Qt-free**: `CounterService`, `WeightInputService`, and `MainController` are plain Python classes; I/O services (`SerialService`, etc.) and `UiBridge` inherit `QObject`
-- **Presentation ≠ services**: ViewModel DTOs / `to_count_view` / `UiBridge` live in `presentation/`, not under `services/`
+- **DI**：所有对象在 `main.py` 创建并接线
+- **FSM 与门面**：`PieceCounter.on_stable_weight` 改状态；`CounterService.process` 认边沿并产出 `CountFrame`
+- **信号驱动 UI**：`presentation.UiBridge` 发 `count_changed` / `bar_snapshot_changed` / `button_status_changed` / `actual_weight_changed`；`MainWindow` 只渲染，不碰业务。勿与 Qt Designer 的 `Ui_MainWindow` 混淆；注入属性名为 `ui_bridge`
+- **状态栏**：对外只用 `StatusBar` 的 `on_*` → `BarSnapshot`；解析/通讯与消息锁存为内部细节
+- **禁止裸属性乱穿**：Controller 只通过服务方法访问
+- **Model 无 Qt**：可单测、无 I/O（`Params` 与 `ConfigService` 分工）
+- **业务服务 / Controller 无 Qt**：`CounterService`、`WeightInputService`、`MainController` 为普通类；`SerialService`、`CsvLogService`、`UiBridge` 等继承 `QObject`
+- **Presentation ≠ services**：ViewModel / `to_count_view` / `UiBridge` 放在 `presentation/`
 
-## Tech Stack
+## 技术栈
 
-| Tool        | Purpose                 |
+| 工具 | 用途 |
 | ----------- | ----------------------- |
-| Python 3.13 | Language                |
-| PySide6     | Qt for Python UI        |
-| PyQtGraph   | Real-time scatter chart |
-| TOML        | Configuration format    |
-| UV          | Package manager         |
-| PyInstaller | Application packaging   |
+| Python 3.13 | 语言 |
+| PySide6 | Qt for Python 界面 |
+| PyQtGraph | 实时散点图 |
+| TOML | 配置格式 |
+| UV | 包管理 |
+| PyInstaller | 打包 |
 
-## Commands
+## 常用命令
 
 ```
-uv sync                          # Install dependencies
-uv run main.py                   # Run the app
-uv run pyinstaller main.spec     # Package to dist/WeightCounter/
-uv run pytest tests/ -v          # Run all tests
-uv run mypy app                  # Type check
+uv sync                          # 安装依赖
+uv run main.py                   # 运行
+uv run pyinstaller main.spec     # 打包到 dist/WeightCounter/
+uv run pytest tests/ -v          # 全部测试
+uv run mypy app                  # 类型检查
 ```
 
-## Test suite
+## 测试
 
-Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `UiBridge` and controller tests use the `qapp` fixture from `pytest-qt`.
+Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Controller 测试使用 pytest-qt 的 `qapp`。
 
-| File | Layer | Count |
+| 文件 | 层级 | 约条数 |
 |------|-------|-------|
 | `tests/test_weight_stabilizer.py` | model | 12 |
 | `tests/test_piece_counter.py` | model | 36 |
@@ -67,36 +67,51 @@ Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `UiBr
 | `tests/test_piece_chart.py` | view | 4 |
 | `tests/test_controller.py` | controller | 26 |
 
-## PySide6 QSignalSpy quirk (6.8.3)
+合计约 **148** 条。
 
-The `QSignalSpy` API differs from PyQt5/PySide2 and most online docs:
-- `spy.count()` — method, NOT `len(spy)`
-- `spy.at(i)` — access by index, NOT `spy[i]`
-- No `.clear()` method — create fresh spy instances
-- `spy.at(0)` returns `[arg]` — use `spy.at(0)[0]` for single-argument signals
+## PySide6 QSignalSpy 注意（6.8.3）
 
-## Hardware dependency
+与网上多数 PyQt5/PySide2 示例不同：
 
-The app requires a serial port with a connected electronic scale. Without hardware, serial operations will fail. `config.toml` must set `[serial].port` to a valid COM port.
+- `spy.count()` — 方法，不是 `len(spy)`
+- `spy.at(i)` — 按下标取，不是 `spy[i]`
+- 没有 `.clear()` — 需要时新建 spy
+- `spy.at(0)` 得到 `[arg]` — 单参数信号用 `spy.at(0)[0]`
 
-## Qt Designer generated code
+## 硬件依赖
 
-`app/views/ui_generated/form.py` is auto-generated by Qt Designer. Do not edit it manually.
+需要串口电子秤。无硬件时串口操作会失败。`config.toml` 的 `[serial].port` 须为有效 COM 口。
 
-## PyInstaller build quirk
+## Qt Designer 生成代码
 
-`main.spec` disables default PyInstaller hooks, manually selects only required Qt modules (QtCore, QtGui, QtWidgets, QtSerialPort), strips unused DLLs, and keeps only `qwindows.dll` platform plugin. Always build via the spec file — never run bare `pyinstaller main.py`.
+`app/views/ui_generated/form.py` 由 Designer 生成，勿手改。
 
-## Config
+## PyInstaller 打包注意
 
-`config.toml` controls serial port, baud rate, weight params, counting tolerance, etc.
+`main.spec` 关掉默认 hooks，只打入需要的 Qt 模块（QtCore、QtGui、QtWidgets、QtSerialPort），去掉多余 DLL，平台插件只留 `qwindows.dll`。务必用 spec 打包，不要裸跑 `pyinstaller main.py`。
 
-- **`Params`** (`app/models/params.py`): `@dataclass` holding all parameter values — pure data, no I/O. One shared instance is injected into window / services (`CounterService` / `WeightInputService` hold it; `MainController` does not). Most UI count params are copied into algorithms on Start; `target_pieces` is read live and not persisted.
-- **`ConfigService`**: loads/saves only keys in `_SECTION_MAP` (`target_pieces` is not included).
-- **Start-copied params**: on Start, `apply_start_params(params)` copies UI-editable count/stability fields into `PieceCounter` / `WeightStabilizer`. Algorithms do **not** hold a reference to shared `Params`. Mid-run UI edits to those fields apply on the next Start.
-- **`target_pieces`**: read each stable frame from shared `Params` by `CounterService`. Not in `_SECTION_MAP`; default `100`; not saved on exit.
+## 路径（ResourceManager）
 
-## Core Algorithms
+- `get_resource(...)`：只读静态资源（图标、音效）→ `Path`；打包用 `_MEIPASS`
+- `get_external(...)`：可读写（`config.toml`、日志目录）→ `Path`；打包用 EXE 旁目录
+- 开发根目录：含 `pyproject.toml` 与 `app/` 的项目根
+- 需要 `str` 时再 `str(...)`（如 `QIcon`、`winsound`）
 
-- **WeightStabilizer**: dual sliding windows (5-frame short, 10-frame long by default; configurable in `[stability]`) + triple checks (speed, trend, stddev) + hysteresis unlock
-- **PieceCounter**: 3-state FSM (ZERO → NORMAL → ABNORMAL) + EMA weight learning + sqrt(n) statistical tolerance (`Tolerance.band` / `is_within_tolerance(..., avg_weight, tolerance_percent)`; `min_tol` only on `Tolerance`; abnormal recovery via `_recover_limit`)
+## 配置
+
+`config.toml` 管串口、波特率、计件与稳重等参数。
+
+- **`Params`**（`app/models/params.py`）：纯数据，无 I/O。窗口与服务共享一份（`CounterService` / `WeightInputService` 持有；`MainController` 不持有）。字段旁注释标明：多数界面计件参数点 Start 才拷进算法；`target_pieces` 改了立刻生效且不落盘。
+- **`ConfigService`**：只读写 `_SECTION_MAP` 里的键（不含 `target_pieces`）。
+- **Start 拷贝**：`apply_start_params(params)` 把界面可调计件/稳定阈值拷进 `PieceCounter` / `WeightStabilizer`。算法不持有共享 `Params` 引用；跑起来中途改这些字段，要再点 Start 才生效。
+- **`target_pieces`**：`CounterService` 每帧稳重后从共享 `Params` 读取；默认 `100`；退出不保存。
+
+## 核心算法
+
+- **WeightStabilizer**：双滑动窗口（默认短 5 / 长 10，见 `[stability]`）+ 速度/趋势/标准差三重判定 + 滞回解锁
+- **PieceCounter**：三态 FSM（ZERO → NORMAL → ABNORMAL）+ EMA 学均重 + √n 统计公差（`Tolerance.band` / `is_within_tolerance`；`min_tol` 仅在 `Tolerance`；异常恢复见 `_recover_limit`）
+
+## 计件结果类型
+
+- **`CountSnapshot`**：当前件数、均重、公差等状态（给界面）
+- **`CountFrame`**：快照 + 本帧边沿（刚加件 / 刚异常 / 刚达目标）

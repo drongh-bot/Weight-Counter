@@ -1,67 +1,65 @@
-# Weight Counter
+# Weight Counter（称重计数）
 
-Industrial piece-counting desktop application built with **PySide6 + manual DI**.
+工业计件桌面应用：**PySide6 + 手工依赖注入**。
 
-Connects to an electronic scale via serial port, performs real-time weight stability
-detection, automatic piece counting, anomaly detection, and production logging —
-all with live chart and table visualization.
+通过串口连接电子秤，实时稳重判定、自动计件、异常检测与生产日志，并带表格与散点图展示。
 
 ---
 
-## Data Flow
+## 数据流
 
 ```
-Serial Port
-  → SerialService         (port I/O + timeout; single data_received outlet)
-  → WeightInputService    (parse + stabilize via dual-window algorithm)
-  → CounterService        (PieceCounter FSM + rising-edge events)
-  → UiBridge              (to_count_view + signals for count/bar/button/weight)
-  → MainWindow            (pure rendering — labels, table, scatter chart)
+串口
+  → SerialService         （读写 + 超时；统一 data_received）
+  → WeightInputService    （解析 + 双窗口稳重）
+  → CounterService        （PieceCounter 状态机 + 上升沿）
+  → UiBridge              （to_count_view + 件数/状态栏/按钮/当前重量信号）
+  → MainWindow            （只负责渲染标签、表、图）
 ```
 
-## Architecture
+## 架构
 
 ```
 app/
-├── core/                  Drivers (csv_writer, sound_player, log_config, resources)
-├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
-├── services/              serial, weight_input, counter, csv_log, config
-├── controllers/           MainController — sequential per-frame orchestration
-├── presentation/          UiBridge, StatusBar, to_count_view, view_models, styles
-├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
-│   ├── widgets/           Custom widgets
-│   └── ui_generated/      Qt Designer generated
-└── resources/             Icons, sounds
+├── core/                  驱动（csv_writer、sound_player、log_config、resource_manager）
+├── models/                纯业务（PieceCounter、Thresholds、Tolerance、WeightLearner、WeightStabilizer、Params）
+├── services/              串口、重量输入、计件、生产 CSV、配置
+├── controllers/           MainController — 每帧顺序编排
+├── presentation/          UiBridge、StatusBar、to_count_view、view_models、styles
+├── views/                 MainWindow、PieceTable、PieceChart
+│   ├── widgets/
+│   └── ui_generated/      Qt Designer 生成
+└── resources/             图标、音效
 ```
 
-### Key Design Principles
+### 设计要点
 
-- **Dependency Injection** — all objects created and wired in `main.py`
-- **FSM vs facade** — `PieceCounter.on_stable_weight` mutates state; `CounterService.process` detects edges and builds `CountFrame`
-- **Signal-driven UI** — `UiBridge` emits view snapshots; MainWindow renders only (not Qt Designer `Ui_MainWindow`)
-- **No bare attribute access** — Controller communicates with services through methods only
-- **Model layer is Qt-free** — unit-testable without a GUI; `CounterService` and `WeightInputService` are also Qt-free
-- **Params freshness** — most UI count params copied on Start; `target_pieces` follows the UI anytime and is not persisted
+- **依赖注入** — 对象在 `main.py` 创建并接线
+- **FSM 与门面** — `PieceCounter.on_stable_weight` 改状态；`CounterService.process` 认边沿并产出 `CountFrame`
+- **信号驱动 UI** — `UiBridge` 推送界面数据；`MainWindow` 只渲染（勿与 `Ui_MainWindow` 混淆）
+- **禁止乱穿属性** — Controller 只调服务方法
+- **Model / 计件服务无 Qt** — 可脱离界面单测
+- **参数生效时机** — 多数界面计件参数点 Start 才拷进算法；`target_pieces` 随时跟界面，且不写入配置文件
 
-### Core Algorithms
+### 核心算法
 
-**WeightStabilizer**
+**稳重（WeightStabilizer）**
 
-- Dual sliding windows (5-frame short, 10-frame long — configurable via `[stability]` in `config.toml`)
-- Triple checks: speed (short-window range), trend (long-window range), standard deviation
-- Lock mechanism with hysteresis unlock (2.5× threshold, 2-frame confirmation)
-- Windows keep updating during lock to prevent stale data on unlock
+- 双滑动窗口（默认短 5 / 长 10，见 `config.toml` 的 `[stability]`）
+- 三重判定：速度（短窗极差）、趋势（长窗极差）、标准差
+- 锁定后滞回解锁（默认 2.5 倍阈值、连续 2 帧确认）
+- 锁定期间窗口仍更新，避免解锁时数据过旧
 
-**PieceCounter**
+**计件（PieceCounter）**
 
-- Three-state FSM: ZERO → NORMAL → ABNORMAL
-- EMA average weight learning with auto jump detection (50% change, 2-frame confirm)
-- sqrt(n) statistical tolerance model for batch matching
-- Abnormal auto-recovery with direction tracking
+- 三态：ZERO → NORMAL → ABNORMAL
+- EMA 学均重，跳变检测（约 50% 变化、连续 2 帧确认）
+- √n 统计公差做批量匹配
+- 异常可按方向自动恢复
 
 ---
 
-## Quick Start
+## 快速开始
 
 ```bash
 pip install uv
@@ -71,26 +69,31 @@ uv run main.py
 
 ---
 
-## Config
+## 配置
 
-`config.toml` is the only configuration file. It is managed by:
+唯一配置文件为 `config.toml`，由下列两者配合：
 
-- **`Params`** (`app/models/params.py`) — pure `@dataclass` holding all application parameters, no I/O
-- **`ConfigService`** (`app/services/config_service.py`) — loads/saves a **subset** of `Params` ↔ `config.toml`
+- **`Params`**（`app/models/params.py`）— 纯数据，无 I/O
+- **`ConfigService`**（`app/services/config_service.py`）— 按 `_SECTION_MAP` 读写其中一部分字段
 
-### Runtime-only parameters (not in `config.toml`)
+### 路径（ResourceManager）
 
-Some UI fields live on `Params` but are **not persisted** — they apply to the current production run only:
+| 方法 | 用途 | 开发 | 打包 |
+| ---- | ---- | ---- | ---- |
+| `get_resource` | 图标、音效等只读资源 | 项目根 | `_MEIPASS` |
+| `get_external` | `config.toml`、日志等可写文件 | 项目根 | EXE 所在目录 |
 
-| Field | Purpose |
+均返回 `Path`；需要字符串时再 `str(...)`。
+
+### 仅运行时有效（不写进 config.toml）
+
+| 字段 | 含义 |
 | ----- | ------- |
-| `target_pieces` | Batch target count; editable anytime during counting via the UI spinbox |
+| `target_pieces` | 目标件数；计件过程中可随时改，读共享 `Params`，退出不保存（默认 100） |
 
-`CounterService` reads `target_pieces` live from the shared `Params` object on every stable weight frame (no restart or Start click required). The default is `100` (`Params.target_pieces`); it is not written back to disk on exit.
+### 可持久化参数示例
 
-### Persisted parameters
-
-Edit `config.toml`:
+编辑 `config.toml`：
 
 ```toml
 [parameters]
@@ -130,44 +133,43 @@ splitter_sizes = [140, 199]
 
 ---
 
-## Testing
+## 测试
 
 ```bash
-uv run pytest tests/ -v          # 148 tests
-uv run mypy app                  # Type check
+uv run pytest tests/ -v          # 约 148 条
+uv run mypy app                  # 类型检查
 ```
 
-详见 `AGENTS.md` 中的测试文件表。
+测试文件分层表见 `AGENTS.md`。
 
 ---
 
-## Hardware Requirement
+## 硬件
 
-The app requires a serial port with a connected electronic scale. `config.toml` must set
-`[serial].port` to a valid COM port. Without hardware, serial operations will fail.
+需串口电子秤；`config.toml` 的 `[serial].port` 设为有效 COM 口。无硬件时串口相关操作会失败。
 
 ---
 
-## Packaging
+## 打包
 
 ```bash
 uv run pyinstaller main.spec --clean
 ```
 
-Output: `dist/WeightCounter/`
+产物：`dist/WeightCounter/`（务必用 spec，不要裸跑 `pyinstaller main.py`）。
 
 ---
 
-## Tech Stack
+## 技术栈
 
-| Tech         | Purpose                 |
+| 技术 | 用途 |
 | ------------ | ----------------------- |
-| Python 3.13+ | Language                |
-| PySide6      | Qt for Python UI        |
-| PyQtGraph    | Real-time scatter chart |
-| TOML         | Configuration format    |
-| UV           | Package manager         |
-| PyInstaller  | Application packaging   |
+| Python 3.13+ | 语言 |
+| PySide6 | Qt for Python 界面 |
+| PyQtGraph | 实时散点图 |
+| TOML | 配置 |
+| UV | 包管理 |
+| PyInstaller | 打包 |
 
 ---
 
