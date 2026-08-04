@@ -6,7 +6,7 @@ from app.presentation.view_models import CountView, LabelItem
 
 
 def to_count_view(snap: CountSnapshot) -> CountView:
-    """领域 CountSnapshot → 展示用 CountView（纯函数，无 Qt）。"""
+    """把计件数字编成界面要显示的文字和颜色（件数、状态、公差等）。"""
     dp = snap.decimal_places
     if snap.state == CounterState.ZERO:
         state_text = "等待第一件"

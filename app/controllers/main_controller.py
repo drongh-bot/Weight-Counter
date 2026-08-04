@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class MainController:
-    """主控制器 — 每帧串行编排，非流水线框架。"""
+    """把秤上的数据和界面串起来：来一包串口数据，就按顺序做完解析、稳重、计件、刷新界面。"""
 
     def __init__(
         self,
@@ -26,7 +26,7 @@ class MainController:
         sound_player: SoundPlayer,
         csv_log_service: CsvLogService,
     ):
-        """注入各服务并连接串口/CSV 信号。"""
+        """接上串口、计件、界面等依赖，并监听超时/串口错误/写日志错误。"""
         self.ui: UiBridge = ui
         self.serial_service: SerialService = serial_service
         self.counter_service: CounterService = counter_service
@@ -46,12 +46,12 @@ class MainController:
         self._init_ui()
 
     def _init_ui(self) -> None:
-        """启动时同步计件与状态栏初始显示。"""
+        """开机时把件数区和底部提示刷成初始状态。"""
         self._sync_count_ui()
         self.ui.update_bar(self._bar.reset())
 
     def _button_status(self) -> ButtonStatus:
-        """按运行/强制校准挂起状态计算按钮可用性。"""
+        """按是否在跑、是否在等强制校准，决定 Start/Stop/强制校准等按钮能不能点。"""
         pending_force = self._pending_force_pieces is not None
         return ButtonStatus(
             start_enabled=not self._is_running,
@@ -61,37 +61,38 @@ class MainController:
         )
 
     def _sync_button_status(self) -> None:
-        """把按钮状态推到 UiBridge。"""
+        """把按钮能不能点告诉界面。"""
         self.ui.update_button_status(self._button_status())
 
     def _clear_pending(self) -> None:
-        """清除挂起的强制校准。"""
+        """取消「等重量稳住再强制校准」。"""
         self._pending_force_pieces = None
 
     def _raw_mismatches_stable(self, raw_weight: float, stable_weight: float) -> bool:
-        """实重与稳定重差异超过阈值时为 True（尚不可校准）。"""
+        """当前跳动重量和已稳住的重量差太大 → 还不能做强制校准。"""
         return (
             abs(raw_weight - stable_weight)
             > self.weight_input_service.stability_threshold
         )
 
     def _clear_actual_weight(self) -> None:
-        """清空实重显示（用当前生效的小数位格式化占位）。"""
+        """界面上的「当前秤重」显示成占位符。"""
         self.ui.update_actual_weight(None, self.counter_service.decimal_places)
 
     def _sync_count_ui(self) -> None:
-        """用当前计件快照刷新件数区，并清空实重显示。"""
+        """按当前件数刷新中间计件区，并清空当前秤重。"""
         snap = self.counter_service.snapshot()
         self.ui.update_count(snap)
         self._sync_button_status()
         self._clear_actual_weight()
 
     def _on_raw_data(self, raw_data: str) -> None:
-        """串口一帧入口（串行编排）。
+        """秤送来一包数据时的处理顺序：
 
-        原始串 → 解析 → 实重 UI
-              → 稳定化（None 时可能直接返回且不改写状态栏）
-              → 计件 → 边沿/声音/csv → 计件 UI + 状态栏
+        读出重量 → 更新「当前秤重」
+              → 判断重量稳不稳
+              → 稳了才计件（或做挂起的强制校准）
+              → 该响的响、该记生产的记，再刷新件数和底部提示
         """
         if not self._is_running:
             return
@@ -112,7 +113,7 @@ class MainController:
                 self.ui.update_bar(self._bar.on_force_waiting())
                 return
         elif stable_weight is None:
-            # 日常未稳定：不计件即可，勿改写状态栏（避免覆盖错误/异常等提示）
+            # 重量还在晃：先不计件，也不改底部提示（免得盖住异常/报错）
             return
 
         frame, bar = self._resolve_stable_frame(stable_weight)
@@ -122,10 +123,7 @@ class MainController:
     def _resolve_stable_frame(
         self, stable_weight: float
     ) -> tuple[CountFrame, BarSnapshot]:
-        """本帧稳定重：优先执行挂起的强制校准，否则走正常计件。
-
-        返回 (frame, 对应状态栏快照)。
-        """
+        """重量已稳住：若在等强制校准就先做校准，否则正常加减件。"""
         if self._pending_force_pieces is None:
             frame = self.counter_service.process(stable_weight)
             return frame, self._bar.on_stable_frame(
@@ -153,7 +151,7 @@ class MainController:
         )
 
     def _handle_frame(self, frame: CountFrame, stable_weight: float) -> None:
-        """刷新 UI，并按本帧边沿播放音效 / 记生产。"""
+        """刷新件数和当前秤重；刚进异常/刚达目标则播放提示音；有新件则记生产。"""
         self.ui.update_actual_weight(stable_weight, frame.decimal_places)
         self.ui.update_count(frame)
         self._sync_button_status()
@@ -165,28 +163,28 @@ class MainController:
             self._record_production(frame)
 
     def _record_production(self, snap: CountSnapshot) -> None:
-        """有新件时写入生产 CSV。"""
+        """把最新一件的单重和当前总件数写入生产日志。"""
         if snap.piece_weights:
             self.csv_log_service.record_production(
                 snap.piece_weights[-1], snap.total_pieces
             )
 
     def _on_timeout(self) -> None:
-        """串口超时：更新状态栏并清空实重显示。"""
+        """秤超时未回数据：底部提示等待，当前秤重清空。"""
         self.ui.update_bar(self._bar.on_timeout())
         self._clear_actual_weight()
 
     def _on_serial_error(self, msg: str) -> None:
-        """串口错误：更新状态栏并清空实重显示。"""
+        """串口故障：底部显示错误，当前秤重清空。"""
         self.ui.update_bar(self._bar.on_serial_error(msg))
         self._clear_actual_weight()
 
     def _on_csv_error(self, msg: str) -> None:
-        """CSV 错误：仅更新状态栏消息。"""
+        """写生产日志失败：只改底部消息。"""
         self.ui.update_bar(self._bar.on_csv_error(msg))
 
     def request_force_calibrate(self, pieces: int) -> None:
-        """登记待强制校准片数，等待下一帧稳定重再由 CounterService 执行。"""
+        """操作员点了强制校准：记下片数，等重量稳住后再真正改单重/件数。"""
         if not self._is_running or pieces <= 0:
             return
         if self._pending_force_pieces is not None:
@@ -196,14 +194,14 @@ class MainController:
         self.ui.update_bar(self._bar.on_force_waiting())
 
     def _reset_all(self) -> None:
-        """重置计件、稳重器与状态栏显示。"""
+        """件数清零、稳重状态清空，界面恢复初始。"""
         self.counter_service.reset()
         self.weight_input_service.reset()
         self._sync_count_ui()
         self.ui.update_bar(self._bar.reset())
 
     def start(self, port: str, baud: int) -> bool:
-        """Start：复制 START_SYNC 参数、打开串口。"""
+        """点 Start：套用当前界面参数、打开秤串口，开始收数计件。"""
         self._is_running = True
         self._reset_all()
         params = self.counter_service.params
@@ -217,14 +215,14 @@ class MainController:
             return False
 
     def _handle_start_error(self, error: Exception) -> None:
-        """Start 失败：回滚运行标志并显示错误状态。"""
+        """Start 失败（通常是串口打不开）：停下来并在底部显示原因。"""
         self._is_running = False
         self._sync_count_ui()
         self.ui.update_bar(self._bar.on_start_failed(str(error)))
         logger.exception("串口打开失败")
 
     def stop(self) -> None:
-        """Stop：重置状态并关闭串口。"""
+        """点 Stop：停止收数、清状态、关串口、停提示音。"""
         self._is_running = False
         self._clear_pending()
         self._reset_all()
@@ -232,7 +230,7 @@ class MainController:
         self.sound_player.stop()
 
     def shutdown(self) -> None:
-        """进程退出兜底：关闭串口、日志与音效。"""
+        """程序退出时关掉串口、生产日志和提示音。"""
         self.serial_service.close()
         self.csv_log_service.close()
         self.sound_player.stop()

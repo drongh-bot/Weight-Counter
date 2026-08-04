@@ -46,14 +46,14 @@ class TestStatusBarMessage:
             target_edge=True,
             piece_added=True,
         )
-        assert bar.snapshot().message.text == MSG_TARGET
+        assert bar.bar_snapshot().message.text == MSG_TARGET
 
         bar.on_stable_frame(
             state=CounterState.NORMAL,
             target_edge=False,
             piece_added=True,
         )
-        assert bar.snapshot().message.text == MSG_NONE
+        assert bar.bar_snapshot().message.text == MSG_NONE
 
     def test_force_overrides_then_falls_back(self):
         bar = StatusBar()
@@ -78,7 +78,7 @@ class TestStatusBarMessage:
             ).message.text
             == MSG_FORCE_DONE
         )
-        assert bar.snapshot().message.text == MSG_ABNORMAL
+        assert bar.bar_snapshot().message.text == MSG_ABNORMAL
 
     def test_waiting_cleared_on_stable(self):
         bar = StatusBar()

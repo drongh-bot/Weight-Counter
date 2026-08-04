@@ -1,18 +1,19 @@
 # app/presentation/status_bar.py
-"""状态栏（三标签）：事件入 → BarSnapshot 出。
+"""界面底部三格提示：解析是否正常、秤是否连上、当前业务消息。
 
-对外 API 仅 StatusBar。解析/通讯绘制与消息锁存为内部实现。
+谁用：MainController 在超时、解析失败、计件变化、强制校准等时机调用 on_*，
+把返回值交给界面刷新。
 
-消息显示优先级（高 → 低）：
-  强制失败 → 强制完成 → 等待稳定 → 软错误
-  → 计数异常 → 达目标 → 无
+消息谁优先（高 → 低）：
+  强制校准失败 → 强制校准完成 → 等待重量稳定 → 串口/CSV 报错
+  → 计数异常 → 已达目标件数 → 无异常
 
-消息生命周期：
-  abnormal   = 每帧由 CounterState 推导
-  target     = 边沿锁存；后续加件时清除
-  waiting    = 强制校准待稳定期间；稳定路径清除
-  force result = 仅当帧（on_force_*_frame）
-  soft error = 直至下一稳定帧；超时/未稳定不清除
+消息要显示多久：
+  - 计数异常：秤还处在异常就一直显示
+  - 已达目标：一直显示，直到之后又加了件
+  - 等待稳定：点了强制校准、重量还没稳住时显示；稳住或取消后消失
+  - 强制校准成功/失败：只闪一下（当次刷新）
+  - 串口/CSV 报错：一直显示到下次重量稳住
 """
 
 from __future__ import annotations
@@ -23,7 +24,7 @@ from app.models.counter_state import CounterState
 from app.presentation.styles import Styles
 from app.presentation.view_models import BarSnapshot, LabelItem
 
-# 导出供测试断言文案（非独立公共子系统）
+# 供测试核对文案
 MSG_NONE = "无异常"
 MSG_WAIT_STABLE = "等待稳定重量…"
 MSG_FORCE_DONE = "强制校准完成"
@@ -33,7 +34,7 @@ MSG_TARGET = "已达目标件数"
 
 
 class _ParseCommStatus(Enum):
-    """内部：解析 + 通讯两格的显示态。"""
+    """解析格 + 通讯格当前该显示哪种文案。"""
 
     OK = auto()
     TIMEOUT = auto()
@@ -42,7 +43,7 @@ class _ParseCommStatus(Enum):
 
 
 def _parse_comm_labels(status: _ParseCommStatus) -> tuple[LabelItem, LabelItem]:
-    """按解析/通讯显示态返回（解析标签, 通讯标签）。"""
+    """根据通讯情况拼出「解析」「通讯」两格文字和颜色。"""
     if status is _ParseCommStatus.OK:
         return (
             LabelItem(text="解析正常", style=Styles.GREEN),
@@ -60,7 +61,7 @@ def _parse_comm_labels(status: _ParseCommStatus) -> tuple[LabelItem, LabelItem]:
 
 
 def _message_label(text: str, *, info: bool = False) -> LabelItem:
-    """组装消息栏 LabelItem；info=True 用灰色，否则红色。"""
+    """拼消息格：提示类用灰字，报错类用红字。"""
     if text and text != MSG_NONE:
         style = Styles.GRAY if info else Styles.RED
     else:
@@ -69,10 +70,9 @@ def _message_label(text: str, *, info: bool = False) -> LabelItem:
 
 
 class StatusBar:
-    """持有解析 / 通讯 / 消息三格。调用 on_* 后使用返回的快照。"""
+    """记住当前该显示什么，每次 on_* 返回三格最新内容给界面。"""
 
     def __init__(self) -> None:
-        """初始化解析/通讯与消息锁存状态。"""
         self._parse_comm = _ParseCommStatus.OK
         self._state = CounterState.ZERO
         self._hold_target = False
@@ -80,46 +80,46 @@ class StatusBar:
         self._error: str | None = None
 
     def reset(self) -> BarSnapshot:
-        """重置全部内部状态并返回空闲快照。"""
+        """清空提示，回到开机空闲样子。"""
         self._parse_comm = _ParseCommStatus.OK
         self._state = CounterState.ZERO
         self._hold_target = False
         self._waiting = False
         self._error = None
-        return self.snapshot()
+        return self.bar_snapshot()
 
     def on_timeout(self) -> BarSnapshot:
-        """串口超时：解析/通讯切到等待态。"""
+        """秤一段时间没回数据。"""
         self._parse_comm = _ParseCommStatus.TIMEOUT
-        return self.snapshot()
+        return self.bar_snapshot()
 
     def on_parse_fail(self) -> BarSnapshot:
-        """重量解析失败：解析标签标红。"""
+        """串口有数据，但读不出重量数字。"""
         self._parse_comm = _ParseCommStatus.PARSE_FAIL
-        return self.snapshot()
+        return self.bar_snapshot()
 
     def on_force_waiting(self) -> BarSnapshot:
-        """强制校准已挂起，等待稳定重量。"""
+        """已点强制校准，等秤上重量稳住。"""
         self._parse_comm = _ParseCommStatus.OK
         self._waiting = True
-        return self.snapshot()
+        return self.bar_snapshot()
 
     def on_serial_error(self, msg: str) -> BarSnapshot:
-        """串口故障：解析/通讯故障态 + 软错误消息。"""
+        """串口出故障（打不开、读写失败等）。"""
         self._parse_comm = _ParseCommStatus.FAULT
         self._error = msg
-        return self.snapshot()
+        return self.bar_snapshot()
 
     def on_csv_error(self, msg: str) -> BarSnapshot:
-        """CSV 写入失败：仅更新软错误消息。"""
+        """生产记录写文件失败。"""
         self._error = msg
-        return self.snapshot()
+        return self.bar_snapshot()
 
     def on_start_failed(self, msg: str) -> BarSnapshot:
-        """Start 打开串口失败。"""
+        """点 Start 后串口没打开成功。"""
         self._parse_comm = _ParseCommStatus.FAULT
         self._error = msg
-        return self.snapshot()
+        return self.bar_snapshot()
 
     def on_stable_frame(
         self,
@@ -128,13 +128,13 @@ class StatusBar:
         target_edge: bool,
         piece_added: bool,
     ) -> BarSnapshot:
-        """普通稳定帧：更新锁存，按优先级出消息（无强制结果）。"""
+        """重量已稳住且走完普通计件：刷新三格（不含强制校准结果提示）。"""
         self._apply_stable_latches(
             state=state,
             target_edge=target_edge,
             piece_added=piece_added,
         )
-        return self.snapshot()
+        return self.bar_snapshot()
 
     def on_force_done_frame(
         self,
@@ -143,7 +143,7 @@ class StatusBar:
         target_edge: bool,
         piece_added: bool,
     ) -> BarSnapshot:
-        """强制校准成功当帧：更新锁存，消息为完成。"""
+        """强制校准成功：三格按最新计件更新，消息显示「强制校准完成」。"""
         self._apply_stable_latches(
             state=state,
             target_edge=target_edge,
@@ -158,7 +158,7 @@ class StatusBar:
         target_edge: bool,
         piece_added: bool,
     ) -> BarSnapshot:
-        """强制校准失败当帧：更新锁存，消息为失败。"""
+        """强制校准失败（例如重量过轻）：消息显示失败原因。"""
         self._apply_stable_latches(
             state=state,
             target_edge=target_edge,
@@ -166,8 +166,8 @@ class StatusBar:
         )
         return self._snapshot_with_message(MSG_FORCE_FAIL, info=False)
 
-    def snapshot(self) -> BarSnapshot:
-        """按当前锁存状态生成三标签快照（不含当帧强制结果）。"""
+    def bar_snapshot(self) -> BarSnapshot:
+        """按当前记住的状态拼出三格（不含「刚强制校准成功/失败」那种一次性提示）。"""
         parse, comm = _parse_comm_labels(self._parse_comm)
         text, info = self._resolve_message()
         return BarSnapshot(
@@ -183,7 +183,7 @@ class StatusBar:
         target_edge: bool,
         piece_added: bool,
     ) -> None:
-        """稳定路径共用：解析/通讯 OK、清等待/软错误、更新状态与目标锁存。"""
+        """重量稳住后的共同更新：通讯恢复正常，清掉等待/报错，并处理「已达目标」提示。"""
         self._parse_comm = _ParseCommStatus.OK
         self._state = state
         self._error = None
@@ -194,7 +194,7 @@ class StatusBar:
             self._hold_target = False
 
     def _snapshot_with_message(self, text: str, *, info: bool) -> BarSnapshot:
-        """组装快照，消息固定为给定文案（当帧强制结果用）。"""
+        """三格内容同上，但消息格改成指定一句话（强制校准结果用）。"""
         parse, comm = _parse_comm_labels(self._parse_comm)
         return BarSnapshot(
             parse=parse,
@@ -203,7 +203,7 @@ class StatusBar:
         )
 
     def _resolve_message(self) -> tuple[str, bool]:
-        """按锁存优先级解析消息文案；返回 (文本, 是否信息色)。"""
+        """按优先级选出当前该显示的消息；第二个返回值 True 表示用灰色提示，False 表示红色报错。"""
         if self._waiting:
             return MSG_WAIT_STABLE, True
         if self._error is not None:

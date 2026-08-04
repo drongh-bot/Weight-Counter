@@ -7,29 +7,21 @@ from app.models.piece_counter import PieceCounter
 
 
 class CounterService:
-    """
-    计件业务服务
-
-    职责：
-    - 将稳定重量喂入 PieceCounter
-    - 检测异常/目标边沿（本帧标志写入 CountFrame）
-    - 构建 CountSnapshot / CountFrame
-    - 强制校准、重置
-    """
+    """对外的计件入口：喂入稳住的重量，得到件数、是否异常、是否刚达目标等。"""
 
     def __init__(self, params: Params) -> None:
-        """用共享 Params 构造内部 PieceCounter（内部再拷贝参数）。"""
+        """用当前参数建好内部计件器。"""
         self.params = params
         self._piece_counter = PieceCounter(params)
 
     def apply_start_params(self, params: Params) -> None:
-        """Start 时将给定 Params 的 START_SYNC 字段复制进 PieceCounter。"""
+        """点 Start 时：把界面上的计件相关参数拷进算法（中途改参数要再 Start 才生效）。"""
         self._piece_counter.apply_start_params(params)
 
     def _target_crossed(
         self, old_count: int, new_count: int, state: CounterState
     ) -> bool:
-        """本帧是否首次跨越目标件数。"""
+        """这一次计件是否刚从「未达目标」变成「达到或超过目标件数」。"""
         target = self.params.target_pieces
         return (
             0 < target
@@ -38,7 +30,7 @@ class CounterService:
         )
 
     def process(self, stable_weight: float) -> CountFrame:
-        """运行 FSM + 边沿检测；返回本帧 CountFrame。"""
+        """用稳住的重量做一次正常计件，返回最新件数以及「刚发生了什么」（加件/异常/达目标）。"""
         old_count = self._piece_counter.total_pieces
         old_state = self._piece_counter.state
 
@@ -57,7 +49,7 @@ class CounterService:
         )
 
     def _build_snapshot(self) -> CountSnapshot:
-        """从 PieceCounter 组装纯快照（公差带按当前均重现算）。"""
+        """整理当前件数、均重、公差带等，给界面显示用。"""
         pc = self._piece_counter
         tol_low, tol_high, _ = pc.tolerance.band(
             pc.avg_weight, pc.tolerance_percent
@@ -84,7 +76,7 @@ class CounterService:
         abnormal_edge: bool = False,
         target_edge: bool = False,
     ) -> CountFrame:
-        """组装带边沿的本帧结果。"""
+        """在当前件数基础上，附上「这一次」是否加件、是否刚进异常、是否刚达目标。"""
         snap = self._build_snapshot()
         return CountFrame(
             abnormal_high=snap.abnormal_high,
@@ -107,7 +99,7 @@ class CounterService:
     def force_calibrate(
         self, stable_weight: float, pieces: int
     ) -> CountFrame | None:
-        """强制校准。成功返回带边沿的本帧结果，失败返回 None。"""
+        """按操作员指定的片数重设单重和件数。重量太轻等失败时返回 None。"""
         old_count = self._piece_counter.total_pieces
         if not self._piece_counter.force_calibrate(stable_weight, pieces):
             return None
@@ -118,14 +110,14 @@ class CounterService:
         )
 
     def reset(self) -> None:
-        """重置计件器。"""
+        """件数清零，回到未放第一件的状态。"""
         self._piece_counter.reset()
 
     @property
     def decimal_places(self) -> int:
-        """当前生效的小数位（Start 快照）。"""
+        """界面显示重量用的小数位数（以 Start 时为准）。"""
         return self._piece_counter.decimal_places
 
     def snapshot(self) -> CountSnapshot:
-        """返回当前计件快照（不推进 FSM，不含边沿）。"""
+        """只读当前件数等情况，不根据新重量往下计。"""
         return self._build_snapshot()
