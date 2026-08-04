@@ -61,7 +61,9 @@ class CounterService:
     def _build_result(self, added: bool = False) -> CountResult:
         """从 PieceCounter 组装 CountResult（公差带按当前均重现算）。"""
         pc = self._piece_counter
-        tol_low, tol_high, _ = pc.tolerance.band(pc.avg_weight)
+        tol_low, tol_high, _ = pc.tolerance.band(
+            pc.avg_weight, pc.tolerance_percent
+        )
         return CountResult(
             added=added,
             abnormal_high=pc.abnormal_high,

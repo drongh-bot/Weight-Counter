@@ -205,7 +205,7 @@ class TestCounterServiceProcess:
 
         pc = svc._piece_counter
         assert pc.thresholds.initial_min_weight == 1.0
-        assert pc.tolerance.tolerance_percent == 15.0
+        assert pc.tolerance_percent == 15.0
         assert pc.max_batch_pieces == 2
         assert pc.initial_single_pieces == 8
         assert pc.decimal_places == 3

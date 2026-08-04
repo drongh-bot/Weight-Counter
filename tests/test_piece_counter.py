@@ -17,7 +17,6 @@ class TestThresholds:
         """avg_weight > 0 时 = max(avg * 0.5, initial * 0.3)"""
         th = Thresholds(
             initial_min_weight=0.5,
-            tolerance_percent=10.0,
             min_tol=0.04,
         )
         expected = max(10.0 * 0.5, 0.5 * 0.3)
@@ -27,7 +26,6 @@ class TestThresholds:
         """avg_weight = 0 时 = initial_min_weight"""
         th = Thresholds(
             initial_min_weight=0.5,
-            tolerance_percent=10.0,
             min_tol=0.04,
         )
         assert th.dynamic_min_weight(0.0) == 0.5
@@ -36,20 +34,18 @@ class TestThresholds:
         """恢复正常阈值 = max(avg * tolerance%, min_tol)"""
         th = Thresholds(
             initial_min_weight=0.5,
-            tolerance_percent=20.0,
             min_tol=0.1,
         )
         expected = max(5.0 * 0.20, 0.1)
-        assert th.recover_threshold(5.0) == expected
+        assert th.recover_threshold(5.0, 20.0) == expected
 
     def test_recover_threshold_zero_avg(self):
         """avg_weight = 0 时的恢复阈值"""
         th = Thresholds(
             initial_min_weight=0.5,
-            tolerance_percent=20.0,
             min_tol=0.1,
         )
-        assert th.recover_threshold(0.0) == max(0.5, 0.1)
+        assert th.recover_threshold(0.0, 20.0) == max(0.5, 0.1)
 
 
 class TestWeightLearner:
@@ -109,31 +105,31 @@ class TestWeightLearner:
 
 class TestTolerance:
     def test_band_sets_range(self):
-        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
-        low, high, half_range = tol.band(100.0)
+        tol = Tolerance(min_tol=0.1)
+        low, high, half_range = tol.band(100.0, 10.0)
         assert low < 100.0
         assert high > 100.0
         assert half_range > 0
 
     def test_band_zero_avg(self):
-        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
-        assert tol.band(0.0) == (0.0, 0.0, 0.0)
+        tol = Tolerance(min_tol=0.1)
+        assert tol.band(0.0, 10.0) == (0.0, 0.0, 0.0)
 
     def test_match_single_piece(self):
-        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
-        assert tol.is_within_tolerance(abs(10.0), 1, avg_weight=10.0)
+        tol = Tolerance(min_tol=0.1)
+        assert tol.is_within_tolerance(abs(10.0), 1, avg_weight=10.0, tolerance_percent=10.0)
 
     def test_match_multi_piece(self):
-        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
-        assert tol.is_within_tolerance(40.0, 4, avg_weight=10.0)
+        tol = Tolerance(min_tol=0.1)
+        assert tol.is_within_tolerance(40.0, 4, avg_weight=10.0, tolerance_percent=10.0)
 
     def test_match_failure(self):
-        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
-        assert not tol.is_within_tolerance(25.0, 1, avg_weight=10.0)
+        tol = Tolerance(min_tol=0.1)
+        assert not tol.is_within_tolerance(25.0, 1, avg_weight=10.0, tolerance_percent=10.0)
 
     def test_match_zero_avg(self):
-        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
-        assert not tol.is_within_tolerance(10.0, 1, avg_weight=0.0)
+        tol = Tolerance(min_tol=0.1)
+        assert not tol.is_within_tolerance(10.0, 1, avg_weight=0.0, tolerance_percent=10.0)
 
 
 class TestPieceCounterFSM:
@@ -315,6 +311,6 @@ class TestPieceCounterParamUpdate:
         params = Params(tolerance_percent=20.0)
         counter = PieceCounter(params)
         params.tolerance_percent = 5.0
-        assert counter.tolerance.tolerance_percent == 20.0
+        assert counter.tolerance_percent == 20.0
         counter.apply_start_params(params)
-        assert counter.tolerance.tolerance_percent == 5.0
+        assert counter.tolerance_percent == 5.0

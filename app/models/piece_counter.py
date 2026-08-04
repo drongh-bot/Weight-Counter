@@ -41,9 +41,7 @@ class PieceCounter:
     def _build_helpers(self, *, initial_min_weight: float) -> None:
         """构造 Tolerance / WeightLearner / Thresholds。"""
         min_tol = self._min_tol()
-        self.tolerance = Tolerance(
-            min_tol=min_tol, tolerance_percent=self._tolerance_percent
-        )
+        self.tolerance = Tolerance(min_tol=min_tol)
         self.learner = WeightLearner(
             jump_threshold_ratio=self._jump_threshold_ratio,
             jump_confirm_times=self._jump_confirm_times,
@@ -53,7 +51,6 @@ class PieceCounter:
         )
         self.thresholds = Thresholds(
             initial_min_weight=initial_min_weight,
-            tolerance_percent=self._tolerance_percent,
             min_tol=min_tol,
             dynamic_weight_ratio=self._dynamic_weight_ratio,
             initial_min_ratio=self._initial_min_ratio,
@@ -67,8 +64,6 @@ class PieceCounter:
             self.max_batch_pieces = params.max_batch_pieces
         if 0.0 < params.tolerance_percent < 100.0:
             self._tolerance_percent = params.tolerance_percent
-            self.tolerance.tolerance_percent = params.tolerance_percent
-            self.thresholds.tolerance_percent = params.tolerance_percent
         if params.initial_min_weight > 0:
             self.thresholds.initial_min_weight = params.initial_min_weight
         if params.decimal_places >= 0:
@@ -94,6 +89,11 @@ class PieceCounter:
     def total_pieces(self) -> int:
         """当前已计件数。"""
         return len(self.piece_weights)
+
+    @property
+    def tolerance_percent(self) -> float:
+        """当前生效的公差百分比（Start 快照）。"""
+        return self._tolerance_percent
 
     def on_stable_weight(self, stable_weight: float) -> None:
         """处理一次稳定重量样本（会改变 FSM 状态）。"""
@@ -174,7 +174,9 @@ class PieceCounter:
 
         if (
             abs(current_delta)
-            > self.thresholds.recover_threshold(self.avg_weight)
+            > self.thresholds.recover_threshold(
+                self.avg_weight, self._tolerance_percent
+            )
             * self.abnormal_recover_factor
         ):
             return
@@ -236,7 +238,9 @@ class PieceCounter:
         if abs(n_est - n) > self.count_rounding_tolerance:
             return None
 
-        if not self.tolerance.is_within_tolerance(abs(delta), n, self.avg_weight):
+        if not self.tolerance.is_within_tolerance(
+            abs(delta), n, self.avg_weight, self._tolerance_percent
+        ):
             return None
 
         return n
