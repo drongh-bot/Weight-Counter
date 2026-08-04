@@ -7,6 +7,8 @@ from collections.abc import Callable
 import pytest
 
 from app.controllers.main_controller import MainController
+from app.models.count_result import CountResult
+from app.models.counter_state import CounterState
 from app.models.params import Params
 from app.presentation.ui import UiBridge
 from app.services.counter_service import CounterService
@@ -28,6 +30,27 @@ def feed_stable(
     """连续喂入相同原始重量串，直到稳重器锁定（默认 12 帧）。"""
     for _ in range(frames):
         controller._on_raw_data(raw)
+
+
+def make_count_result(**overrides: object) -> CountResult:
+    """构造 CountResult；未传字段用 ZERO 默认值。"""
+    result = CountResult(
+        added=False,
+        abnormal_high=False,
+        abnormal_low=False,
+        state=CounterState.ZERO,
+        delta=0.0,
+        avg_weight=0.0,
+        tolerance_high=0.0,
+        tolerance_low=0.0,
+        total_pieces=0,
+        last_stable_weight=0.0,
+        baseline_weight=0.0,
+        piece_weights=[],
+    )
+    for key, value in overrides.items():
+        setattr(result, key, value)
+    return result
 
 
 @pytest.fixture

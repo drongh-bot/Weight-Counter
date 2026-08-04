@@ -25,7 +25,8 @@ class SoundService:
         """停止当前播放。"""
         winsound.PlaySound(None, winsound.SND_PURGE)
 
-    def _play(self, full_path: str, *, repeat: bool = False) -> None:
+    def _play(self, full_path: str) -> None:
+        """异步播放一次 wav。"""
         self.stop()
 
         if not os.path.exists(full_path):
@@ -33,9 +34,6 @@ class SoundService:
             return
 
         flags = winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT
-        if repeat:
-            flags |= winsound.SND_LOOP
-
         try:
             winsound.PlaySound(full_path, flags)
         except Exception as e:

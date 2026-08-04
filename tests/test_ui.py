@@ -1,11 +1,11 @@
 from PySide6.QtTest import QSignalSpy
 
-from app.models.count_result import CountResult
 from app.models.counter_state import CounterState
 from app.presentation.status_bar import StatusBar
 from app.presentation.styles import Styles
 from app.presentation.ui import UiBridge
 from app.presentation.view_models import ButtonStatus
+from tests.conftest import make_count_result
 
 
 class TestUi:
@@ -17,13 +17,19 @@ class TestUi:
         ui = UiBridge()
         spy = QSignalSpy(ui.count_changed)
 
-        result = CountResult(
-            added=True, abnormal_high=False, abnormal_low=False,
-            state=CounterState.NORMAL, delta=10.0, avg_weight=10.0,
-            tolerance_high=11.0, tolerance_low=9.0, total_pieces=1,
-            last_stable_weight=10.0, baseline_weight=0.0, piece_weights=[10.0],
+        ui.update_count(
+            make_count_result(
+                added=True,
+                state=CounterState.NORMAL,
+                delta=10.0,
+                avg_weight=10.0,
+                tolerance_high=11.0,
+                tolerance_low=9.0,
+                total_pieces=1,
+                last_stable_weight=10.0,
+                piece_weights=[10.0],
+            )
         )
-        ui.update_count(result)
 
         assert spy.count() == 1
         d = self._last(spy)
@@ -33,12 +39,7 @@ class TestUi:
         ui = UiBridge()
         spy = QSignalSpy(ui.count_changed)
 
-        result = CountResult(
-            added=False, abnormal_high=False, abnormal_low=False,
-            state=CounterState.ZERO, delta=0.0, avg_weight=0.0,
-            tolerance_high=0.0, tolerance_low=0.0, total_pieces=0,
-            last_stable_weight=0.0, baseline_weight=0.0, piece_weights=[],
-        )
+        result = make_count_result()
         ui.update_count(result)
         assert spy.count() == 1
 
@@ -49,22 +50,22 @@ class TestUi:
         ui = UiBridge()
         spy = QSignalSpy(ui.count_changed)
 
-        result = CountResult(
-            added=False, abnormal_high=False, abnormal_low=False,
-            state=CounterState.ZERO, delta=0.0, avg_weight=0.0,
-            tolerance_high=0.0, tolerance_low=0.0, total_pieces=0,
-            last_stable_weight=0.0, baseline_weight=0.0, piece_weights=[],
-        )
-        ui.update_count(result)
+        ui.update_count(make_count_result())
         assert spy.count() == 1
 
-        result2 = CountResult(
-            added=True, abnormal_high=False, abnormal_low=False,
-            state=CounterState.NORMAL, delta=10.0, avg_weight=10.0,
-            tolerance_high=11.0, tolerance_low=9.0, total_pieces=1,
-            last_stable_weight=10.0, baseline_weight=0.0, piece_weights=[10.0],
+        ui.update_count(
+            make_count_result(
+                added=True,
+                state=CounterState.NORMAL,
+                delta=10.0,
+                avg_weight=10.0,
+                tolerance_high=11.0,
+                tolerance_low=9.0,
+                total_pieces=1,
+                last_stable_weight=10.0,
+                piece_weights=[10.0],
+            )
         )
-        ui.update_count(result2)
         assert spy.count() == 2
 
     def test_refresh_re_emits_last(self, qapp):
@@ -73,13 +74,7 @@ class TestUi:
         bar_spy = QSignalSpy(ui.bar_snapshot_changed)
         btn_spy = QSignalSpy(ui.button_status_changed)
 
-        result = CountResult(
-            added=False, abnormal_high=False, abnormal_low=False,
-            state=CounterState.ZERO, delta=0.0, avg_weight=0.0,
-            tolerance_high=0.0, tolerance_low=0.0, total_pieces=0,
-            last_stable_weight=0.0, baseline_weight=0.0, piece_weights=[],
-        )
-        ui.update_count(result)
+        ui.update_count(make_count_result())
         ui.update_bar(StatusBar().reset())
         ui.update_button_status(ButtonStatus())
         assert count_spy.count() == 1

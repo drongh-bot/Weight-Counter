@@ -169,8 +169,7 @@ class PieceCounter:
         ):
             return
 
-        if self.state == CounterState.ABNORMAL:
-            self._reset_baseline(stable_weight)
+        self._reset_baseline(stable_weight)
 
     def _reset_baseline(self, stable_weight: float) -> None:
         """将计件锚点重置为 stable_weight 并回到 NORMAL。"""

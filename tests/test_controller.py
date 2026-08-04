@@ -340,8 +340,7 @@ class TestControllerPipeline:
         assert controller.counter_service.current_result().total_pieces == 3
         sound.play_alert.assert_called()
         assert saw_force_done
-        assert controller._bar._hold_target is True
-        # subsequent stable frames (no new add): sticky target
+        # subsequent stable frames (no new add): 公开 BarSnapshot 显示目标锁存
         for _ in range(3):
             controller._on_raw_data("30.0 kg")
         assert ui._last_bar is not None

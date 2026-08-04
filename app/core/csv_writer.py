@@ -73,12 +73,3 @@ class CsvWriter:
                 self.file.close()
                 self.file = None
                 self.writer = None
-
-    def __enter__(self) -> "CsvWriter":
-        """进入 with 时确保日志文件已打开。"""
-        self._ensure_file()
-        return self
-
-    def __exit__(self, exc_type, exc, tb) -> None:
-        """离开 with 时关闭文件。"""
-        self.close()
