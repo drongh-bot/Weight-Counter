@@ -5,7 +5,7 @@ from app.presentation.status_bar import StatusBar
 from app.presentation.styles import Styles
 from app.presentation.ui import UiBridge
 from app.presentation.view_models import ButtonStatus
-from tests.conftest import make_count_result
+from tests.conftest import make_count_snapshot
 
 
 class TestUi:
@@ -18,8 +18,7 @@ class TestUi:
         spy = QSignalSpy(ui.count_changed)
 
         ui.update_count(
-            make_count_result(
-                added=True,
+            make_count_snapshot(
                 state=CounterState.NORMAL,
                 delta=10.0,
                 avg_weight=10.0,
@@ -39,7 +38,7 @@ class TestUi:
         ui = UiBridge()
         spy = QSignalSpy(ui.count_changed)
 
-        result = make_count_result()
+        result = make_count_snapshot()
         ui.update_count(result)
         assert spy.count() == 1
 
@@ -50,12 +49,11 @@ class TestUi:
         ui = UiBridge()
         spy = QSignalSpy(ui.count_changed)
 
-        ui.update_count(make_count_result())
+        ui.update_count(make_count_snapshot())
         assert spy.count() == 1
 
         ui.update_count(
-            make_count_result(
-                added=True,
+            make_count_snapshot(
                 state=CounterState.NORMAL,
                 delta=10.0,
                 avg_weight=10.0,
@@ -74,7 +72,7 @@ class TestUi:
         bar_spy = QSignalSpy(ui.bar_snapshot_changed)
         btn_spy = QSignalSpy(ui.button_status_changed)
 
-        ui.update_count(make_count_result())
+        ui.update_count(make_count_snapshot())
         ui.update_bar(StatusBar().reset())
         ui.update_button_status(ButtonStatus())
         assert count_spy.count() == 1

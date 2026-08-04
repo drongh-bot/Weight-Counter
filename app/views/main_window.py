@@ -20,7 +20,7 @@ from app.presentation.ui import UiBridge
 from app.presentation.view_models import (
     BarSnapshot,
     ButtonStatus,
-    CountSnapshot,
+    CountView,
     LabelItem,
 )
 from app.views.ui_generated.form import Ui_MainWindow
@@ -128,7 +128,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if lock_on_start:
                 getattr(self, widget).setEnabled(state.start_params_enabled)
 
-    def _on_count_changed(self, snap: CountSnapshot) -> None:
+    def _on_count_changed(self, snap: CountView) -> None:
         """刷新计件标签、表格与散点图。"""
         try:
             self.lblDeltaWeight.setText(snap.delta_weight.text)

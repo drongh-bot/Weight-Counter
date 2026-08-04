@@ -1,7 +1,7 @@
 # app/controllers/main_controller.py
 import logging
 
-from app.models.count_result import CountResult
+from app.models.count_snapshot import CountFrame, CountSnapshot
 from app.presentation.status_bar import StatusBar
 from app.presentation.ui import UiBridge
 from app.presentation.view_models import ButtonStatus
@@ -81,8 +81,8 @@ class MainController:
 
     def _sync_count_ui(self) -> None:
         """用当前计件快照刷新件数区，并清空实重显示。"""
-        result = self.counter_service.current_result()
-        self.ui.update_count(result)
+        snap = self.counter_service.snapshot()
+        self.ui.update_count(snap)
         self._sync_button_status()
         self._clear_actual_weight()
 
@@ -104,8 +104,8 @@ class MainController:
             return
 
         stable_weight = self.weight_input_service.stabilize(weight)
-        result = self.counter_service.current_result()
-        self.ui.update_actual_weight(weight, result.decimal_places)
+        snap = self.counter_service.snapshot()
+        self.ui.update_actual_weight(weight, snap.decimal_places)
 
         if self._pending_force_pieces is not None:
             if stable_weight is None or self._raw_mismatches_stable(weight, stable_weight):
@@ -115,13 +115,13 @@ class MainController:
             # 日常未稳定：不计件即可，勿改写状态栏（避免覆盖错误/异常等提示）
             return
 
-        result, force_done, force_failed = self._resolve_stable_frame(stable_weight)
-        self._handle_result(result, stable_weight)
+        frame, force_done, force_failed = self._resolve_stable_frame(stable_weight)
+        self._handle_frame(frame, stable_weight)
         self.ui.update_bar(
             self._bar.on_stable_frame(
-                state=result.state,
-                target_reached=result.target_edge,
-                piece_added=result.added,
+                state=frame.state,
+                target_reached=frame.target_edge,
+                piece_added=frame.added,
                 force_done=force_done,
                 force_failed=force_failed,
             )
@@ -129,10 +129,10 @@ class MainController:
 
     def _resolve_stable_frame(
         self, stable_weight: float
-    ) -> tuple[CountResult, bool, bool]:
+    ) -> tuple[CountFrame, bool, bool]:
         """本帧稳定重：优先执行挂起的强制校准，否则走正常计件。
 
-        返回 (result, force_done, force_failed)。
+        返回 (frame, force_done, force_failed)。
         """
         if self._pending_force_pieces is None:
             return self.counter_service.process(stable_weight), False, False
@@ -146,23 +146,23 @@ class MainController:
         self._record_production(calibrated)
         return calibrated, True, False
 
-    def _handle_result(self, result: CountResult, stable_weight: float) -> None:
+    def _handle_frame(self, frame: CountFrame, stable_weight: float) -> None:
         """刷新 UI，并按本帧边沿播放音效 / 记生产。"""
-        self.ui.update_actual_weight(stable_weight, result.decimal_places)
-        self.ui.update_count(result)
+        self.ui.update_actual_weight(stable_weight, frame.decimal_places)
+        self.ui.update_count(frame)
         self._sync_button_status()
-        if result.abnormal_edge:
+        if frame.abnormal_edge:
             self.sound_service.play_error()
-        if result.target_edge:
+        if frame.target_edge:
             self.sound_service.play_alert()
-        if result.added:
-            self._record_production(result)
+        if frame.added:
+            self._record_production(frame)
 
-    def _record_production(self, result: CountResult) -> None:
+    def _record_production(self, snap: CountSnapshot) -> None:
         """有新件时写入生产 CSV。"""
-        if result.piece_weights:
+        if snap.piece_weights:
             self.csv_log_service.record_production(
-                result.piece_weights[-1], result.total_pieces
+                snap.piece_weights[-1], snap.total_pieces
             )
 
     def _on_timeout(self) -> None:

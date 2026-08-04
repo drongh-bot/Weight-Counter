@@ -30,8 +30,8 @@ class ButtonStatus:
 
 
 @dataclass
-class CountSnapshot:
-    """计件区 UI 展示快照。"""
+class CountView:
+    """计件区 UI 展示数据。"""
 
     delta_weight: LabelItem
     state: LabelItem

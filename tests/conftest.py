@@ -7,7 +7,7 @@ from collections.abc import Callable
 import pytest
 
 from app.controllers.main_controller import MainController
-from app.models.count_result import CountResult
+from app.models.count_snapshot import CountSnapshot
 from app.models.counter_state import CounterState
 from app.models.params import Params
 from app.presentation.ui import UiBridge
@@ -32,10 +32,9 @@ def feed_stable(
         controller._on_raw_data(raw)
 
 
-def make_count_result(**overrides: object) -> CountResult:
-    """构造 CountResult；未传字段用 ZERO 默认值。"""
-    result = CountResult(
-        added=False,
+def make_count_snapshot(**overrides: object) -> CountSnapshot:
+    """构造 CountSnapshot；未传字段用 ZERO 默认值。"""
+    snap = CountSnapshot(
         abnormal_high=False,
         abnormal_low=False,
         state=CounterState.ZERO,
@@ -49,8 +48,8 @@ def make_count_result(**overrides: object) -> CountResult:
         piece_weights=[],
     )
     for key, value in overrides.items():
-        setattr(result, key, value)
-    return result
+        setattr(snap, key, value)
+    return snap
 
 
 @pytest.fixture

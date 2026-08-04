@@ -1,20 +1,19 @@
 from app.models.counter_state import CounterState
 from app.presentation.count_builder import to_count_snapshot
 from app.presentation.styles import Styles
-from tests.conftest import make_count_result
+from tests.conftest import make_count_snapshot
 
 
 class TestToCountSnapshot:
     def test_zero_state(self):
-        data = to_count_snapshot(make_count_result())
+        data = to_count_snapshot(make_count_snapshot())
         assert data.state.text == "等待第一件"
         assert data.state.style == ""
         assert data.total_pieces == "0"
 
     def test_normal_state(self):
         data = to_count_snapshot(
-            make_count_result(
-                added=True,
+            make_count_snapshot(
                 state=CounterState.NORMAL,
                 delta=10.0,
                 avg_weight=10.0,
@@ -31,7 +30,7 @@ class TestToCountSnapshot:
 
     def test_abnormal_high(self):
         data = to_count_snapshot(
-            make_count_result(
+            make_count_snapshot(
                 abnormal_high=True,
                 state=CounterState.ABNORMAL,
                 delta=15.0,
@@ -50,7 +49,7 @@ class TestToCountSnapshot:
 
     def test_abnormal_low(self):
         data = to_count_snapshot(
-            make_count_result(
+            make_count_snapshot(
                 abnormal_low=True,
                 state=CounterState.ABNORMAL,
                 delta=-5.0,
@@ -68,7 +67,7 @@ class TestToCountSnapshot:
 
     def test_decimal_places(self):
         data = to_count_snapshot(
-            make_count_result(
+            make_count_snapshot(
                 state=CounterState.NORMAL,
                 delta=1.2345,
                 avg_weight=1.2345,

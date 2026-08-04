@@ -1,9 +1,9 @@
 # app/presentation/ui.py
 from PySide6.QtCore import QObject, Signal
 
-from app.models.count_result import CountResult
+from app.models.count_snapshot import CountSnapshot
 from app.presentation.count_builder import to_count_snapshot
-from app.presentation.view_models import BarSnapshot, ButtonStatus, CountSnapshot
+from app.presentation.view_models import BarSnapshot, ButtonStatus, CountView
 
 
 class UiBridge(QObject):
@@ -13,7 +13,7 @@ class UiBridge(QObject):
     各 update_* 会与上次内容比较，相同则不 emit，避免串口高频帧刷爆 UI。
     """
 
-    count_changed = Signal(CountSnapshot)
+    count_changed = Signal(CountView)
     bar_snapshot_changed = Signal(BarSnapshot)
     button_status_changed = Signal(ButtonStatus)
     actual_weight_changed = Signal(str)
@@ -21,14 +21,14 @@ class UiBridge(QObject):
     def __init__(self) -> None:
         super().__init__()
         # 上次已发出的内容，用于去重
-        self._last_count: CountSnapshot | None = None
+        self._last_count: CountView | None = None
         self._last_bar: BarSnapshot | None = None
         self._last_button: ButtonStatus | None = None
         self._last_weight: str | None = None
 
-    def update_count(self, result: CountResult) -> None:
-        """把计件领域结果转成展示快照，有变化时通知窗口刷新件数/公差等标签。"""
-        data = to_count_snapshot(result)
+    def update_count(self, snap: CountSnapshot) -> None:
+        """把计件快照转成展示数据，有变化时通知窗口刷新件数/公差等标签。"""
+        data = to_count_snapshot(snap)
         if data != self._last_count:
             self._last_count = data
             self.count_changed.emit(data)

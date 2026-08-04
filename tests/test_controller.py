@@ -104,7 +104,7 @@ class TestControllerPipeline:
 
         feed_stable(controller, "30.0 kg")
 
-        result = controller.counter_service.current_result()
+        result = controller.counter_service.snapshot()
         assert result.total_pieces == 3
         assert controller._pending_force_pieces is None
 
@@ -114,14 +114,14 @@ class TestControllerPipeline:
         controller._is_running = True
 
         feed_stable(controller, "10.0 kg")
-        assert controller.counter_service.current_result().state == CounterState.NORMAL
+        assert controller.counter_service.snapshot().state == CounterState.NORMAL
 
         # 先稳定在 30，再强制校准，避免 pending 在过渡帧用旧 stable 重量执行
         feed_stable(controller, "30.0 kg")
         controller.request_force_calibrate(3)
         feed_stable(controller, "30.0 kg")
 
-        result = controller.counter_service.current_result()
+        result = controller.counter_service.snapshot()
         assert result.state == CounterState.NORMAL
         assert result.total_pieces == 3
         assert result.baseline_weight == pytest.approx(30.0)
@@ -132,10 +132,10 @@ class TestControllerPipeline:
 
         feed_stable(controller, "10.0 kg")
         feed_stable(controller, "25.0 kg")
-        assert controller.counter_service.current_result().state == CounterState.ABNORMAL
+        assert controller.counter_service.snapshot().state == CounterState.ABNORMAL
 
         feed_stable(controller, "10.0 kg")
-        assert controller.counter_service.current_result().state == CounterState.NORMAL
+        assert controller.counter_service.snapshot().state == CounterState.NORMAL
 
     def test_abnormal_status_persists_until_recovered(self, make_controller):
         sound = MagicMock()
@@ -145,10 +145,10 @@ class TestControllerPipeline:
         feed_stable(controller, "10.0 kg")
         for _ in range(STABLE_FRAMES):
             controller._on_raw_data("25.0 kg")
-            if controller.counter_service.current_result().state == CounterState.ABNORMAL:
+            if controller.counter_service.snapshot().state == CounterState.ABNORMAL:
                 break
 
-        assert controller.counter_service.current_result().state == CounterState.ABNORMAL
+        assert controller.counter_service.snapshot().state == CounterState.ABNORMAL
         sound.play_error.assert_called()
         assert ui._last_bar is not None
         assert ui._last_bar.message.text == MSG_ABNORMAL
@@ -156,11 +156,11 @@ class TestControllerPipeline:
         # still abnormal: message must stick across further stable frames
         for _ in range(5):
             controller._on_raw_data("25.0 kg")
-        assert controller.counter_service.current_result().state == CounterState.ABNORMAL
+        assert controller.counter_service.snapshot().state == CounterState.ABNORMAL
         assert ui._last_bar.message.text == MSG_ABNORMAL
 
         feed_stable(controller, "10.0 kg")
-        assert controller.counter_service.current_result().state == CounterState.NORMAL
+        assert controller.counter_service.snapshot().state == CounterState.NORMAL
         assert ui._last_bar.message.text == "无异常"
 
     def test_target_status_persists_until_next_add(self, make_controller):
@@ -171,10 +171,10 @@ class TestControllerPipeline:
         feed_stable(controller, "10.0 kg")
         for _ in range(STABLE_FRAMES):
             controller._on_raw_data("20.0 kg")
-            if controller.counter_service.current_result().total_pieces >= 2:
+            if controller.counter_service.snapshot().total_pieces >= 2:
                 break
 
-        assert controller.counter_service.current_result().total_pieces == 2
+        assert controller.counter_service.snapshot().total_pieces == 2
         sound.play_alert.assert_called()
         assert ui._last_bar is not None
         assert ui._last_bar.message.text == MSG_TARGET
@@ -182,15 +182,15 @@ class TestControllerPipeline:
         # no new pieces: target message sticks
         for _ in range(5):
             controller._on_raw_data("20.0 kg")
-        assert controller.counter_service.current_result().total_pieces == 2
+        assert controller.counter_service.snapshot().total_pieces == 2
         assert ui._last_bar.message.text == MSG_TARGET
 
         # next add clears target hold
         for _ in range(STABLE_FRAMES):
             controller._on_raw_data("30.0 kg")
-            if controller.counter_service.current_result().total_pieces >= 3:
+            if controller.counter_service.snapshot().total_pieces >= 3:
                 break
-        assert controller.counter_service.current_result().total_pieces == 3
+        assert controller.counter_service.snapshot().total_pieces == 3
         assert ui._last_bar.message.text == "无异常"
 
     def test_pending_only_when_running(self, make_controller):
@@ -205,11 +205,11 @@ class TestControllerPipeline:
         controller._is_running = True
 
         feed_stable(controller, "10.0 kg")
-        assert controller.counter_service.current_result().total_pieces == 1
+        assert controller.counter_service.snapshot().total_pieces == 1
 
         controller.stop()
         assert controller._is_running is False
-        assert controller.counter_service.current_result().total_pieces == 0
+        assert controller.counter_service.snapshot().total_pieces == 0
         assert controller._pending_force_pieces is None
 
     def test_start_resets_and_starts_serial(self, make_controller):
@@ -225,7 +225,7 @@ class TestControllerPipeline:
         try:
             controller.start("COM99", 9600)
             assert controller._is_running is True
-            assert controller.counter_service.current_result().total_pieces == 0
+            assert controller.counter_service.snapshot().total_pieces == 0
             controller.serial_service.open.assert_called_once_with("COM99", 9600)
         finally:
             controller.serial_service.open = original_open
@@ -257,7 +257,7 @@ class TestControllerPipeline:
         feed_stable(controller, "10.0 kg")
         feed_stable(controller, "25.0 kg")
 
-        result = controller.counter_service.current_result()
+        result = controller.counter_service.snapshot()
         assert result.state == CounterState.ABNORMAL
 
         status = controller._button_status()
@@ -314,7 +314,7 @@ class TestControllerPipeline:
         controller, ui = make_controller()
         controller._is_running = True
         feed_stable(controller, "10.0 kg")
-        assert controller.counter_service.current_result().total_pieces == 1
+        assert controller.counter_service.snapshot().total_pieces == 1
 
         controller.request_force_calibrate(3)
         assert ui._last_bar is not None
@@ -322,7 +322,7 @@ class TestControllerPipeline:
         # 重量跳到 30，但 stable 仍锁在 10 → 应 defer，件数不变
         controller._on_raw_data("30.0 kg")
         assert controller._pending_force_pieces == 3
-        assert controller.counter_service.current_result().total_pieces == 1
+        assert controller.counter_service.snapshot().total_pieces == 1
         assert ui._last_bar.message.text == MSG_WAIT_STABLE
 
     def test_force_calibrate_target_edge(self, make_controller):
@@ -330,7 +330,7 @@ class TestControllerPipeline:
         controller, ui = make_controller(sound_service=sound, target_pieces=3)
         controller._is_running = True
         feed_stable(controller, "10.0 kg")
-        assert controller.counter_service.current_result().total_pieces == 1
+        assert controller.counter_service.snapshot().total_pieces == 1
         controller.request_force_calibrate(3)
 
         saw_force_done = False
@@ -338,7 +338,7 @@ class TestControllerPipeline:
             controller._on_raw_data("30.0 kg")
             if ui._last_bar and ui._last_bar.message.text == MSG_FORCE_DONE:
                 saw_force_done = True
-        assert controller.counter_service.current_result().total_pieces == 3
+        assert controller.counter_service.snapshot().total_pieces == 3
         sound.play_alert.assert_called()
         assert saw_force_done
         # subsequent stable frames (no new add): 公开 BarSnapshot 显示目标锁存

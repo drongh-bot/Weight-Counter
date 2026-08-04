@@ -1,4 +1,4 @@
-# app/models/count_result.py
+# app/models/count_snapshot.py
 
 from dataclasses import dataclass
 
@@ -6,10 +6,9 @@ from app.models.counter_state import CounterState
 
 
 @dataclass
-class CountResult:
-    """计件结果快照 — CounterService 统一数据载体。"""
+class CountSnapshot:
+    """当前计件状态快照（无边沿）。"""
 
-    added: bool
     abnormal_high: bool
     abnormal_low: bool
     state: CounterState
@@ -22,5 +21,12 @@ class CountResult:
     baseline_weight: float
     piece_weights: list[float]
     decimal_places: int = 2
+
+
+@dataclass
+class CountFrame(CountSnapshot):
+    """本帧计件结果：快照 + 边沿（仅 process / force_calibrate 产生）。"""
+
+    added: bool = False
     abnormal_edge: bool = False
     target_edge: bool = False

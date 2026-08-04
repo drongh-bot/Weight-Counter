@@ -1,3 +1,4 @@
+from app.models.count_snapshot import CountSnapshot
 from app.models.params import Params
 from app.models.counter_state import CounterState
 from app.services.counter_service import CounterService
@@ -12,7 +13,7 @@ class TestCounterServiceProcess:
 
     def test_initial_state(self):
         svc = self._make_service()
-        result = svc.current_result()
+        result = svc.snapshot()
         assert result.state == CounterState.ZERO
         assert result.total_pieces == 0
 
@@ -35,7 +36,7 @@ class TestCounterServiceProcess:
         svc.process(10.0)
         result = svc.process(25.0)  # 无法匹配 → 异常
         assert result.abnormal_edge is True
-        assert svc.current_result().abnormal_edge is False
+        assert type(svc.snapshot()) is CountSnapshot
 
     def test_target_edge_trigger(self):
         svc = self._make_service(target=3)
@@ -43,7 +44,7 @@ class TestCounterServiceProcess:
         svc.process(20.0)   # 2件
         result = svc.process(30.0)   # 3件，达到目标
         assert result.target_edge is True
-        assert svc.current_result().target_edge is False
+        assert type(svc.snapshot()) is CountSnapshot
 
     def test_target_not_triggered_below_target(self):
         svc = self._make_service(target=10)
@@ -55,9 +56,8 @@ class TestCounterServiceProcess:
         svc = self._make_service(target=2)
         svc.process(10.0)
         # 目标只应在 NORMAL 状态下触发
-        result = svc.current_result()
+        result = svc.snapshot()
         assert result.total_pieces == 1
-        assert result.target_edge is False
 
     def test_target_edge_batch_skip(self):
         """批量加件跳过精确目标值时仍应触发（上升沿）"""
@@ -128,7 +128,7 @@ class TestCounterServiceProcess:
         svc = self._make_service()
         svc.process(10.0)
         assert svc.force_calibrate(0.3, 5) is None
-        assert svc.current_result().total_pieces == 1
+        assert svc.snapshot().total_pieces == 1
 
     def test_force_calibrate_target_edge(self):
         svc = self._make_service(target=3)
@@ -150,9 +150,9 @@ class TestCounterServiceProcess:
         svc = self._make_service()
         svc.process(10.0)
         svc.process(20.0)
-        assert svc.current_result().total_pieces == 2
+        assert svc.snapshot().total_pieces == 2
         svc.reset()
-        result = svc.current_result()
+        result = svc.snapshot()
         assert result.state == CounterState.ZERO
         assert result.total_pieces == 0
 
@@ -164,13 +164,14 @@ class TestCounterServiceProcess:
         assert result.abnormal_high is True
         assert result.abnormal_low is False
 
-    def test_current_result_snapshot(self):
+    def test_snapshot(self):
         svc = self._make_service()
         svc.process(10.0)
-        result = svc.current_result()
+        result = svc.snapshot()
         assert result.total_pieces == 1
         assert result.avg_weight == 10.0
         assert result.piece_weights == [10.0]
+        assert type(result) is CountSnapshot
 
     def test_apply_start_params_syncs_ui_editable_fields(self):
         params = Params(
@@ -196,10 +197,10 @@ class TestCounterServiceProcess:
         svc.reset()
         assert svc.process(0.8).total_pieces == 0
         assert svc.process(10.0).total_pieces == 1
-        assert svc.current_result().decimal_places == 3
+        assert svc.snapshot().decimal_places == 3
 
         # max_batch=2, initial_single=8：前几件仍单件；公差带随 15% 变化
-        assert svc.current_result().tolerance_high > 0
+        assert svc.snapshot().tolerance_high > 0
         # min_tol = max(0.002, 0.20)=0.20：相对基准的微小抖动不应加件
-        baseline = svc.current_result().baseline_weight
+        baseline = svc.snapshot().baseline_weight
         assert svc.process(baseline + 0.1).total_pieces == 1
