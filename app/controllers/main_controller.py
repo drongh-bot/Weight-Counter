@@ -1,8 +1,6 @@
 # app/controllers/main_controller.py
 import logging
 
-from PySide6.QtCore import QObject
-
 from app.models.count_result import CountResult
 from app.models.params import Params
 from app.presentation.status_bar import ForceOutcome, StatusBar
@@ -17,7 +15,7 @@ from app.services.weight_input_service import WeightInputService
 logger = logging.getLogger(__name__)
 
 
-class MainController(QObject):
+class MainController:
     """主控制器 — 每帧串行编排，非流水线框架。"""
 
     def __init__(
@@ -31,8 +29,6 @@ class MainController(QObject):
         params: Params,
     ):
         """注入各服务并连接串口/CSV 信号。"""
-        super().__init__()
-
         self.ui: UiBridge = ui
         self.serial_service: SerialService = serial_service
         self.counter_service: CounterService = counter_service
@@ -77,7 +73,10 @@ class MainController(QObject):
 
     def _raw_mismatches_stable(self, raw_weight: float, stable_weight: float) -> bool:
         """实重与稳定重差异超过阈值时为 True（尚不可校准）。"""
-        return abs(raw_weight - stable_weight) > self.params.stability_threshold
+        return (
+            abs(raw_weight - stable_weight)
+            > self.weight_input_service.stability_threshold
+        )
 
     def _sync_count_ui(self) -> None:
         """用当前计件快照刷新件数区，并清空实重显示。"""
@@ -117,51 +116,44 @@ class MainController(QObject):
             # 日常未稳定：不计件即可，勿改写状态栏（避免覆盖错误/异常等提示）
             return
 
-        force = self._apply_pending_force(stable_weight)
-        result = self.counter_service.process(stable_weight)
-        target_reached, piece_added = self._handle_result(result, stable_weight)
+        force, result = self._resolve_stable_frame(stable_weight)
+        self._handle_result(result, stable_weight)
         self.ui.update_bar(
             self._bar.on_stable_frame(
                 state=result.state,
                 force=force,
-                target_reached=target_reached,
-                piece_added=piece_added,
+                target_reached=result.target_edge,
+                piece_added=result.added,
             )
         )
 
-    def _apply_pending_force(self, stable_weight: float) -> ForceOutcome:
-        """若有待处理强制校准，在本帧稳定重上执行。"""
+    def _resolve_stable_frame(
+        self, stable_weight: float
+    ) -> tuple[ForceOutcome, CountResult]:
+        """本帧稳定重：优先执行挂起的强制校准，否则走正常计件。"""
         if self._pending_force_pieces is None:
-            return ForceOutcome.NONE
+            return ForceOutcome.NONE, self.counter_service.process(stable_weight)
+
         pieces = self._pending_force_pieces
         self._pending_force_pieces = None
-        if self.counter_service.force_calibrate(stable_weight, pieces):
-            self._record_production(self.counter_service.current_result())
-            return ForceOutcome.DONE
-        return ForceOutcome.FAIL
+        calibrated = self.counter_service.force_calibrate(stable_weight, pieces)
+        if calibrated is None:
+            return ForceOutcome.FAIL, self.counter_service.process(stable_weight)
 
-    def _handle_result(
-        self, result: CountResult, stable_weight: float
-    ) -> tuple[bool, bool]:
-        """刷新 UI、处理边沿事件；返回 (target_reached, piece_added)。"""
+        self._record_production(calibrated)
+        return ForceOutcome.DONE, calibrated
+
+    def _handle_result(self, result: CountResult, stable_weight: float) -> None:
+        """刷新 UI，并按本帧边沿播放音效 / 记生产。"""
         self.ui.update_actual_weight(stable_weight, result.decimal_places)
         self.ui.update_count(result)
         self._sync_button_status()
-        target_reached, piece_added = self._handle_edge_events(result)
+        if result.abnormal_edge:
+            self.sound_service.play_error()
+        if result.target_edge:
+            self.sound_service.play_alert()
         if result.added:
             self._record_production(result)
-        return target_reached, piece_added
-
-    def _handle_edge_events(self, result: CountResult) -> tuple[bool, bool]:
-        """消费异常/目标边沿并播放对应音效。"""
-        if self.counter_service.consume_abnormal_edge():
-            self.sound_service.play_error()
-
-        target_reached = self.counter_service.consume_target_edge()
-        if target_reached:
-            self.sound_service.play_alert()
-        piece_added = result.added
-        return target_reached, piece_added
 
     def _record_production(self, result: CountResult) -> None:
         """有新件时写入生产 CSV。"""

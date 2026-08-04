@@ -22,3 +22,5 @@ class CountResult:
     baseline_weight: float
     piece_weights: list[float]
     decimal_places: int = 2
+    abnormal_edge: bool = False
+    target_edge: bool = False

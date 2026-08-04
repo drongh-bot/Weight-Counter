@@ -298,8 +298,8 @@ class TestControllerPipeline:
         controller.force_calibrate(3)
         assert controller._pending_force_pieces == 3
 
-        result = controller._apply_pending_force(0.01)
-        assert result is ForceOutcome.FAIL
+        force, _ = controller._resolve_stable_frame(0.01)
+        assert force is ForceOutcome.FAIL
         assert controller._pending_force_pieces is None
         ui.update_bar(
             controller._bar.on_stable_frame(
@@ -316,6 +316,7 @@ class TestControllerPipeline:
     def test_raw_mismatches_stable(self, make_controller):
         controller, ui = make_controller()
         controller.params.stability_threshold = 0.02
+        controller.weight_input_service.apply_start_params()
         assert controller._raw_mismatches_stable(30.0, 10.0) is True
         assert controller._raw_mismatches_stable(10.01, 10.0) is False
         assert controller._raw_mismatches_stable(10.0, 10.0) is False

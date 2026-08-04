@@ -25,7 +25,7 @@ app/
 - **Status bar**: `StatusBar` is the only public API for the three labels (`on_*` → `BarSnapshot`); link/message latches are internal
 - **No bare attribute access**: Controller communicates with services through methods only
 - **Model layer is Qt-free**: unit-testable without a GUI, no I/O (see Params vs ConfigService split)
-- **Business services are Qt-free**: `CounterService` and `WeightInputService` are plain Python classes; I/O services (`SerialService`, etc.) inherit `QObject`
+- **Business services / controller are Qt-free**: `CounterService`, `WeightInputService`, and `MainController` are plain Python classes; I/O services (`SerialService`, etc.) and `UiBridge` inherit `QObject`
 - **Presentation ≠ services**: ViewModel DTOs / `to_count_snapshot` / `UiBridge` live in `presentation/`, not under `services/`
 
 ## Tech Stack

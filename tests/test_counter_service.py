@@ -33,23 +33,23 @@ class TestCounterServiceProcess:
     def test_abnormal_edge_trigger(self):
         svc = self._make_service()
         svc.process(10.0)
-        svc.process(25.0)  # 无法匹配 → 异常
-        assert svc.consume_abnormal_edge() is True
-        assert svc.consume_abnormal_edge() is False  # 已消费
+        result = svc.process(25.0)  # 无法匹配 → 异常
+        assert result.abnormal_edge is True
+        assert svc.current_result().abnormal_edge is False
 
     def test_target_edge_trigger(self):
         svc = self._make_service(target=3)
         svc.process(10.0)   # 1件
         svc.process(20.0)   # 2件
-        svc.process(30.0)   # 3件，达到目标
-        assert svc.consume_target_edge() is True
-        assert svc.consume_target_edge() is False
+        result = svc.process(30.0)   # 3件，达到目标
+        assert result.target_edge is True
+        assert svc.current_result().target_edge is False
 
     def test_target_not_triggered_below_target(self):
         svc = self._make_service(target=10)
         svc.process(10.0)
-        svc.process(20.0)
-        assert svc.consume_target_edge() is False
+        result = svc.process(20.0)
+        assert result.target_edge is False
 
     def test_target_not_triggered_in_abnormal(self):
         svc = self._make_service(target=2)
@@ -57,7 +57,7 @@ class TestCounterServiceProcess:
         # 目标只应在 NORMAL 状态下触发
         result = svc.current_result()
         assert result.total_pieces == 1
-        assert svc.consume_target_edge() is False
+        assert result.target_edge is False
 
     def test_target_edge_batch_skip(self):
         """批量加件跳过精确目标值时仍应触发（上升沿）"""
@@ -68,10 +68,10 @@ class TestCounterServiceProcess:
         svc = CounterService(params)
         svc.apply_start_params()
 
-        assert svc.force_calibrate(980.0, 98) is True
-        svc.process(1010.0)  # 98 + 3 = 101，跳过 100
-        assert svc.current_result().total_pieces == 101
-        assert svc.consume_target_edge() is True
+        assert svc.force_calibrate(980.0, 98) is not None
+        result = svc.process(1010.0)  # 98 + 3 = 101，跳过 100
+        assert result.total_pieces == 101
+        assert result.target_edge is True
 
     def test_target_edge_not_repeated_when_already_above(self):
         """已在目标之上继续加件，不应重复触发"""
@@ -82,12 +82,13 @@ class TestCounterServiceProcess:
         svc = CounterService(params)
         svc.apply_start_params()
 
-        assert svc.force_calibrate(1000.0, 100) is True
-        svc.consume_target_edge()  # 校准可能越过目标，先消费
+        calibrated = svc.force_calibrate(1000.0, 100)
+        assert calibrated is not None
+        assert calibrated.target_edge is True  # 0 → 100 越过目标
 
-        svc.process(1030.0)  # 100 + 3 = 103
-        assert svc.current_result().total_pieces == 103
-        assert svc.consume_target_edge() is False
+        result = svc.process(1030.0)  # 100 + 3 = 103
+        assert result.total_pieces == 103
+        assert result.target_edge is False
 
     def test_target_edge_retrigger_after_drop_below(self):
         """减至目标以下再加回，应再次触发"""
@@ -100,16 +101,15 @@ class TestCounterServiceProcess:
 
         svc.process(10.0)
         svc.process(20.0)
-        svc.process(30.0)
-        assert svc.consume_target_edge() is True
+        assert svc.process(30.0).target_edge is True
 
-        svc.process(20.0)  # 减 1 件 → 2
-        assert svc.current_result().total_pieces == 2
-        assert svc.consume_target_edge() is False
+        drop = svc.process(20.0)  # 减 1 件 → 2
+        assert drop.total_pieces == 2
+        assert drop.target_edge is False
 
-        svc.process(30.0)  # 加 1 件 → 3
-        assert svc.current_result().total_pieces == 3
-        assert svc.consume_target_edge() is True
+        again = svc.process(30.0)  # 加 1 件 → 3
+        assert again.total_pieces == 3
+        assert again.target_edge is True
 
     def test_added_flag(self):
         svc = self._make_service()
@@ -120,23 +120,23 @@ class TestCounterServiceProcess:
 
     def test_force_calibrate(self):
         svc = self._make_service()
-        assert svc.force_calibrate(100.0, 10) is True
-        result = svc.current_result()
+        result = svc.force_calibrate(100.0, 10)
+        assert result is not None
         assert result.total_pieces == 10
 
-    def test_force_calibrate_returns_false_when_invalid(self):
+    def test_force_calibrate_returns_none_when_invalid(self):
         svc = self._make_service()
         svc.process(10.0)
-        assert svc.force_calibrate(0.3, 5) is False
+        assert svc.force_calibrate(0.3, 5) is None
         assert svc.current_result().total_pieces == 1
 
     def test_force_calibrate_target_edge(self):
         svc = self._make_service(target=3)
         svc.process(10.0)
-        assert svc.force_calibrate(30.0, 3) is True
-        assert svc.consume_target_edge() is True
-        assert svc.process(30.0).total_pieces == 3
-        assert svc.consume_target_edge() is False
+        calibrated = svc.force_calibrate(30.0, 3)
+        assert calibrated is not None
+        assert calibrated.target_edge is True
+        assert svc.process(30.0).target_edge is False
 
     def test_auto_recover_from_abnormal(self):
         svc = self._make_service()

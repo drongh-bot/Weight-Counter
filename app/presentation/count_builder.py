@@ -38,5 +38,4 @@ def to_count_snapshot(result: CountResult) -> CountSnapshot:
         last_stable_weight=f"{result.last_stable_weight:.{dp}f}",
         baseline_weight=f"{result.baseline_weight:.{dp}f}",
         piece_weights=list(result.piece_weights),
-        decimal_places=dp,
     )

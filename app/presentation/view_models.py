@@ -42,4 +42,3 @@ class CountSnapshot:
     last_stable_weight: str
     baseline_weight: str
     piece_weights: list[float]
-    decimal_places: int

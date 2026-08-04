@@ -169,7 +169,8 @@ class PieceCounter:
         ):
             return
 
-        self._clear_abnormal(stable_weight)
+        if self.state == CounterState.ABNORMAL:
+            self._reset_baseline(stable_weight)
 
     def _reset_baseline(self, stable_weight: float) -> None:
         """将计件锚点重置为 stable_weight 并回到 NORMAL。"""
@@ -179,11 +180,6 @@ class PieceCounter:
         self.abnormal_anchor = 0.0
         self.last_stable_weight = stable_weight
         self.baseline_weight = stable_weight
-
-    def _clear_abnormal(self, stable_weight: float) -> None:
-        """退出异常：仅在 ABNORMAL 时重置基准。"""
-        if self.state == CounterState.ABNORMAL:
-            self._reset_baseline(stable_weight)
 
     def force_calibrate(self, stable_weight: float, force_pieces: int) -> bool:
         """强制校准：按指定片数重设单重与基准。成功返回 True。"""

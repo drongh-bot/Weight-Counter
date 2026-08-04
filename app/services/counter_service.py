@@ -12,34 +12,30 @@ class CounterService:
 
     职责：
     - 将稳定重量喂入 PieceCounter
-    - 检测异常/目标边沿触发（上升沿）
+    - 检测异常/目标边沿（本帧标志写入 CountResult）
     - 构建 CountResult 统一数据载体
     - 强制校准、重置
-    - 消费边沿标志（consume_*），避免外部直接改状态
     """
 
     def __init__(self, params: Params) -> None:
         """用共享 Params 构造内部 PieceCounter（内部再拷贝参数）。"""
         self.params = params
-        self._abnormal_edge = False
-        self._target_edge = False
         self._piece_counter = PieceCounter(params)
 
     def apply_start_params(self) -> None:
         """Start 时将共享 Params 的 START_SYNC 字段复制进 PieceCounter。"""
         self._piece_counter.apply_start_params(self.params)
 
-    def _mark_target_edge_if_crossed(
+    def _target_crossed(
         self, old_count: int, new_count: int, state: CounterState
-    ) -> None:
-        """目标件数首次跨越时置位 target 边沿。"""
+    ) -> bool:
+        """本帧是否首次跨越目标件数。"""
         target = self.params.target_pieces
-        if (
+        return (
             0 < target
             and old_count < target <= new_count
             and state == CounterState.NORMAL
-        ):
-            self._target_edge = True
+        )
 
     def process(self, stable_weight: float) -> CountResult:
         """运行 FSM + 边沿检测；返回 CountResult 快照。"""
@@ -51,14 +47,22 @@ class CounterService:
         new_count = self._piece_counter.total_pieces
         new_state = self._piece_counter.state
 
-        self._abnormal_edge = (
-            old_state != CounterState.ABNORMAL and new_state == CounterState.ABNORMAL
+        return self._build_result(
+            added=new_count > old_count,
+            abnormal_edge=(
+                old_state != CounterState.ABNORMAL
+                and new_state == CounterState.ABNORMAL
+            ),
+            target_edge=self._target_crossed(old_count, new_count, new_state),
         )
-        self._mark_target_edge_if_crossed(old_count, new_count, new_state)
-        added = new_count > old_count
-        return self._build_result(added=added)
 
-    def _build_result(self, added: bool = False) -> CountResult:
+    def _build_result(
+        self,
+        *,
+        added: bool = False,
+        abnormal_edge: bool = False,
+        target_edge: bool = False,
+    ) -> CountResult:
         """从 PieceCounter 组装 CountResult（公差带按当前均重现算）。"""
         pc = self._piece_counter
         tol_low, tol_high, _ = pc.tolerance.band(
@@ -78,36 +82,27 @@ class CounterService:
             baseline_weight=pc.baseline_weight,
             piece_weights=list(pc.piece_weights),
             decimal_places=pc.decimal_places,
+            abnormal_edge=abnormal_edge,
+            target_edge=target_edge,
         )
 
-    def force_calibrate(self, stable_weight: float, pieces: int) -> bool:
-        """强制校准。成功应用返回 True。"""
+    def force_calibrate(
+        self, stable_weight: float, pieces: int
+    ) -> CountResult | None:
+        """强制校准。成功返回带边沿标志的快照，失败返回 None。"""
         old_count = self._piece_counter.total_pieces
         if not self._piece_counter.force_calibrate(stable_weight, pieces):
-            return False
-        self._mark_target_edge_if_crossed(
-            old_count, self._piece_counter.total_pieces, self._piece_counter.state
+            return None
+        new_count = self._piece_counter.total_pieces
+        new_state = self._piece_counter.state
+        return self._build_result(
+            target_edge=self._target_crossed(old_count, new_count, new_state),
         )
-        return True
 
     def reset(self) -> None:
-        """重置计件器与边沿标志。"""
+        """重置计件器。"""
         self._piece_counter.reset()
-        self._abnormal_edge = False
-        self._target_edge = False
-
-    def consume_abnormal_edge(self) -> bool:
-        """消费异常上升沿（读后清零）。"""
-        result = self._abnormal_edge
-        self._abnormal_edge = False
-        return result
-
-    def consume_target_edge(self) -> bool:
-        """消费目标达成上升沿（读后清零）。"""
-        result = self._target_edge
-        self._target_edge = False
-        return result
 
     def current_result(self) -> CountResult:
-        """返回当前计件快照（不推进 FSM）。"""
+        """返回当前计件快照（不推进 FSM，边沿标志为 False）。"""
         return self._build_result()
