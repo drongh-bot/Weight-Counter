@@ -4,7 +4,7 @@ import logging
 from app.models.count_result import CountResult
 from app.presentation.status_bar import StatusBar
 from app.presentation.ui import UiBridge
-from app.presentation.view_models import ButtonStatus, ForceCalibrateResult
+from app.presentation.view_models import ButtonStatus
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
@@ -115,32 +115,36 @@ class MainController:
             # 日常未稳定：不计件即可，勿改写状态栏（避免覆盖错误/异常等提示）
             return
 
-        force, result = self._resolve_stable_frame(stable_weight)
+        result, force_done, force_failed = self._resolve_stable_frame(stable_weight)
         self._handle_result(result, stable_weight)
         self.ui.update_bar(
             self._bar.on_stable_frame(
                 state=result.state,
-                force=force,
                 target_reached=result.target_edge,
                 piece_added=result.added,
+                force_done=force_done,
+                force_failed=force_failed,
             )
         )
 
     def _resolve_stable_frame(
         self, stable_weight: float
-    ) -> tuple[ForceCalibrateResult, CountResult]:
-        """本帧稳定重：优先执行挂起的强制校准，否则走正常计件。"""
+    ) -> tuple[CountResult, bool, bool]:
+        """本帧稳定重：优先执行挂起的强制校准，否则走正常计件。
+
+        返回 (result, force_done, force_failed)。
+        """
         if self._pending_force_pieces is None:
-            return ForceCalibrateResult.NONE, self.counter_service.process(stable_weight)
+            return self.counter_service.process(stable_weight), False, False
 
         pieces = self._pending_force_pieces
         self._pending_force_pieces = None
         calibrated = self.counter_service.force_calibrate(stable_weight, pieces)
         if calibrated is None:
-            return ForceCalibrateResult.FAIL, self.counter_service.process(stable_weight)
+            return self.counter_service.process(stable_weight), False, True
 
         self._record_production(calibrated)
-        return ForceCalibrateResult.DONE, calibrated
+        return calibrated, True, False
 
     def _handle_result(self, result: CountResult, stable_weight: float) -> None:
         """刷新 UI，并按本帧边沿播放音效 / 记生产。"""

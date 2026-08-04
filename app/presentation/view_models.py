@@ -1,6 +1,5 @@
 # app/presentation/view_models.py
 from dataclasses import dataclass
-from enum import Enum, auto
 
 
 @dataclass
@@ -18,14 +17,6 @@ class BarSnapshot:
     parse: LabelItem
     comm: LabelItem
     message: LabelItem
-
-
-class ForceCalibrateResult(Enum):
-    """当帧强制校准结果（不锁存；供状态栏选文案）。"""
-
-    NONE = auto()
-    DONE = auto()
-    FAIL = auto()
 
 
 @dataclass

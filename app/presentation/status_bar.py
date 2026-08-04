@@ -21,7 +21,7 @@ from enum import Enum, auto
 
 from app.models.counter_state import CounterState
 from app.presentation.styles import Styles
-from app.presentation.view_models import BarSnapshot, ForceCalibrateResult, LabelItem
+from app.presentation.view_models import BarSnapshot, LabelItem
 
 # 导出供测试断言文案（非独立公共子系统）
 MSG_NONE = "无异常"
@@ -124,9 +124,10 @@ class StatusBar:
         self,
         *,
         state: CounterState,
-        force: ForceCalibrateResult,
         target_reached: bool,
         piece_added: bool,
+        force_done: bool = False,
+        force_failed: bool = False,
     ) -> BarSnapshot:
         """稳定帧：更新链路/状态并解析消息优先级。"""
         self._link = _LinkKind.OK
@@ -137,23 +138,29 @@ class StatusBar:
             self._hold_target = True
         if piece_added and self._hold_target and not target_reached:
             self._hold_target = False
-        return self.snapshot(force=force)
+        return self.snapshot(force_done=force_done, force_failed=force_failed)
 
-    def snapshot(self, force: ForceCalibrateResult = ForceCalibrateResult.NONE) -> BarSnapshot:
+    def snapshot(
+        self, *, force_done: bool = False, force_failed: bool = False
+    ) -> BarSnapshot:
         """按当前锁存状态生成三标签快照。"""
         parse, comm = self._link.labels()
-        text, info = self._resolve_message(force)
+        text, info = self._resolve_message(
+            force_done=force_done, force_failed=force_failed
+        )
         return BarSnapshot(
             parse=parse,
             comm=comm,
             message=_message_label(text, info=info),
         )
 
-    def _resolve_message(self, force: ForceCalibrateResult) -> tuple[str, bool]:
+    def _resolve_message(
+        self, *, force_done: bool, force_failed: bool
+    ) -> tuple[str, bool]:
         """按优先级解析消息文案；返回 (文本, 是否信息色)。"""
-        if force is ForceCalibrateResult.FAIL:
+        if force_failed:
             return MSG_FORCE_FAIL, False
-        if force is ForceCalibrateResult.DONE:
+        if force_done:
             return MSG_FORCE_DONE, True
         if self._waiting:
             return MSG_WAIT_STABLE, True
