@@ -1,6 +1,7 @@
 # app/controllers/main_controller.py
 import logging
 
+from app.core.sound_player import SoundPlayer
 from app.models.count_snapshot import CountFrame, CountSnapshot
 from app.presentation.status_bar import StatusBar
 from app.presentation.ui_bridge import UiBridge
@@ -8,7 +9,6 @@ from app.presentation.view_models import BarSnapshot, ButtonStatus
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
-from app.core.sound_player import SoundPlayer
 from app.services.weight_input_service import WeightInputService
 
 logger = logging.getLogger(__name__)
@@ -109,7 +109,9 @@ class MainController:
         self.ui_bridge.update_actual_weight(weight, snap.decimal_places)
 
         if self._pending_force_pieces is not None:
-            if stable_weight is None or self._raw_mismatches_stable(weight, stable_weight):
+            if stable_weight is None or self._raw_mismatches_stable(
+                weight, stable_weight
+            ):
                 self.ui_bridge.update_bar(self._bar.on_force_waiting())
                 return
         elif stable_weight is None:

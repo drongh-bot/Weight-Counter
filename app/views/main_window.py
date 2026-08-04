@@ -16,7 +16,6 @@ from PySide6.QtWidgets import (
 from app.controllers.main_controller import MainController
 from app.core.resource_manager import ResourceManager
 from app.models.params import Params
-from app.services.config_service import ConfigService
 from app.presentation.ui_bridge import UiBridge
 from app.presentation.view_models import (
     BarSnapshot,
@@ -24,6 +23,7 @@ from app.presentation.view_models import (
     CountView,
     LabelItem,
 )
+from app.services.config_service import ConfigService
 from app.views.ui_generated.form import Ui_MainWindow
 from app.views.widgets.piece_chart import PieceChart
 from app.views.widgets.piece_table import PieceTable
@@ -100,7 +100,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         horizontal_layout = self.centralWidget().layout()
         assert isinstance(horizontal_layout, QHBoxLayout)
-        horizontal_layout.addWidget(self.splitter, 1)
+        horizontal_layout.addWidget(self.splitter)
 
         self.lblParse = QLabel()
         self.lblComm = QLabel()
