@@ -1,10 +1,11 @@
-"""Logging configuration — called once at app startup."""
+"""日志配置 — 应用启动时调用一次。"""
 
 import logging
 from pathlib import Path
 
 
 def setup_logging(log_dir: Path) -> None:
+    """初始化文件 + 控制台日志输出。"""
     log_dir.mkdir(parents=True, exist_ok=True)
 
     logging.basicConfig(

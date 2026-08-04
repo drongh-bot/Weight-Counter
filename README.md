@@ -1,6 +1,6 @@
 # Weight Counter
 
-Industrial piece-counting desktop application built with **PySide6 + MVVM + Dependency Injection**.
+Industrial piece-counting desktop application built with **PySide6 + manual DI**.
 
 Connects to an electronic scale via serial port, performs real-time weight stability
 detection, automatic piece counting, anomaly detection, and production logging —
@@ -12,10 +12,10 @@ all with live chart and table visualization.
 
 ```
 Serial Port
-  → SerialService         (raw data receive, timeout detection)
+  → SerialService         (port I/O + timeout; single data_received outlet)
   → WeightInputService    (parse + stabilize via dual-window algorithm)
-  → CounterService        (state machine ZERO→NORMAL→ABNORMAL + EMA weight learning)
-  → Ui                    (presentation — builds snapshots, emits count/bar/button/weight signals)
+  → CounterService        (PieceCounter FSM + rising-edge events)
+  → UiBridge              (to_count_snapshot + signals for count/bar/button/weight)
   → MainWindow            (pure rendering — labels, table, scatter chart)
 ```
 
@@ -23,11 +23,11 @@ Serial Port
 
 ```
 app/
-├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
+├── core/                  Drivers (csv_writer, sound, log_config, resources)
 ├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
-├── services/              Service layer (serial, weight_input, counter, sound, log, config)
-├── controllers/           Flow orchestration (MainController — pipeline pattern)
-├── presentation/          ViewModel layer (Ui, StatusBar, count_builder, view_models, styles)
+├── services/              serial, weight_input, counter, csv_log, config
+├── controllers/           MainController — sequential per-frame orchestration
+├── presentation/          UiBridge, StatusBar, to_count_snapshot, view_models, styles
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets
 │   └── ui_generated/      Qt Designer generated
@@ -37,11 +37,11 @@ app/
 ### Key Design Principles
 
 - **Dependency Injection** — all objects created and wired in `main.py`
-- **CQS** — PieceCounter mutates state (Command), CounterService queries and builds results
-- **Signal-driven UI** — `presentation.Ui` emits `count_changed`, `bar_snapshot_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
+- **FSM vs facade** — `PieceCounter.on_stable_weight` mutates state; `CounterService.process` detects edges and builds `CountResult`
+- **Signal-driven UI** — `UiBridge` emits view snapshots; MainWindow renders only (not Qt Designer `Ui_MainWindow`)
 - **No bare attribute access** — Controller communicates with services through methods only
 - **Model layer is Qt-free** — unit-testable without a GUI; `CounterService` and `WeightInputService` are also Qt-free
-- **Presentation ≠ services** — ViewModel DTOs / `CountBuilder` / `Ui` live in `presentation/`
+- **Params freshness** — `START_SYNC_FIELDS` copied on Start; `target_pieces` is LIVE and not persisted
 
 ### Core Algorithms
 
@@ -133,19 +133,11 @@ splitter_sizes = [140, 199]
 ## Testing
 
 ```bash
-uv run pytest tests/ -v          # 130 tests: model → service → view → controller
+uv run pytest tests/ -v          # 148 tests
 uv run mypy app                  # Type check
 ```
 
-### Test coverage
-
-| Layer      | Tests                                     |
-| ---------- | ----------------------------------------- |
-| model      | 48 (Qt-free, plain pytest)                |
-| builder    | 10 (Qt-free)                              |
-| service    | 44 (config/weight_input/counter Qt-free; ui needs `qapp`) |
-| view       | 8 (table/chart; needs `qapp`)             |
-| controller | 20 (uses `qapp` fixture)                  |
+详见 `AGENTS.md` 中的测试文件表。
 
 ---
 

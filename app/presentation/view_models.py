@@ -4,14 +4,15 @@ from dataclasses import dataclass
 
 @dataclass
 class LabelItem:
-    """Generic label item: text + style."""
+    """通用标签项：文本 + 样式。"""
+
     text: str
     style: str
 
 
 @dataclass
 class BarSnapshot:
-    """One frame of the three status-bar labels."""
+    """状态栏三格（解析 / 通讯 / 消息）的一帧快照。"""
 
     parse: LabelItem
     comm: LabelItem
@@ -20,6 +21,8 @@ class BarSnapshot:
 
 @dataclass
 class ButtonStatus:
+    """Start / Stop / 强制校准等按钮的可用状态。"""
+
     start_enabled: bool = True
     stop_enabled: bool = True
     force_enabled: bool = False
@@ -28,6 +31,8 @@ class ButtonStatus:
 
 @dataclass
 class CountSnapshot:
+    """计件区 UI 展示快照。"""
+
     delta_weight: LabelItem
     state: LabelItem
     avg_weight: str

@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
 
 
 class PieceTable(QTableWidget):
+    """单件重量表格，最新数据在顶部。"""
+
     def __init__(self, decimal_places: int = 2, parent=None) -> None:
         super().__init__(parent)
 
@@ -35,11 +37,12 @@ class PieceTable(QTableWidget):
         self.setMinimumWidth(100 + 40)
 
     def reset(self) -> None:
+        """清空表格与缓存。"""
         self.setRowCount(0)
         self._piece_weights.clear()
 
     def update_piece_weights(self, piece_weights: list[float]) -> None:
-        """Newest data at the top."""
+        """更新件重列表，最新数据在顶部。"""
         if piece_weights == self._piece_weights:
             return
 
@@ -59,13 +62,14 @@ class PieceTable(QTableWidget):
             self.setUpdatesEnabled(True)
 
     def _fill_rows(self, data: list[float]) -> None:
-        """Fill cells with formatted weights (newest at top)."""
+        """填充格式化重量单元格（最新在顶部）。"""
         for row, weight in enumerate(reversed(data)):
             item = QTableWidgetItem(f"{weight:.{self._decimal_places}f}")
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.setItem(row, 0, item)
 
     def set_decimal_places(self, places: int) -> None:
+        """切换小数位数并重绘已有行。"""
         if places == self._decimal_places:
             return
         self._decimal_places = places

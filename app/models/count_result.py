@@ -7,6 +7,8 @@ from app.models.counter_state import CounterState
 
 @dataclass
 class CountResult:
+    """计件结果快照 — CounterService 统一数据载体。"""
+
     added: bool
     abnormal_high: bool
     abnormal_low: bool

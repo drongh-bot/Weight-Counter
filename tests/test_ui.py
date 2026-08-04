@@ -4,7 +4,7 @@ from app.models.count_result import CountResult
 from app.models.counter_state import CounterState
 from app.presentation.status_bar import StatusBar
 from app.presentation.styles import Styles
-from app.presentation.ui import Ui
+from app.presentation.ui import UiBridge
 from app.presentation.view_models import ButtonStatus
 
 
@@ -14,7 +14,7 @@ class TestUi:
         return spy.at(spy.count() - 1)[0]
 
     def test_update_count_emits(self, qapp):
-        ui = Ui()
+        ui = UiBridge()
         spy = QSignalSpy(ui.count_changed)
 
         result = CountResult(
@@ -30,7 +30,7 @@ class TestUi:
         assert d.state.text == "正常"
 
     def test_count_duplicate_not_emitted(self, qapp):
-        ui = Ui()
+        ui = UiBridge()
         spy = QSignalSpy(ui.count_changed)
 
         result = CountResult(
@@ -46,7 +46,7 @@ class TestUi:
         assert spy.count() == 1
 
     def test_count_different_data_emits_again(self, qapp):
-        ui = Ui()
+        ui = UiBridge()
         spy = QSignalSpy(ui.count_changed)
 
         result = CountResult(
@@ -68,7 +68,7 @@ class TestUi:
         assert spy.count() == 2
 
     def test_refresh_re_emits_last(self, qapp):
-        ui = Ui()
+        ui = UiBridge()
         count_spy = QSignalSpy(ui.count_changed)
         bar_spy = QSignalSpy(ui.bar_snapshot_changed)
         btn_spy = QSignalSpy(ui.button_status_changed)
@@ -92,7 +92,7 @@ class TestUi:
         assert btn_spy.count() == 2
 
     def test_update_bar_fields(self, qapp):
-        ui = Ui()
+        ui = UiBridge()
         spy = QSignalSpy(ui.bar_snapshot_changed)
 
         ui.update_bar(StatusBar().on_serial_error("测试异常"))
@@ -106,7 +106,7 @@ class TestUi:
         assert d.message.style == Styles.RED
 
     def test_update_bar_duplicate_not_emitted(self, qapp):
-        ui = Ui()
+        ui = UiBridge()
         spy = QSignalSpy(ui.bar_snapshot_changed)
         status = StatusBar().on_force_waiting()
         ui.update_bar(status)
@@ -114,7 +114,7 @@ class TestUi:
         assert spy.count() == 1
 
     def test_actual_weight_none_shows_dashes(self, qapp):
-        ui = Ui()
+        ui = UiBridge()
         spy = QSignalSpy(ui.actual_weight_changed)
 
         ui.update_actual_weight(None, decimal_places=2)
@@ -123,7 +123,7 @@ class TestUi:
         assert d == "-----"
 
     def test_actual_weight_value_formatted(self, qapp):
-        ui = Ui()
+        ui = UiBridge()
         spy = QSignalSpy(ui.actual_weight_changed)
 
         ui.update_actual_weight(10.0, decimal_places=2)
@@ -132,7 +132,7 @@ class TestUi:
         assert d == "10.00"
 
     def test_button_status_emits(self, qapp):
-        ui = Ui()
+        ui = UiBridge()
         spy = QSignalSpy(ui.button_status_changed)
 
         ui.update_button_status(ButtonStatus(start_enabled=False, stop_enabled=True))
@@ -142,7 +142,7 @@ class TestUi:
         assert d.stop_enabled is True
 
     def test_button_status_duplicate_not_emitted(self, qapp):
-        ui = Ui()
+        ui = UiBridge()
         spy = QSignalSpy(ui.button_status_changed)
 
         state = ButtonStatus(start_enabled=False, stop_enabled=True)

@@ -6,13 +6,13 @@ from pathlib import Path
 
 import toml
 
-from app.models.params import Params
+from app.models.params import LIVE_FIELDS, Params
 
 logger = logging.getLogger(__name__)
 
 
 class ConfigService:
-    """I/O service: loads / saves Params ↔ config.toml."""
+    """I/O 服务：Params ↔ config.toml 加载与保存。"""
 
     _SECTION_MAP: dict[str, list[str]] = {
         "parameters": [
@@ -33,10 +33,20 @@ class ConfigService:
     }
 
     def __init__(self) -> None:
+        """校验 LIVE 字段不会被持久化。"""
         self._lock = threading.Lock()
+        persisted = self.persisted_keys()
+        overlap = persisted & LIVE_FIELDS
+        if overlap:
+            raise RuntimeError(f"LIVE 字段不得写入配置文件：{overlap}")
+
+    @classmethod
+    def persisted_keys(cls) -> frozenset[str]:
+        """返回会写入 config.toml 的字段名集合。"""
+        return frozenset(k for keys in cls._SECTION_MAP.values() for k in keys)
 
     def load(self, path: Path) -> Params:
-        """Load config.toml and produce a Params instance (defaults fill gaps)."""
+        """加载 config.toml，缺失项用 Params 默认值填充。"""
         with self._lock:
             if path.exists():
                 with open(path, "r", encoding="utf-8") as f:
@@ -54,7 +64,7 @@ class ConfigService:
         return Params(**flat)
 
     def save(self, params: Params, path: Path) -> None:
-        """Persist a Params instance to config.toml."""
+        """将 Params 持久化到 config.toml。"""
         data = asdict(params)
         toml_data: dict = {}
         for section, keys in self._SECTION_MAP.items():

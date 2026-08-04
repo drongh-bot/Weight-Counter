@@ -1,16 +1,16 @@
 # Weight Counter — Project Guidelines
 
-Industrial piece-counting desktop application — PySide6 + MVVM + Dependency Injection.
+Industrial piece-counting desktop application — PySide6 + manual DI.
 
 ## Architecture
 
 ```
 app/
-├── core/                  Low-level drivers (serial, csv_writer, sound, log_config, resources)
+├── core/                  Drivers (csv_writer, sound, log_config, resources)
 ├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
-├── services/              Service layer (serial, weight_input, counter, sound, csv_log, config)
-├── controllers/           Flow orchestration (MainController — pipeline pattern)
-├── presentation/          ViewModel layer (Ui, StatusBar, count_builder, view_models, styles)
+├── services/              Serial (port+timeout), weight_input, counter, csv_log, config
+├── controllers/           MainController — sequential per-frame orchestration
+├── presentation/          UiBridge, StatusBar, to_count_snapshot, view_models, styles
 ├── views/                 UI rendering (MainWindow, PieceTable, PieceChart)
 │   ├── widgets/           Custom widgets
 │   └── ui_generated/      Qt Designer generated
@@ -20,13 +20,13 @@ app/
 ## Design Principles (must follow)
 
 - **DI**: all objects created and wired in `main.py`
-- **CQS**: PieceCounter mutates state (Command), CounterService queries and builds results
-- **Signal-driven UI**: `presentation.Ui` emits `count_changed`, `bar_snapshot_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic
+- **FSM vs facade**: `PieceCounter.on_stable_weight` mutates state; `CounterService.process` detects edges and builds `CountResult`
+- **Signal-driven UI**: `presentation.UiBridge` emits `count_changed`, `bar_snapshot_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic. Do not confuse with Qt Designer `Ui_MainWindow`.
 - **Status bar**: `StatusBar` is the only public API for the three labels (`on_*` → `BarSnapshot`); link/message latches are internal
 - **No bare attribute access**: Controller communicates with services through methods only
 - **Model layer is Qt-free**: unit-testable without a GUI, no I/O (see Params vs ConfigService split)
 - **Business services are Qt-free**: `CounterService` and `WeightInputService` are plain Python classes; I/O services (`SerialService`, etc.) inherit `QObject`
-- **Presentation ≠ services**: ViewModel DTOs / `CountBuilder` / `Ui` live in `presentation/`, not under `services/`
+- **Presentation ≠ services**: ViewModel DTOs / `to_count_snapshot` / `UiBridge` live in `presentation/`, not under `services/`
 
 ## Tech Stack
 
@@ -45,13 +45,13 @@ app/
 uv sync                          # Install dependencies
 uv run main.py                   # Run the app
 uv run pyinstaller main.spec     # Package to dist/WeightCounter/
-uv run pytest tests/ -v          # Run all 145 tests
+uv run pytest tests/ -v          # Run all tests
 uv run mypy app                  # Type check
 ```
 
 ## Test suite
 
-Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `Ui` and controller tests use the `qapp` fixture from `pytest-qt`.
+Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `UiBridge` and controller tests use the `qapp` fixture from `pytest-qt`.
 
 | File | Layer | Count |
 |------|-------|-------|
@@ -60,7 +60,7 @@ Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `Ui` 
 | `tests/test_count_builder.py` | presentation | 5 |
 | `tests/test_weight_input_service.py` | service | 14 |
 | `tests/test_counter_service.py` | service | 19 |
-| `tests/test_config_service.py` | service | 2 |
+| `tests/test_config_service.py` | service | 5 |
 | `tests/test_status_bar.py` | presentation | 13 |
 | `tests/test_ui.py` | presentation | 10 |
 | `tests/test_piece_table.py` | view | 4 |
@@ -91,12 +91,12 @@ The app requires a serial port with a connected electronic scale. Without hardwa
 
 `config.toml` controls serial port, baud rate, weight params, counting tolerance, etc.
 
-- **`Params`** (`app/models/params.py`): `@dataclass` holding all parameter values — pure data, no I/O. One shared instance is injected into controller / window / services; **freshness rules differ by field** (below).
-- **`ConfigService`** (`app/services/config_service.py`): loads/saves only the fields listed in `_SECTION_MAP` ↔ `config.toml`. Not every `Params` field is persisted.
-- **Start-sync params**: UI-editable `[parameters]` fields (except `target_pieces`) sync to `CounterService` and `WeightInputService` via `apply_start_params()` when the user clicks Start (`MainController.start()`). This includes `decimal_places` (affects display formatting and `min_tol` / resolution). Editing them mid-run does **not** affect the algorithm until the next Start.
-- **`target_pieces` (runtime-only, not persisted)**: batch production target — lives on `Params` and in the UI spinbox, but is **excluded from `_SECTION_MAP`**. `CounterService.process()` reads it live from the shared `Params` object on every stable frame, so the operator can change the target mid-run without restart. Default `100`; not saved to `config.toml` on exit.
+- **`Params`** (`app/models/params.py`): `@dataclass` holding all parameter values — pure data, no I/O. One shared instance is injected into controller / window / services; **freshness rules differ by field** (see `START_SYNC_FIELDS` / `LIVE_FIELDS` in that module).
+- **`ConfigService`**: loads/saves only keys in `_SECTION_MAP`. Must never persist `LIVE_FIELDS` (enforced at init + tests).
+- **Start-sync params**: fields in `START_SYNC_FIELDS` are **copied** into `PieceCounter` / `WeightStabilizer` via `apply_start_params()` on Start. Algorithms do **not** hold a reference to shared `Params`. Mid-run UI edits apply on the next Start.
+- **`target_pieces` (LIVE)**: read each stable frame from shared `Params` by `CounterService`. Not in `_SECTION_MAP`; default `100`; not saved on exit.
 
 ## Core Algorithms
 
 - **WeightStabilizer**: dual sliding windows (5-frame short, 10-frame long by default; configurable in `[stability]`) + triple checks (speed, trend, stddev) + hysteresis unlock
-- **PieceCounter**: 3-state FSM (ZERO → NORMAL → ABNORMAL) + EMA weight learning + sqrt(n) statistical tolerance
+- **PieceCounter**: 3-state FSM (ZERO → NORMAL → ABNORMAL) + EMA weight learning + sqrt(n) statistical tolerance (`Tolerance.band` / `is_within_tolerance(..., avg_weight)`)

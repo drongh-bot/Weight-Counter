@@ -74,7 +74,6 @@ class TestCounterServiceProcess:
         pc.baseline_weight = 980.0
         pc.last_stable_weight = 980.0
         pc.state = CounterState.NORMAL
-        pc._sync_all()
 
         svc.process(1010.0)  # 98 + 3 = 101，跳过 100
         assert svc.current_result().total_pieces == 101
@@ -95,7 +94,6 @@ class TestCounterServiceProcess:
         pc.baseline_weight = 1000.0
         pc.last_stable_weight = 1000.0
         pc.state = CounterState.NORMAL
-        pc._sync_all()
 
         svc.process(1030.0)  # 100 + 3 = 103
         assert svc.current_result().total_pieces == 103
@@ -206,7 +204,7 @@ class TestCounterServiceProcess:
         svc.apply_start_params()
 
         pc = svc._piece_counter
-        assert pc.initial_min_weight == 1.0
+        assert pc.thresholds.initial_min_weight == 1.0
         assert pc.tolerance.tolerance_percent == 15.0
         assert pc.max_batch_pieces == 2
         assert pc.initial_single_pieces == 8

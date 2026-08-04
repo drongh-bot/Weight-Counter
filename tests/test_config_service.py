@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from app.models.params import LIVE_FIELDS, START_SYNC_FIELDS
 from app.services.config_service import ConfigService
 
 
@@ -21,3 +22,19 @@ class TestConfigService:
         text = path.read_text(encoding="utf-8")
         assert "initial_min_weight" in text
         assert "initial_mini_weight" not in text
+
+    def test_live_fields_not_persisted(self):
+        assert LIVE_FIELDS.isdisjoint(ConfigService.persisted_keys())
+        assert "target_pieces" not in ConfigService.persisted_keys()
+
+    def test_save_omits_target_pieces(self, tmp_path: Path):
+        path = tmp_path / "config.toml"
+        params = ConfigService().load(path)
+        params.target_pieces = 42
+        ConfigService().save(params, path)
+        text = path.read_text(encoding="utf-8")
+        assert "target_pieces" not in text
+
+    def test_start_sync_fields_are_persisted(self):
+        persisted = ConfigService.persisted_keys()
+        assert START_SYNC_FIELDS <= persisted

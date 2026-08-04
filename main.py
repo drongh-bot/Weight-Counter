@@ -7,12 +7,12 @@ from PySide6.QtWidgets import QApplication
 from app.controllers.main_controller import MainController
 from app.core.log_config import setup_logging
 from app.core.resource_manager import ResourceManager
+from app.core.sound import SoundService
+from app.presentation.ui import UiBridge
 from app.services.config_service import ConfigService
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
-from app.services.sound_service import SoundService
-from app.presentation.ui import Ui
 from app.services.weight_input_service import WeightInputService
 from app.views.main_window import MainWindow
 
@@ -20,24 +20,21 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+    """应用入口：组装 DI 依赖并启动 Qt 主循环。"""
     app = QApplication(sys.argv)
 
-    # ---------------- Logging ----------------
     setup_logging(ResourceManager.get_external_root() / "log")
 
-    # ---------------- Parameters ----------------
     config_service = ConfigService()
     params = config_service.load(ResourceManager.get_external_root() / "config.toml")
 
-    # ---------------- Service Layer ----------------
-    ui = Ui()
+    ui = UiBridge()
     serial_service = SerialService(params.timeout_millis)
     counter_service = CounterService(params)
     weight_input_service = WeightInputService(params)
     sound_service = SoundService()
     csv_log_service = CsvLogService()
 
-    # ---------------- Controller ----------------
     controller = MainController(
         ui=ui,
         serial_service=serial_service,
@@ -48,7 +45,6 @@ def main():
         params=params,
     )
 
-    # ---------------- UI Layer ----------------
     window = MainWindow(
         ui=ui,
         controller=controller,
@@ -57,14 +53,12 @@ def main():
     )
     window.show()
 
-    # ---------------- Qt Main Loop ----------------
     exit_code = app.exec()
 
-    # ---------------- Fallback Cleanup (Very Important) ----------------
     try:
         controller.shutdown()
     except Exception:
-        logger.exception("shutdown error")
+        logger.exception("退出清理失败")
 
     sys.exit(exit_code)
 

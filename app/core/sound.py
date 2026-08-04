@@ -1,39 +1,36 @@
 # app/core/sound.py
 from __future__ import annotations
 
+import logging
 import os
 import winsound
 
+from app.core.resource_manager import ResourceManager
 
-class SoundManager:
-    """
-    Low-level sound driver:
-    - No Qt dependency
-    - No signals
-    - No UI interaction
-    - Only responsible for playing sounds
-    """
+logger = logging.getLogger(__name__)
 
-    _instance: SoundManager | None = None
 
-    def __new__(cls) -> "SoundManager":
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+class SoundService:
+    """播放错误/告警 wav。无 Qt、非单例 — 由 main 注入唯一实例。"""
 
-    def __init__(self) -> None:
-        pass
+    def play_error(self) -> None:
+        """播放错误提示音。"""
+        self._play(ResourceManager.get_resource("app/resources/sounds/error.wav"))
 
-    def play(self, full_path: str, repeat: bool = False) -> tuple[bool, str]:
-        """
-        Return (success, error_message)
-        success = True means playback succeeded
-        success = False means playback failed, error_message contains the reason
-        """
+    def play_alert(self) -> None:
+        """播放目标达成告警音。"""
+        self._play(ResourceManager.get_resource("app/resources/sounds/alert.wav"))
+
+    def stop(self) -> None:
+        """停止当前播放。"""
+        winsound.PlaySound(None, winsound.SND_PURGE)
+
+    def _play(self, full_path: str, *, repeat: bool = False) -> None:
         self.stop()
 
         if not os.path.exists(full_path):
-            return False, f"Sound file not found: {full_path}"
+            logger.error("播放失败：找不到音效文件 %s", full_path)
+            return
 
         flags = winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT
         if repeat:
@@ -41,9 +38,5 @@ class SoundManager:
 
         try:
             winsound.PlaySound(full_path, flags)
-            return True, ""
         except Exception as e:
-            return False, f"Failed to play sound: {full_path} ({e})"
-
-    def stop(self) -> None:
-        winsound.PlaySound(None, winsound.SND_PURGE)
+            logger.error("播放失败：无法播放 %s（%s）", full_path, e)

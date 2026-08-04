@@ -1,187 +1,135 @@
 # app/models/piece_counter.py
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from app.models.counter_state import CounterState
+from app.models.params import Params
 from app.models.thresholds import Thresholds
 from app.models.tolerance import Tolerance
 from app.models.weight_learner import WeightLearner
 
-if TYPE_CHECKING:
-    from app.models.params import Params
-
 
 class PieceCounter:
-    def __init__(
-        self,
-        initial_min_weight: float = 0.5,
-        tolerance_percent: float = 20.0,
-        stability_threshold: float = 0.02,
-        max_batch_pieces: int = 1,
-        initial_single_pieces: int = 5,
-        decimal_places: int = 2,
-        dynamic_weight_ratio: float = 0.5,
-        initial_min_ratio: float = 0.3,
-        jump_threshold_ratio: float = 0.5,
-        jump_confirm_times: int = 2,
-        early_learn_pieces: int = 5,
-        ema_alpha_min: float = 0.05,
-        ema_alpha_max: float = 0.30,
-        count_rounding_tolerance: float = 0.2,
-        abnormal_recover_factor: float = 1.5,
-    ) -> None:
+    """计件 FSM。持有算法参数的副本 — 不引用共享 Params。"""
 
-        # Fixed Configuration Parameters
-        self.initial_min_weight: float = initial_min_weight
-        self.max_batch_pieces: int = max_batch_pieces
-        self.initial_single_pieces: int = initial_single_pieces
-        self.decimal_places: int = decimal_places
-        self.count_rounding_tolerance: float = count_rounding_tolerance
-        self.abnormal_recover_factor: float = abnormal_recover_factor
-        self._stability_threshold: float = stability_threshold
-
-        # Calculate min_tol
-        resolution: float = 10 ** (-decimal_places)
-        min_tol: float = max(resolution * 2, stability_threshold * 2)
-
-        # Utility Classes
-        self.tolerance: Tolerance = Tolerance(
-            min_tol=min_tol, tolerance_percent=tolerance_percent
-        )
-        self.learner: WeightLearner = WeightLearner(
-            jump_threshold_ratio=jump_threshold_ratio,
-            jump_confirm_times=jump_confirm_times,
-            early_learn_pieces=early_learn_pieces,
-            ema_alpha_min=ema_alpha_min,
-            ema_alpha_max=ema_alpha_max,
-        )
-
-        # Threshold Management
-        self.thresholds: Thresholds = Thresholds(
-            initial_min_weight=initial_min_weight,
-            avg_weight=0.0,
-            tolerance_percent=tolerance_percent,
-            min_tol=min_tol,
-            dynamic_weight_ratio=dynamic_weight_ratio,
-            initial_min_ratio=initial_min_ratio,
-        )
-
-        self.piece_weights: list[float]
-        self.baseline_weight: float
-        self.last_stable_weight: float
-        self.delta: float
-        self.state: CounterState
-        self.abnormal_high: bool
-        self.abnormal_low: bool
-        self.avg_weight: float
-        self.abnormal_weight: float
-
+    def __init__(self, params: Params | None = None) -> None:
+        """从 Params 拷贝算法字段并初始化辅助对象。"""
+        p = Params() if params is None else params
+        self._load_construct_fields(p)
+        self._build_helpers(initial_min_weight=p.initial_min_weight)
         self.reset()
 
-    @classmethod
-    def from_params(cls, params: Params) -> PieceCounter:
-        return cls(
-            initial_min_weight=params.initial_min_weight,
-            tolerance_percent=params.tolerance_percent,
-            stability_threshold=params.stability_threshold,
-            max_batch_pieces=params.max_batch_pieces,
-            initial_single_pieces=params.initial_single_pieces,
-            decimal_places=params.decimal_places,
-            dynamic_weight_ratio=params.dynamic_weight_ratio,
-            initial_min_ratio=params.initial_min_ratio,
-            jump_threshold_ratio=params.jump_threshold_ratio,
-            jump_confirm_times=params.jump_confirm_times,
-            early_learn_pieces=params.early_learn_pieces,
-            ema_alpha_min=params.ema_alpha_min,
-            ema_alpha_max=params.ema_alpha_max,
-            count_rounding_tolerance=params.count_rounding_tolerance,
-            abnormal_recover_factor=params.abnormal_recover_factor,
+    def _load_construct_fields(self, p: Params) -> None:
+        """把 Params 中的计件相关字段拷贝到实例属性。"""
+        self.max_batch_pieces = p.max_batch_pieces
+        self.initial_single_pieces = p.initial_single_pieces
+        self.decimal_places = p.decimal_places
+        self.count_rounding_tolerance = p.count_rounding_tolerance
+        self.abnormal_recover_factor = p.abnormal_recover_factor
+        self._stability_threshold = p.stability_threshold
+        self._tolerance_percent = p.tolerance_percent
+        self._dynamic_weight_ratio = p.dynamic_weight_ratio
+        self._initial_min_ratio = p.initial_min_ratio
+        self._jump_threshold_ratio = p.jump_threshold_ratio
+        self._jump_confirm_times = p.jump_confirm_times
+        self._early_learn_pieces = p.early_learn_pieces
+        self._ema_alpha_min = p.ema_alpha_min
+        self._ema_alpha_max = p.ema_alpha_max
+
+    def _min_tol(self) -> float:
+        """由小数位与稳定阈值推导最小公差。"""
+        resolution = 10 ** (-self.decimal_places)
+        return max(resolution * 2, self._stability_threshold * 2)
+
+    def _build_helpers(self, *, initial_min_weight: float) -> None:
+        """构造 Tolerance / WeightLearner / Thresholds。"""
+        min_tol = self._min_tol()
+        self.tolerance = Tolerance(
+            min_tol=min_tol, tolerance_percent=self._tolerance_percent
+        )
+        self.learner = WeightLearner(
+            jump_threshold_ratio=self._jump_threshold_ratio,
+            jump_confirm_times=self._jump_confirm_times,
+            early_learn_pieces=self._early_learn_pieces,
+            ema_alpha_min=self._ema_alpha_min,
+            ema_alpha_max=self._ema_alpha_max,
+        )
+        self.thresholds = Thresholds(
+            initial_min_weight=initial_min_weight,
+            tolerance_percent=self._tolerance_percent,
+            min_tol=min_tol,
+            dynamic_weight_ratio=self._dynamic_weight_ratio,
+            initial_min_ratio=self._initial_min_ratio,
         )
 
     def apply_start_params(self, params: Params) -> None:
-        """Sync UI-editable start params (not target_pieces)."""
-        self.set_initial_single_pieces(params.initial_single_pieces)
-        self.set_max_batch_pieces(params.max_batch_pieces)
-        self.set_tolerance_percent(params.tolerance_percent)
-        self.set_initial_min_weight(params.initial_min_weight)
-        self.set_decimal_places(params.decimal_places)
-        self.set_stability_threshold(params.stability_threshold)
+        """从共享 Params 复制 START_SYNC 字段（快照，不持有引用）。"""
+        if params.initial_single_pieces > 0:
+            self.initial_single_pieces = params.initial_single_pieces
+        if params.max_batch_pieces > 0:
+            self.max_batch_pieces = params.max_batch_pieces
+        if 0.0 < params.tolerance_percent < 100.0:
+            self._tolerance_percent = params.tolerance_percent
+            self.tolerance.tolerance_percent = params.tolerance_percent
+            self.thresholds.tolerance_percent = params.tolerance_percent
+        if params.initial_min_weight > 0:
+            self.thresholds.initial_min_weight = params.initial_min_weight
+        if params.decimal_places >= 0:
+            self.decimal_places = params.decimal_places
+        if params.stability_threshold > 0:
+            self._stability_threshold = params.stability_threshold
+        self._recalc_min_tol()
 
     def reset(self) -> None:
-        self.piece_weights = []
+        """清空件重列表与状态，回到 ZERO。"""
+        self.piece_weights: list[float] = []
         self.baseline_weight = 0.0
         self.last_stable_weight = 0.0
-
         self.delta = 0.0
-
         self.state = CounterState.ZERO
         self.abnormal_high = False
         self.abnormal_low = False
-
         self.avg_weight = 0.0
-
-        self.abnormal_weight = 0.0
+        self.abnormal_anchor = 0.0
         self.learner.reset()
-        self._sync_all()
 
     @property
     def total_pieces(self) -> int:
+        """当前已计件数。"""
         return len(self.piece_weights)
 
-    # ---------------------------------------------------------
-    # Main Flow
-    # ---------------------------------------------------------
-    def process(
-        self,
-        stable_weight: float,
-    ) -> None:
-        # Jitter Filter for NORMAL/ZERO States
+    def on_stable_weight(self, stable_weight: float) -> None:
+        """处理一次稳定重量样本（会改变 FSM 状态）。"""
         if self.state != CounterState.ABNORMAL:
             if abs(stable_weight - self.last_stable_weight) < self.tolerance.min_tol:
                 self.last_stable_weight = stable_weight
                 return
 
-        # Global Zero
         if self._handle_zero_weight(stable_weight):
             return
 
-        # Update Delta
         self._update_delta(stable_weight)
 
-        # State Dispatch
         if self.state == CounterState.ZERO:
             self._handle_zero(stable_weight)
-
         elif self.state == CounterState.NORMAL:
             self._handle_normal(stable_weight)
-
         elif self.state == CounterState.ABNORMAL:
             self._handle_abnormal(stable_weight)
 
-    # ---------------------------------------------------------
-    # ZERO State: Detect First Piece
-    # ---------------------------------------------------------
     def _handle_zero(self, stable_weight: float) -> None:
+        """ZERO 态：首件入秤或低于初始最小重量。"""
         if stable_weight < self.thresholds.initial_min_weight:
             self.last_stable_weight = stable_weight
             return
 
-        # First Piece Established
         if abs(self.delta) >= self.thresholds.initial_min_weight:
             self._add_pieces(1, self.delta, stable_weight)
             self.state = CounterState.NORMAL
 
-    # ---------------------------------------------------------
-    # NORMAL State
-    # ---------------------------------------------------------
     def _handle_normal(self, stable_weight: float) -> None:
-        # Minimum Effective Change
-        if abs(self.delta) < self.thresholds.dynamic_min_weight:
+        """NORMAL 态：匹配加/减件或转入 ABNORMAL。"""
+        if abs(self.delta) < self.thresholds.dynamic_min_weight(self.avg_weight):
             self.last_stable_weight = stable_weight
             return
 
-        # Learning phase: can only add 1 piece
         limit = (
             1
             if self.total_pieces < self.initial_single_pieces
@@ -198,90 +146,71 @@ class PieceCounter:
                 if n_remove > 0:
                     self._remove_pieces(n_remove, stable_weight)
         else:
-            # Match Failed → Abnormal
             self.state = CounterState.ABNORMAL
             self.abnormal_high = self.delta > 0
             self.abnormal_low = self.delta < 0
-            self.abnormal_weight = stable_weight
+            self.abnormal_anchor = stable_weight
 
-    # ---------------------------------------------------------
-    # ABNORMAL State: Recovery
-    # ---------------------------------------------------------
     def _handle_abnormal(self, stable_weight: float) -> None:
-
+        """ABNORMAL 态：跟踪锚点，满足恢复条件则 clear_abnormal。"""
         current_delta = stable_weight - self.baseline_weight
 
-        # If direction reverses, update high/low and abnormal reference point
         if current_delta > 0 and not self.abnormal_high:
             self.abnormal_high = True
             self.abnormal_low = False
-            self.abnormal_weight = stable_weight
-
+            self.abnormal_anchor = stable_weight
         elif current_delta < 0 and not self.abnormal_low:
             self.abnormal_low = True
             self.abnormal_high = False
-            self.abnormal_weight = stable_weight
+            self.abnormal_anchor = stable_weight
 
-        # Add-piece abnormal → weight should decrease during recovery
-        if self.abnormal_high and stable_weight > self.abnormal_weight:
-            self.abnormal_weight = stable_weight
+        if self.abnormal_high and stable_weight > self.abnormal_anchor:
+            self.abnormal_anchor = stable_weight
             return
 
-        # Remove-piece abnormal → weight should increase during recovery
-        if self.abnormal_low and stable_weight < self.abnormal_weight:
-            self.abnormal_weight = stable_weight
+        if self.abnormal_low and stable_weight < self.abnormal_anchor:
+            self.abnormal_anchor = stable_weight
             return
 
-        # Must first approach the base point
-        # Use 1.5x, leave some margin for physical error
         if (
             abs(current_delta)
-            > self.thresholds.recover_threshold * self.abnormal_recover_factor
+            > self.thresholds.recover_threshold(self.avg_weight)
+            * self.abnormal_recover_factor
         ):
             return
 
         self.clear_abnormal(stable_weight)
 
     def _reset_baseline(self, stable_weight: float) -> None:
-        """Reset counting anchor to stable_weight and return to NORMAL."""
+        """将计件锚点重置为 stable_weight 并回到 NORMAL。"""
         self.state = CounterState.NORMAL
         self.abnormal_high = False
         self.abnormal_low = False
-        self.abnormal_weight = 0.0
+        self.abnormal_anchor = 0.0
         self.last_stable_weight = stable_weight
         self.baseline_weight = stable_weight
 
-    # ---------------------------------------------------------
-    # Exit abnormal (auto-recovery)
-    # ---------------------------------------------------------
     def clear_abnormal(self, stable_weight: float) -> None:
+        """退出异常：仅在 ABNORMAL 时重置基准。"""
         if self.state == CounterState.ABNORMAL:
             self._reset_baseline(stable_weight)
 
-    # ---------------------------------------------------------
-    # Force Calibration
-    # ---------------------------------------------------------
     def force_calibrate(self, stable_weight: float, force_pieces: int) -> bool:
+        """强制校准：按指定片数重设单重与基准。成功返回 True。"""
         if stable_weight < self.thresholds.initial_min_weight or force_pieces <= 0:
             return False
 
-        # Rebuild Model
         self.piece_weights.clear()
         piece_weight = stable_weight / force_pieces
         for _ in range(force_pieces):
             self.piece_weights.append(piece_weight)
 
         self.avg_weight = piece_weight
-        self._sync_all()
-
         self._reset_baseline(stable_weight)
         return True
 
-    # ---------------------------------------------------------
-    # Utility Functions
-    # ---------------------------------------------------------
     def _handle_zero_weight(self, stable_weight: float) -> bool:
-        # Global Zero: Regardless of state, reset when weight drops to zero
+        """全局归零：重量低于初始最小重量则 reset，返回是否已处理。"""
         if stable_weight < self.thresholds.initial_min_weight:
             self.reset()
             self.baseline_weight = stable_weight
@@ -290,9 +219,11 @@ class PieceCounter:
         return False
 
     def _update_delta(self, stable_weight: float) -> None:
+        """更新相对基准的重量差。"""
         self.delta = stable_weight - self.baseline_weight
 
     def _try_match_piece_count(self, delta: float, limit: int) -> int | None:
+        """尝试把 delta 匹配为 1..limit 件；失败返回 None。"""
         if self.avg_weight <= 0:
             return None
 
@@ -305,79 +236,35 @@ class PieceCounter:
         if abs(n_est - n) > self.count_rounding_tolerance:
             return None
 
-        # Tolerance Check
-        if not self.tolerance.is_within_tolerance(abs(delta), n):
+        if not self.tolerance.is_within_tolerance(abs(delta), n, self.avg_weight):
             return None
 
         return n
 
-    # ---------------------------------------------------------
-    # Add Piece / Remove Piece
-    # ---------------------------------------------------------
     def _add_pieces(self, n: int, delta: float, stable_weight: float) -> None:
+        """接受加件：写入件重、更新均重与基准。"""
         piece_weight = delta / n
         for _ in range(n):
             self.piece_weights.append(piece_weight)
 
-        # Update Average Piece Weight
         self.avg_weight = self.learner.update(
             self.avg_weight, piece_weight, n, self.total_pieces
         )
-        self._sync_all()
-
-        # Only update when this weight is truly accepted
         self.baseline_weight = stable_weight
         self.last_stable_weight = stable_weight
 
     def _remove_pieces(self, n: int, stable_weight: float) -> None:
+        """接受减件：删除末尾 n 件并重算均重。"""
         del self.piece_weights[-n:]
         if not self.piece_weights:
             self.avg_weight = 0.0
         else:
-            # Recalculate from scratch — EMA not applicable when pieces are removed
             self.avg_weight = sum(self.piece_weights) / len(self.piece_weights)
-        self._sync_all()
-
-        # Only update when this weight is truly accepted
         self.baseline_weight = stable_weight
         self.last_stable_weight = stable_weight
 
-    def _sync_all(self) -> None:
-        self.thresholds.update(self.avg_weight)
-        self.tolerance.update(self.avg_weight)
-
-    def set_initial_single_pieces(self, initial_single_pieces: int) -> None:
-        if initial_single_pieces > 0:
-            self.initial_single_pieces = initial_single_pieces
-
-    def set_max_batch_pieces(self, max_batch_pieces: int) -> None:
-        if max_batch_pieces > 0:
-            self.max_batch_pieces = max_batch_pieces
-
-    def set_tolerance_percent(self, tolerance_percent: float) -> None:
-        if 0.0 < tolerance_percent < 100.0:
-            self.tolerance.tolerance_percent = tolerance_percent
-            self.thresholds.tolerance_percent = tolerance_percent
-            self._sync_all()
-
-    def set_initial_min_weight(self, initial_min_weight: float) -> None:
-        if initial_min_weight > 0:
-            self.initial_min_weight = initial_min_weight
-            self.thresholds.initial_min_weight = initial_min_weight
-
-    def set_decimal_places(self, decimal_places: int) -> None:
-        if decimal_places >= 0:
-            self.decimal_places = decimal_places
-            self._recalc_min_tol()
-
-    def set_stability_threshold(self, stability_threshold: float) -> None:
-        if stability_threshold > 0:
-            self._stability_threshold = stability_threshold
-            self._recalc_min_tol()
-
     def _recalc_min_tol(self) -> None:
-        resolution = 10 ** (-self.decimal_places)
-        min_tol = max(resolution * 2, self._stability_threshold * 2)
+        """小数位或稳定阈值变化后重算 min_tol。"""
+        min_tol = self._min_tol()
         self.tolerance.min_tol = min_tol
         self.thresholds.min_tol = min_tol
-        self._sync_all()

@@ -1,21 +1,17 @@
 # app/models/weight_stabilizer.py
-from __future__ import annotations
-
 import statistics
 from collections import deque
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from app.models.params import Params
+from app.models.params import Params
 
 
 class WeightStabilizer:
     """
-    Industrial-grade stability detector (enhanced version)
-    - Unified threshold system
-    - Stable lock + unlock hysteresis
-    - Multi-frame unlock confirmation
-    - First few frames excluded from judgment
+    工业级稳定性检测器
+    - 统一阈值体系
+    - 稳定锁定 + 解锁迟滞
+    - 多帧解锁确认
+    - 前几帧不参与判定
     """
 
     def __init__(
@@ -27,31 +23,22 @@ class WeightStabilizer:
         unlock_factor: float = 2.5,
         stability_threshold: float = 0.02,
     ) -> None:
-        # Windows
+        """初始化双滑动窗口与锁定/解锁参数。"""
         self.short_win: deque[float] = deque(maxlen=short_win)
         self.long_win: deque[float] = deque(maxlen=long_win)
-
-        # Stable Count
         self.stable_count_required: int = stable_count
         self.stable_counter: int = 0
-
-        # Lock Mode
         self.locked: bool = False
         self.locked_weight: float | None = None
-
-        # Unlock Mechanism
         self.unlock_factor: float = unlock_factor
         self.unlock_confirm_required: int = unlock_confirm
         self.unlock_pending: int = 0
-
-        # Threshold
         self.stability_threshold: float = stability_threshold
-
-        # Output Cache
         self.last_stable_weight: float | None = None
 
     @classmethod
-    def from_params(cls, params: Params) -> WeightStabilizer:
+    def from_params(cls, params: Params) -> "WeightStabilizer":
+        """从 Params 构造实例。"""
         return cls(
             short_win=params.stability_short_win,
             long_win=params.stability_long_win,
@@ -62,53 +49,30 @@ class WeightStabilizer:
         )
 
     def apply_start_params(self, params: Params) -> None:
-        """Sync UI-editable start params used by the stabilizer."""
-        self.set_stability_threshold(params.stability_threshold)
+        """从共享 Params 复制 START_SYNC 的 stability_threshold（快照）。"""
+        if params.stability_threshold > 0:
+            self.stability_threshold = params.stability_threshold
 
-    # ============================================================
-    # Hot Update Parameters
-    # ============================================================
-    def set_stability_threshold(self, stability_threshold: float) -> None:
-        if stability_threshold > 0:
-            self.stability_threshold = stability_threshold
-
-    def set_stable_count(self, stable_count: int) -> None:
-        if stable_count > 0:
-            self.stable_count_required = stable_count
-
-    # ============================================================
-    # Reset
-    # ============================================================
     def reset(self) -> None:
+        """清空窗口与锁定状态。"""
         self.short_win.clear()
         self.long_win.clear()
         self.stable_counter = 0
-
         self.locked = False
         self.locked_weight = None
         self.unlock_pending = 0
-
         self.last_stable_weight = None
 
-    # ============================================================
-    # Main Logic
-    # ============================================================
     def stabilize(self, weight: float) -> float | None:
         """
-        Input: current weight
-        Output: stable weight (None means unstable)
+        输入：当前重量
+        输出：稳定重量（None 表示未稳定）
         """
         eps = 1e-6
         stability_threshold = max(self.stability_threshold, eps)
 
-        # Update Windows
         self.short_win.append(weight)
         self.long_win.append(weight)
-
-        # ============================================================
-        # 1. Lock Mode (with hysteresis + multi-frame unlock confirmation)
-        # Keep updating windows during lock to ensure data is fresh after unlock
-        # ============================================================
 
         if self.locked:
             assert self.locked_weight is not None
@@ -128,58 +92,34 @@ class WeightStabilizer:
                 self.last_stable_weight = self.locked_weight
                 return self.locked_weight
 
-        # ============================================================
-        # 2. Normal Stability Detection
-        # ============================================================
-
-        # Skip early frames (common practice in industrial weighing)
         assert self.long_win.maxlen is not None
         if len(self.long_win) < self.long_win.maxlen:
             self.stable_counter = 0
             return None
 
-        # Unified Threshold System
         dynamic_threshold = max(stability_threshold, abs(weight) * 0.001, eps)
         speed_limit = dynamic_threshold
         trend_limit = dynamic_threshold * 1.5
         std_limit = dynamic_threshold * 1.2
 
-        # -----------------------------
-        # Speed Detection (short window)
-        # -----------------------------
         if (max(self.short_win) - min(self.short_win)) > speed_limit:
             self.stable_counter = 0
             return None
 
-        # -----------------------------
-        # Trend Detection (long window)
-        # -----------------------------
         if (max(self.long_win) - min(self.long_win)) > trend_limit:
             self.stable_counter = 0
             return None
 
-        # -----------------------------
-        # Standard Deviation Detection (long window)
-        # -----------------------------
         if statistics.stdev(self.long_win) > std_limit:
             self.stable_counter = 0
             return None
 
-        # ============================================================
-        # Consecutive Stable Count
-        # ============================================================
         self.stable_counter += 1
         if self.stable_counter < self.stable_count_required:
             return None
 
-        # ============================================================
-        # Enter Stable Lock
-        # ============================================================
         stable_weight = statistics.median(self.long_win)
-
         self.locked = True
         self.locked_weight = stable_weight
-
         self.last_stable_weight = stable_weight
-
         return stable_weight

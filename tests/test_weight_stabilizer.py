@@ -156,18 +156,17 @@ class TestEdgeCases:
         assert stabilizer.stable_counter == 0
         assert stabilizer.last_stable_weight is None
 
-    def test_hot_update_threshold(self):
-        """set_stability_threshold 立即生效"""
-        stabilizer = WeightStabilizer(
-            stability_threshold=10.0,
-        )
-        stabilizer.set_stability_threshold(0.001)
+    def test_apply_start_params_threshold(self):
+        """apply_start_params 将 stability_threshold 复制进实例"""
+        from app.models.params import Params
+
+        stabilizer = WeightStabilizer(stability_threshold=10.0)
+        stabilizer.apply_start_params(Params(stability_threshold=0.001))
         assert stabilizer.stability_threshold == 0.001
 
-    def test_hot_update_stable_count(self):
-        """set_stable_count 立即生效"""
-        stabilizer = WeightStabilizer(stable_count=3)
-        stabilizer.set_stable_count(5)
+    def test_stable_count_from_constructor(self):
+        """stable_count 在构造时设定（启动期窗口参数）"""
+        stabilizer = WeightStabilizer(stable_count=5)
         assert stabilizer.stable_count_required == 5
 
     def test_lock_keeps_updating_windows(self):

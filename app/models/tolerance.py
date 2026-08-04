@@ -2,52 +2,39 @@
 
 
 class Tolerance:
+    """单件公差带 + sqrt(n) 批量判定。调用时传入 avg_weight（不缓存）。"""
+
     def __init__(self, min_tol: float, tolerance_percent: float) -> None:
+        """保存最小公差与百分比配置。"""
         self.min_tol: float = min_tol
-        self.low: float = 0.0
-        self.high: float = 0.0
         self.tolerance_percent: float = tolerance_percent
-        self.current_avg: float = 0.0
-        self.half_range: float = 0.0
 
-    def update(self, avg_weight: float) -> None:
-        """
-        Update tolerance range and cache avg_weight and half_range.
-        """
-        self.current_avg = avg_weight
-
+    def band(self, avg_weight: float) -> tuple[float, float, float]:
+        """返回给定平均单重的 (下限, 上限, 半宽)。"""
         if avg_weight <= 0:
-            self.low = 0
-            self.high = 0
-            self.half_range = 0
-            return
+            return 0.0, 0.0, 0.0
 
         tol = self.tolerance_percent / 100.0
-
-        # Linear Tolerance Range (Single Piece)
         low = avg_weight * (1 - tol)
         high = avg_weight * (1 + tol)
 
-        # Add min_tol (Prevent Tolerance Too Small)
-        # Extend tolerance range outward by at least min_tol
-        self.low = min(
-            low, avg_weight - self.min_tol
-        )  # Lower bound smaller (wider tolerance)
-        self.high = max(
-            high, avg_weight + self.min_tol
-        )  # Upper bound larger (wider tolerance)
+        # 至少向外扩展 min_tol
+        low = min(low, avg_weight - self.min_tol)
+        high = max(high, avg_weight + self.min_tol)
+        half_range = max(avg_weight - low, high - avg_weight)
+        return low, high, half_range
 
-        # Single Piece Error (Take the Larger Side)
-        self.half_range = max(avg_weight - self.low, self.high - avg_weight)
-
-    def is_within_tolerance(self, delta_abs: float, n: int) -> bool:
-        """
-        sqrt(n) tolerance model: statistics-based total weight judgment
-        """
-        if self.current_avg <= 0 or self.half_range <= 0:
+    def is_within_tolerance(
+        self, delta_abs: float, n: int, avg_weight: float
+    ) -> bool:
+        """sqrt(n) 公差模型：基于统计的总重判定。"""
+        if avg_weight <= 0:
             return False
 
-        expected_total = self.current_avg * n
-        allowed_error = self.half_range * (n**0.5)
+        _, _, half_range = self.band(avg_weight)
+        if half_range <= 0:
+            return False
 
+        expected_total = avg_weight * n
+        allowed_error = half_range * (n**0.5)
         return abs(delta_abs - expected_total) <= allowed_error

@@ -14,24 +14,24 @@ logger = logging.getLogger(__name__)
 
 class CsvLogService(QObject):
     """
-    Async CSV record service:
-    - Main thread / API callers only enqueue, no IO
-    - Background thread handles all writes, avoiding GUI blocking
-    - Supports safe shutdown (no record loss)
-    - Supports sentinel mechanism (Poison Pill)
-    - Supports queue.get(timeout) to prevent thread deadlock
+    异步 CSV 记录服务：
+    - 主线程 / API 调用方仅入队，不做 IO
+    - 后台线程统一写入，避免阻塞 GUI
+    - 支持安全关闭（不丢记录）
+    - 支持哨兵机制（Poison Pill）
+    - 支持 queue.get(timeout) 防止线程死锁
     """
 
     error_occurred = Signal(str)
 
     def __init__(self) -> None:
+        """启动后台写线程与生产日志 Writer。"""
         super().__init__()
         base = ResourceManager.get_external_root() / "log"
-        self.production_writer: CsvWriter | None = CsvWriter(
-            base / "production", ("Time", "Weight", "Total")
+        self._production_writer: CsvWriter | None = CsvWriter(
+            base / "production", ("时间", "重量", "总件数")
         )
 
-        # log queue
         self._production_queue: queue.Queue = queue.Queue()
 
         self._is_active = True
@@ -40,10 +40,8 @@ class CsvLogService(QObject):
         )
         self._writer_thread.start()
 
-    # ============================================================
-    # Background thread: unified log writer
-    # ============================================================
     def _worker_loop(self) -> None:
+        """后台线程：从队列取记录并写入 CSV。"""
         while True:
             try:
                 item = self._production_queue.get(timeout=1.0)
@@ -59,64 +57,42 @@ class CsvLogService(QObject):
             timestamp, weight_str, total_str = item
 
             try:
-                if self.production_writer:
-                    self.production_writer.write(timestamp, weight_str, total_str)
+                if self._production_writer:
+                    self._production_writer.write(timestamp, weight_str, total_str)
             except Exception as e:
-                self.error_occurred.emit(f"CSV write failed: {e}")
+                self.error_occurred.emit(f"CSV 写入失败：{e}")
             finally:
                 self._production_queue.task_done()
 
-    # ============================================================
-    # Utility: current time
-    # ============================================================
     @staticmethod
     def _timestamp() -> str:
+        """当前时间戳字符串。"""
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # ============================================================
-    # Record production
-    # ============================================================
     def record_production(self, weight: float, total: int) -> None:
-        """
-        weight: single-piece weight (last piece)
-        total: current total count
-        """
+        """入队一条生产记录（weight=最新单重，total=当前总件数）。"""
         if not self._is_active:
             return
 
         try:
             self._production_queue.put((self._timestamp(), f"{weight:.3f}", str(total)))
         except Exception as e:
-            self.error_occurred.emit(f"Production write failed: {e}")
+            self.error_occurred.emit(f"生产记录入队失败：{e}")
 
-    # ============================================================
-    # Safe shutdown (called on program exit)
-    # ============================================================
     def close(self) -> None:
-        """Ensure background thread exits safely without log loss"""
-
-        # 1. Idempotency guard: prevent double close
+        """安全关闭：排空队列、结束后台线程、关闭文件。"""
         if not self._is_active:
             return
 
-        # 2. Stop accepting new items
         self._is_active = False
-
-        # 3. Wait for all queued items to be written to disk
         self._production_queue.join()
-
-        # 4. Inject sentinel to unblock worker and trigger exit
         self._production_queue.put_nowait(None)
-
-        # 5. Wait for worker thread to exit
         self._writer_thread.join(timeout=3.0)
 
-        # 6. Close writer
         try:
-            if self.production_writer:
-                self.production_writer.close()
+            if self._production_writer:
+                self._production_writer.close()
         except Exception as e:
             logger.error("关闭日志失败: %s", e)
 
-        # 7. Prevent accidental writes after close
-        self.production_writer = None
+        self._production_writer = None

@@ -1,18 +1,18 @@
 # app/presentation/status_bar.py
-"""Status bar (three labels): event in → BarSnapshot out.
+"""状态栏（三标签）：事件入 → BarSnapshot 出。
 
-Public API is StatusBar only. Link paint and message latches are private.
+对外 API 仅 StatusBar。链路绘制与消息锁存为内部实现。
 
-Message display priority (high → low):
-  Force fail → Force done → Force waiting → soft error
-  → counting abnormal → target reached → none
+消息显示优先级（高 → 低）：
+  强制失败 → 强制完成 → 等待稳定 → 软错误
+  → 计数异常 → 达目标 → 无
 
-Message lifetime:
-  abnormal   = derived from CounterState on each snapshot
-  target     = latched on edge; cleared on a later piece-add
-  waiting    = while force pending & not ready; cleared on stable path
-  force result = that frame only
-  soft error = until next stable frame; timeout/unstable do not clear
+消息生命周期：
+  abnormal   = 每帧由 CounterState 推导
+  target     = 边沿锁存；后续加件时清除
+  waiting    = 强制校准待稳定期间；稳定路径清除
+  force result = 仅当帧
+  soft error = 直至下一稳定帧；超时/未稳定不清除
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from app.models.counter_state import CounterState
 from app.presentation.styles import Styles
 from app.presentation.view_models import BarSnapshot, LabelItem
 
-# Exported for tests asserting copy (not a separate public subsystem).
+# 导出供测试断言文案（非独立公共子系统）
 MSG_NONE = "无异常"
 MSG_WAIT_STABLE = "等待稳定重量…"
 MSG_FORCE_DONE = "强制校准完成"
@@ -33,7 +33,7 @@ MSG_TARGET = "已达目标件数"
 
 
 class ForceOutcome(Enum):
-    """This-frame force-calibrate result (not latched)."""
+    """当帧强制校准结果（不锁存）。"""
 
     NONE = auto()
     DONE = auto()
@@ -41,7 +41,7 @@ class ForceOutcome(Enum):
 
 
 class _LinkKind(Enum):
-    """Internal: paints parse + comm labels."""
+    """内部：绘制解析 + 通讯标签。"""
 
     OK = auto()
     TIMEOUT = auto()
@@ -49,6 +49,7 @@ class _LinkKind(Enum):
     FAULT = auto()
 
     def labels(self) -> tuple[LabelItem, LabelItem]:
+        """按链路种类返回（解析标签, 通讯标签）。"""
         if self is _LinkKind.OK:
             return (
                 LabelItem(text="解析正常", style=Styles.GREEN),
@@ -66,6 +67,7 @@ class _LinkKind(Enum):
 
 
 def _message_label(text: str, *, info: bool = False) -> LabelItem:
+    """组装消息栏 LabelItem；info=True 用灰色，否则红色。"""
     if text and text != MSG_NONE:
         style = Styles.GRAY if info else Styles.RED
     else:
@@ -74,9 +76,10 @@ def _message_label(text: str, *, info: bool = False) -> LabelItem:
 
 
 class StatusBar:
-    """Owns parse / comm / message. Call on_* then use the returned snapshot."""
+    """持有解析 / 通讯 / 消息三格。调用 on_* 后使用返回的快照。"""
 
     def __init__(self) -> None:
+        """初始化链路与消息锁存状态。"""
         self._link = _LinkKind.OK
         self._state = CounterState.ZERO
         self._hold_target = False
@@ -84,6 +87,7 @@ class StatusBar:
         self._error: str | None = None
 
     def reset(self) -> BarSnapshot:
+        """重置全部内部状态并返回空闲快照。"""
         self._link = _LinkKind.OK
         self._state = CounterState.ZERO
         self._hold_target = False
@@ -92,28 +96,34 @@ class StatusBar:
         return self.snapshot()
 
     def on_timeout(self) -> BarSnapshot:
+        """串口超时：链路切到等待态。"""
         self._link = _LinkKind.TIMEOUT
         return self.snapshot()
 
     def on_parse_fail(self) -> BarSnapshot:
+        """重量解析失败：解析标签标红。"""
         self._link = _LinkKind.PARSE_FAIL
         return self.snapshot()
 
     def on_force_waiting(self) -> BarSnapshot:
+        """强制校准已挂起，等待稳定重量。"""
         self._link = _LinkKind.OK
         self._waiting = True
         return self.snapshot()
 
     def on_serial_error(self, msg: str) -> BarSnapshot:
+        """串口故障：链路故障 + 软错误消息。"""
         self._link = _LinkKind.FAULT
         self._error = msg
         return self.snapshot()
 
     def on_csv_error(self, msg: str) -> BarSnapshot:
+        """CSV 写入失败：仅更新软错误消息。"""
         self._error = msg
         return self.snapshot()
 
     def on_start_failed(self, msg: str) -> BarSnapshot:
+        """Start 打开串口失败。"""
         self._link = _LinkKind.FAULT
         self._error = msg
         return self.snapshot()
@@ -126,6 +136,7 @@ class StatusBar:
         target_reached: bool,
         piece_added: bool,
     ) -> BarSnapshot:
+        """稳定帧：更新链路/状态并解析消息优先级。"""
         self._link = _LinkKind.OK
         self._state = state
         self._error = None
@@ -137,6 +148,7 @@ class StatusBar:
         return self.snapshot(force=force)
 
     def snapshot(self, force: ForceOutcome = ForceOutcome.NONE) -> BarSnapshot:
+        """按当前锁存状态生成三标签快照。"""
         parse, comm = self._link.labels()
         text, info = self._resolve_message(force)
         return BarSnapshot(
@@ -146,6 +158,7 @@ class StatusBar:
         )
 
     def _resolve_message(self, force: ForceOutcome) -> tuple[str, bool]:
+        """按优先级解析消息文案；返回 (文本, 是否信息色)。"""
         if force is ForceOutcome.FAIL:
             return MSG_FORCE_FAIL, False
         if force is ForceOutcome.DONE:

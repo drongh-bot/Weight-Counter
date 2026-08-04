@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QHBoxLayout, QScrollBar, QVBoxLayout, QWidget
 
 
 class FixedAxis(pg.AxisItem):
-    """Horizontal axis with fixed decimal places."""
+    """固定小数位数的水平轴。"""
 
     def __init__(self, orientation) -> None:
         super().__init__(orientation=orientation)
@@ -16,6 +16,8 @@ class FixedAxis(pg.AxisItem):
 
 
 class PieceChart(QWidget):
+    """单件重量散点图，支持悬停与纵向滚动。"""
+
     _DEFAULT_Y_WINDOW_SIZE: int = 20
     _MAX_Y_TICK_LABELS: int = 20
 
@@ -99,10 +101,8 @@ class PieceChart(QWidget):
         self.scrollbar.hide()
         self.scrollbar.valueChanged.connect(self._on_scrollbar_moved)
 
-    # ---------------------------------------------------------
-    #  Public API
-    # ---------------------------------------------------------
     def update_piece_weights(self, piece_weights: list[float]) -> None:
+        """更新件重数据并重绘（不可见时仅缓存）。"""
         if piece_weights == self._piece_weights:
             return
 
@@ -118,6 +118,7 @@ class PieceChart(QWidget):
         self._render()
 
     def reset(self) -> None:
+        """清空图表与滚动条。"""
         self._piece_weights = []
         self._hovered_index = None
         self._follow_latest = True
@@ -130,6 +131,7 @@ class PieceChart(QWidget):
         self.scrollbar.blockSignals(False)
 
     def set_decimal_places(self, places: int) -> None:
+        """切换轴标签小数位数。"""
         if places == self._decimal_places:
             return
         self._decimal_places = places
@@ -140,10 +142,8 @@ class PieceChart(QWidget):
         if self._piece_weights and self.isVisible():
             self.plot.scene().update()
 
-    # ---------------------------------------------------------
-    #  Render
-    # ---------------------------------------------------------
     def _render(self) -> None:
+        """按当前件重列表重绘散点、坐标轴与滚动范围。"""
         count = len(self._piece_weights)
         self._update_scatter_and_ticks(count)
 
@@ -160,6 +160,7 @@ class PieceChart(QWidget):
         self._update_x_range(count)
 
     def _update_scatter_and_ticks(self, count: int) -> None:
+        """更新散点数据与左侧序号刻度。"""
         spots = [
             {"pos": (weight, i + 1)} for i, weight in enumerate(self._piece_weights)
         ]
@@ -173,6 +174,7 @@ class PieceChart(QWidget):
         self.plot.getAxis("left").setTicks([ticks])
 
     def _update_x_range(self, count: int) -> None:
+        """按可见件重自动调整 X 轴范围。"""
         vrange = self.plot.viewRange()[1]
         start_idx = max(0, int(vrange[0]) - 1)
         end_idx = min(count, int(vrange[1]) + 1)
@@ -189,10 +191,8 @@ class PieceChart(QWidget):
             margin = max(span * 0.1, 0.05)
         self.plot.setXRange(x_min - margin, x_max + margin, padding=0)
 
-    # ---------------------------------------------------------
-    #  Hover
-    # ---------------------------------------------------------
     def _on_mouse_moved(self, pos: QPointF) -> None:
+        """鼠标移动时高亮最近片号并显示 tip。"""
         if not self._piece_weights:
             return
 
@@ -220,10 +220,8 @@ class PieceChart(QWidget):
             f"片号：{closest_y}\n重量：{weight:.{self._decimal_places}f}"
         )
 
-    # ---------------------------------------------------------
-    #  Scrollbar ↔ chart
-    # ---------------------------------------------------------
     def _on_scrollbar_moved(self, value: int) -> None:
+        """滚动条拖动时同步图表 Y 窗口。"""
         if self._setting_range or not self._piece_weights:
             return
 
@@ -266,6 +264,7 @@ class PieceChart(QWidget):
         self.scrollbar.blockSignals(False)
 
     def showEvent(self, event) -> None:
+        """窗口首次显示时补绘缓存数据。"""
         super().showEvent(event)
         if self._piece_weights:
             self._render()

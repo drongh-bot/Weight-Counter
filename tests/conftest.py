@@ -1,4 +1,4 @@
-"""Shared fixtures mirroring main.py DI wiring."""
+"""与 main.py 相同的 DI 组装共享夹具。"""
 
 from __future__ import annotations
 
@@ -8,30 +8,30 @@ import pytest
 
 from app.controllers.main_controller import MainController
 from app.models.params import Params
-from app.presentation.ui import Ui
+from app.presentation.ui import UiBridge
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
-from app.services.sound_service import SoundService
+from app.core.sound import SoundService
 from app.services.weight_input_service import WeightInputService
 
 
 @pytest.fixture
-def make_controller(qapp) -> Callable[..., tuple[MainController, Ui]]:
-    """Build MainController + Ui like main.py (params defaults for tests)."""
+def make_controller(qapp) -> Callable[..., tuple[MainController, UiBridge]]:
+    """按 main.py 方式组装 MainController + UiBridge（测试用默认参数）。"""
 
     def _factory(
         *,
         sound_service: SoundService | None = None,
         **param_overrides: object,
-    ) -> tuple[MainController, Ui]:
+    ) -> tuple[MainController, UiBridge]:
         params = Params()
         params.target_pieces = 10
         params.max_batch_pieces = 4
         for key, value in param_overrides.items():
             setattr(params, key, value)
 
-        ui = Ui()
+        ui = UiBridge()
         controller = MainController(
             ui=ui,
             serial_service=SerialService(2000),

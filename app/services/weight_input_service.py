@@ -9,24 +9,20 @@ logger = logging.getLogger(__name__)
 
 class WeightInputService:
     """
-    Weight input service:
-    - Parse serial weight strings
-    - Stabilize via WeightStabilizer
-    - No dependency on UI or Controller
-    - Provides parse() / stabilize() / reset()
+    重量输入服务：
+    - 解析串口重量字符串
+    - 经 WeightStabilizer 稳定化
+    - 不依赖 UI 或 Controller
+    - 提供 parse() / stabilize() / reset()
     """
 
     def __init__(self, params: Params) -> None:
+        """用共享 Params 构造稳重器（窗口参数在构造时拷贝）。"""
         self.params = params
         self._stabilizer = WeightStabilizer.from_params(params)
 
-    # ============================================================
-    # Parse weight (string -> float)
-    # ============================================================
     def parse(self, raw: str) -> float | None:
-        """
-        Returns the parsed weight, or None if parsing fails
-        """
+        """解析串口重量字符串；成功返回 float，失败返回 None。"""
         try:
             raw = raw.strip().upper()
             if not raw or not any(c.isdigit() for c in raw):
@@ -46,17 +42,14 @@ class WeightInputService:
             return None
 
     def stabilize(self, weight: float) -> float | None:
-        """
-        Returns the stable weight, or None if unstable
-        """
+        """稳定则返回稳定重量，否则 None。"""
         return self._stabilizer.stabilize(weight)
 
-    # ============================================================
-    # Reset
-    # ============================================================
     def reset(self) -> None:
+        """重置稳重器窗口与锁定状态。"""
         self._stabilizer.reset()
 
     def apply_start_params(self) -> None:
+        """Start 时将 START_SYNC 稳定阈值复制进 stabilizer。"""
         self._stabilizer.apply_start_params(self.params)
 

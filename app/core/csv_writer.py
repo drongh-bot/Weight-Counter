@@ -9,6 +9,8 @@ from typing import Any, TextIO
 
 
 class CsvWriter:
+    """按日切分的 CSV 写入器，线程安全。"""
+
     def __init__(
         self, folder_path: Path, header: tuple[str, ...] = ("时间", "列1", "列2")
     ) -> None:
@@ -23,10 +25,8 @@ class CsvWriter:
         self.current_date: datetime.date | None = None
         self.lock: threading.RLock = threading.RLock()
 
-    # ---------------------------------------------------------
-    # Open CSV file (one per day)
-    # ---------------------------------------------------------
     def _open_new_file(self) -> None:
+        """打开当日 CSV（不存在则新建并写表头）。"""
         today = datetime.date.today()
         filename = f"log_{today.strftime('%Y%m%d')}.csv"
 
@@ -36,16 +36,13 @@ class CsvWriter:
         self.file = open(self.filepath, "a", newline="", encoding="utf-8-sig")
         self.writer = csv.writer(self.file)
 
-        # Write common header
         if new_file:
             self.writer.writerow(self.header)
 
         self.current_date = today
 
-    # ---------------------------------------------------------
-    # Check if log file needs to be switched
-    # ---------------------------------------------------------
     def _ensure_file(self) -> None:
+        """若未打开或已跨日，则切换到当日日志文件。"""
         with self.lock:
             today = datetime.date.today()
 
@@ -57,10 +54,8 @@ class CsvWriter:
                 self.close()
                 self._open_new_file()
 
-    # ---------------------------------------------------------
-    # Write to CSV (generic three columns)
-    # ---------------------------------------------------------
     def write(self, timestamp: str, col1: str, col2: str) -> None:
+        """写入一行并 flush。"""
         self._ensure_file()
 
         try:
@@ -71,22 +66,19 @@ class CsvWriter:
         except Exception as e:
             raise RuntimeError(f"写日志失败：{e}") from e
 
-    # ---------------------------------------------------------
-    # Close file
-    # ---------------------------------------------------------
     def close(self) -> None:
+        """关闭当前打开的日志文件。"""
         with self.lock:
             if self.file:
                 self.file.close()
                 self.file = None
                 self.writer = None
 
-    # ---------------------------------------------------------
-    # Context manager support
-    # ---------------------------------------------------------
     def __enter__(self) -> "CsvWriter":
+        """进入 with 时确保日志文件已打开。"""
         self._ensure_file()
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
+        """离开 with 时关闭文件。"""
         self.close()

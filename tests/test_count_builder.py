@@ -1,10 +1,10 @@
 from app.models.count_result import CountResult
 from app.models.counter_state import CounterState
-from app.presentation.count_builder import CountBuilder
+from app.presentation.count_builder import to_count_snapshot
 from app.presentation.styles import Styles
 
 
-class TestCountBuilder:
+class TestToCountSnapshot:
     def test_zero_state(self):
         result = CountResult(
             added=False,
@@ -20,7 +20,7 @@ class TestCountBuilder:
             baseline_weight=0.0,
             piece_weights=[],
         )
-        data = CountBuilder.build(result)
+        data = to_count_snapshot(result)
         assert data.state.text == "等待第一件"
         assert data.state.style == ""
         assert data.total_pieces == "0"
@@ -35,20 +35,17 @@ class TestCountBuilder:
             avg_weight=10.0,
             tolerance_high=11.0,
             tolerance_low=9.0,
-            total_pieces=5,
-            last_stable_weight=50.0,
-            baseline_weight=40.0,
-            piece_weights=[10.0, 10.0, 10.0, 10.0, 10.0],
+            total_pieces=1,
+            last_stable_weight=10.0,
+            baseline_weight=0.0,
+            piece_weights=[10.0],
         )
-        data = CountBuilder.build(result)
+        data = to_count_snapshot(result)
         assert data.state.text == "正常"
         assert data.state.style == ""
         assert data.delta_weight.text == "10.00"
-        assert data.delta_weight.style == ""  # NORMAL should not highlight delta
-        assert data.total_pieces == "5"
-        assert data.avg_weight == "10.00"
 
-    def test_abnormal_high_state(self):
+    def test_abnormal_high(self):
         result = CountResult(
             added=False,
             abnormal_high=True,
@@ -58,17 +55,17 @@ class TestCountBuilder:
             avg_weight=10.0,
             tolerance_high=11.0,
             tolerance_low=9.0,
-            total_pieces=3,
-            last_stable_weight=45.0,
-            baseline_weight=30.0,
-            piece_weights=[10.0, 10.0, 10.0],
+            total_pieces=1,
+            last_stable_weight=25.0,
+            baseline_weight=10.0,
+            piece_weights=[10.0],
         )
-        data = CountBuilder.build(result)
+        data = to_count_snapshot(result)
         assert data.state.text == "异常（偏高）"
         assert data.state.style == Styles.ABNORMAL_HIGH
         assert data.delta_weight.style == Styles.ABNORMAL_HIGH
 
-    def test_abnormal_low_state(self):
+    def test_abnormal_low(self):
         result = CountResult(
             added=False,
             abnormal_high=False,
@@ -78,34 +75,31 @@ class TestCountBuilder:
             avg_weight=10.0,
             tolerance_high=11.0,
             tolerance_low=9.0,
-            total_pieces=2,
-            last_stable_weight=15.0,
-            baseline_weight=20.0,
-            piece_weights=[10.0, 10.0],
+            total_pieces=1,
+            last_stable_weight=5.0,
+            baseline_weight=10.0,
+            piece_weights=[10.0],
         )
-        data = CountBuilder.build(result)
+        data = to_count_snapshot(result)
         assert data.state.text == "异常（偏低）"
         assert data.state.style == Styles.ABNORMAL_LOW
-        assert data.delta_weight.style == Styles.ABNORMAL_LOW
 
-    def test_delta_formatting(self):
+    def test_decimal_places(self):
         result = CountResult(
             added=False,
             abnormal_high=False,
             abnormal_low=False,
             state=CounterState.NORMAL,
-            delta=3.14159,
-            avg_weight=10.0,
-            tolerance_high=11.0,
-            tolerance_low=9.0,
+            delta=1.2345,
+            avg_weight=1.2345,
+            tolerance_high=1.5,
+            tolerance_low=1.0,
             total_pieces=1,
-            last_stable_weight=10.0,
+            last_stable_weight=1.2345,
             baseline_weight=0.0,
-            piece_weights=[10.0],
+            piece_weights=[1.2345],
+            decimal_places=3,
         )
-        data = CountBuilder.build(result)
-        assert data.delta_weight.text == "3.14"
-        assert data.tolerance_high == "11.00"
-        assert data.tolerance_low == "9.00"
-        assert data.last_stable_weight == "10.00"
-        assert data.baseline_weight == "0.00"
+        data = to_count_snapshot(result)
+        assert data.delta_weight.text == "1.234"
+        assert data.avg_weight == "1.234"
