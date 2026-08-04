@@ -113,13 +113,13 @@ a.binaries = [
 ]
 a.datas = [(dest, src, kind) for dest, src, kind in a.datas if _keep_data(dest)]
 
-# —— 生成无控制台 EXE，再收集到 dist/WeightCounter/ ——
+# —— 生成无控制台 EXE，再收集到 dist/weightCounter/ ——
 pyz = PYZ(a.pure, a.zipped_data)
 
 exe = EXE(
     pyz,
     a.scripts,
-    name="WeightCounter",
+    name="weightCounter",
     debug=False,
     strip=False,
     upx=False,
@@ -134,5 +134,5 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=False,
-    name="WeightCounter",
+    name="weightCounter",
 )

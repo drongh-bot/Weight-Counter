@@ -467,7 +467,7 @@ wheels = [
 ]
 
 [[package]]
-name = "robust1bigscale"
+name = "weightCounter"
 version = "1.4.0"
 source = { virtual = "." }
 dependencies = [
