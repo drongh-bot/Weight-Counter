@@ -139,7 +139,7 @@ class TestControllerPipeline:
 
     def test_abnormal_status_persists_until_recovered(self, make_controller):
         sound = MagicMock()
-        controller, ui = make_controller(sound_service=sound)
+        controller, ui = make_controller(sound_player=sound)
         controller._is_running = True
 
         feed_stable(controller, "10.0 kg")
@@ -165,7 +165,7 @@ class TestControllerPipeline:
 
     def test_target_status_persists_until_next_add(self, make_controller):
         sound = MagicMock()
-        controller, ui = make_controller(sound_service=sound, target_pieces=2)
+        controller, ui = make_controller(sound_player=sound, target_pieces=2)
         controller._is_running = True
 
         feed_stable(controller, "10.0 kg")
@@ -319,7 +319,7 @@ class TestControllerPipeline:
 
     def test_force_calibrate_target_edge(self, make_controller):
         sound = MagicMock()
-        controller, ui = make_controller(sound_service=sound, target_pieces=3)
+        controller, ui = make_controller(sound_player=sound, target_pieces=3)
         controller._is_running = True
         feed_stable(controller, "10.0 kg")
         assert controller.counter_service.snapshot().total_pieces == 1

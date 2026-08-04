@@ -1,4 +1,4 @@
-# app/core/sound.py
+# app/core/sound_player.py
 from __future__ import annotations
 
 import logging
@@ -10,7 +10,7 @@ from app.core.resource_manager import ResourceManager
 logger = logging.getLogger(__name__)
 
 
-class SoundService:
+class SoundPlayer:
     """播放错误/告警 wav。无 Qt、非单例 — 由 main 注入唯一实例。"""
 
     def play_error(self) -> None:

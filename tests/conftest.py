@@ -14,7 +14,7 @@ from app.presentation.ui import UiBridge
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
-from app.core.sound import SoundService
+from app.core.sound_player import SoundPlayer
 from app.services.weight_input_service import WeightInputService
 
 # 默认稳重：long_win=10 + stable_count=3 → 连续同重约 12 帧可稳定锁定。
@@ -58,7 +58,7 @@ def make_controller(qapp) -> Callable[..., tuple[MainController, UiBridge]]:
 
     def _factory(
         *,
-        sound_service: SoundService | None = None,
+        sound_player: SoundPlayer | None = None,
         **param_overrides: object,
     ) -> tuple[MainController, UiBridge]:
         params = Params()
@@ -73,7 +73,7 @@ def make_controller(qapp) -> Callable[..., tuple[MainController, UiBridge]]:
             serial_service=SerialService(2000),
             counter_service=CounterService(params),
             weight_input_service=WeightInputService(params),
-            sound_service=sound_service or SoundService(),
+            sound_player=sound_player or SoundPlayer(),
             csv_log_service=CsvLogService(),
         )
         return controller, ui

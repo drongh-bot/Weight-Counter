@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QApplication
 from app.controllers.main_controller import MainController
 from app.core.log_config import setup_logging
 from app.core.resource_manager import ResourceManager
-from app.core.sound import SoundService
+from app.core.sound_player import SoundPlayer
 from app.presentation.ui import UiBridge
 from app.services.config_service import ConfigService
 from app.services.counter_service import CounterService
@@ -32,7 +32,7 @@ def main():
     serial_service = SerialService(params.timeout_millis)
     counter_service = CounterService(params)
     weight_input_service = WeightInputService(params)
-    sound_service = SoundService()
+    sound_player = SoundPlayer()
     csv_log_service = CsvLogService()
 
     controller = MainController(
@@ -40,7 +40,7 @@ def main():
         serial_service=serial_service,
         counter_service=counter_service,
         weight_input_service=weight_input_service,
-        sound_service=sound_service,
+        sound_player=sound_player,
         csv_log_service=csv_log_service,
     )
 

@@ -8,7 +8,7 @@ from app.presentation.view_models import BarSnapshot, ButtonStatus
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
-from app.core.sound import SoundService
+from app.core.sound_player import SoundPlayer
 from app.services.weight_input_service import WeightInputService
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ class MainController:
         serial_service: SerialService,
         counter_service: CounterService,
         weight_input_service: WeightInputService,
-        sound_service: SoundService,
+        sound_player: SoundPlayer,
         csv_log_service: CsvLogService,
     ):
         """注入各服务并连接串口/CSV 信号。"""
@@ -31,7 +31,7 @@ class MainController:
         self.serial_service: SerialService = serial_service
         self.counter_service: CounterService = counter_service
         self.weight_input_service: WeightInputService = weight_input_service
-        self.sound_service: SoundService = sound_service
+        self.sound_player: SoundPlayer = sound_player
         self.csv_log_service: CsvLogService = csv_log_service
 
         self._is_running: bool = False
@@ -158,9 +158,9 @@ class MainController:
         self.ui.update_count(frame)
         self._sync_button_status()
         if frame.abnormal_edge:
-            self.sound_service.play_error()
+            self.sound_player.play_error()
         if frame.target_edge:
-            self.sound_service.play_alert()
+            self.sound_player.play_alert()
         if frame.added:
             self._record_production(frame)
 
@@ -229,10 +229,10 @@ class MainController:
         self._clear_pending()
         self._reset_all()
         self.serial_service.close()
-        self.sound_service.stop()
+        self.sound_player.stop()
 
     def shutdown(self) -> None:
         """进程退出兜底：关闭串口、日志与音效。"""
         self.serial_service.close()
         self.csv_log_service.close()
-        self.sound_service.stop()
+        self.sound_player.stop()

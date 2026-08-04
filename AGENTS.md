@@ -6,7 +6,7 @@ Industrial piece-counting desktop application — PySide6 + manual DI.
 
 ```
 app/
-├── core/                  Drivers (csv_writer, sound, log_config, resources)
+├── core/                  Drivers (csv_writer, sound_player, log_config, resources)
 ├── models/                Pure business logic (PieceCounter, Thresholds, Tolerance, WeightLearner, WeightStabilizer, Params)
 ├── services/              Serial (port+timeout), weight_input, counter, csv_log, config
 ├── controllers/           MainController — sequential per-frame orchestration
