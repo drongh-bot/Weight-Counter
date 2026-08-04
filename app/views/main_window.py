@@ -1,5 +1,6 @@
 # app/views/main_window.py
 import logging
+from typing import NamedTuple
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QCloseEvent, QIcon
@@ -29,24 +30,33 @@ from app.views.widgets.piece_table import PieceTable
 
 logger = logging.getLogger(__name__)
 
-# (Params 属性, 控件属性, UI→Params 类型转换, 运行时是否锁定)
+
+class _ParamField(NamedTuple):
+    """界面可调参数：Params 字段 ↔ 控件；lock_on_start 表示跑起来后锁住。"""
+
+    attr: str
+    widget: str
+    cast: type
+    lock_on_start: bool
+
+
 _PARAM_FIELDS = (
-    ("initial_min_weight", "dspnInitialMinWeight", float, True),
-    ("tolerance_percent", "dspnTolerancePercent", float, True),
-    ("stability_threshold", "dspnStabilityThreshold", float, True),
-    ("max_batch_pieces", "spnMaxBatchPieces", int, True),
-    ("initial_single_pieces", "spnInitialSinglePieces", int, True),
-    ("target_pieces", "spnTargetPieces", int, False),
-    ("decimal_places", "spnDecimalPlaces", int, True),
+    _ParamField("initial_min_weight", "dspnInitialMinWeight", float, True),
+    _ParamField("tolerance_percent", "dspnTolerancePercent", float, True),
+    _ParamField("stability_threshold", "dspnStabilityThreshold", float, True),
+    _ParamField("max_batch_pieces", "spnMaxBatchPieces", int, True),
+    _ParamField("initial_single_pieces", "spnInitialSinglePieces", int, True),
+    _ParamField("target_pieces", "spnTargetPieces", int, False),
+    _ParamField("decimal_places", "spnDecimalPlaces", int, True),
 )
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
-    """主窗口：连接 UiBridge 信号，处理 Start/Stop 与用户参数。"""
+    """主窗口：听 UiBridge 刷新界面；Start/Stop/强制校准/存配置交给控制器，不碰计件算法。"""
 
     def __init__(
         self,
-        ui: UiBridge,
+        ui_bridge: UiBridge,
         controller: MainController,
         params: Params,
         config_service: ConfigService,
@@ -60,7 +70,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             QIcon(ResourceManager.get_resource("app/resources/icons/app.ico"))
         )
 
-        self.ui: UiBridge = ui
+        self.ui_bridge: UiBridge = ui_bridge
         self.controller: MainController = controller
         self.params: Params = params
         self.config_service: ConfigService = config_service
@@ -74,11 +84,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self._load_params_to_ui()
 
-        self._connect_ui()
-        self._bind_ui_signals()
+        self._connect_bridge()
+        self._bind_controls()
 
         # 初始化完成后主动刷新一次底部状态栏
-        self.ui.refresh()
+        self.ui_bridge.refresh()
 
     def _init_extra_widgets(self) -> None:
         """装配件数表、散点图与自定义状态栏标签。"""
@@ -106,12 +116,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         status_bar.addWidget(self.lblComm, 1)
         status_bar.addWidget(self.lblMessage, 1)
 
-    def _connect_ui(self) -> None:
-        """连接 UiBridge 信号到本窗口槽。"""
-        self.ui.actual_weight_changed.connect(self.lblActWeight.setText)
-        self.ui.bar_snapshot_changed.connect(self._on_bar_snapshot_changed)
-        self.ui.button_status_changed.connect(self._on_button_status_changed)
-        self.ui.count_changed.connect(self._on_count_changed)
+    def _connect_bridge(self) -> None:
+        """UiBridge 信号 → 本窗槽。"""
+        self.ui_bridge.actual_weight_changed.connect(self.lblActWeight.setText)
+        self.ui_bridge.bar_snapshot_changed.connect(self._on_bar_snapshot_changed)
+        self.ui_bridge.button_status_changed.connect(self._on_button_status_changed)
+        self.ui_bridge.count_changed.connect(self._on_count_changed)
 
     def _on_bar_snapshot_changed(self, data: BarSnapshot) -> None:
         """刷新状态栏三标签。"""
@@ -124,47 +134,42 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnStart.setEnabled(state.start_enabled)
         self.btnStop.setEnabled(state.stop_enabled)
         self.btnForce.setEnabled(state.force_enabled)
-        for _, widget, _, lock_on_start in _PARAM_FIELDS:
-            if lock_on_start:
-                getattr(self, widget).setEnabled(state.start_params_enabled)
+        for field in _PARAM_FIELDS:
+            if field.lock_on_start:
+                getattr(self, field.widget).setEnabled(state.start_params_enabled)
 
     def _on_count_changed(self, snap: CountView) -> None:
         """刷新计件标签、表格与散点图。"""
-        try:
-            self.lblDeltaWeight.setText(snap.delta_weight.text)
-            self.lblDeltaWeight.setStyleSheet(snap.delta_weight.style)
+        self.lblDeltaWeight.setText(snap.delta_weight.text)
+        self.lblDeltaWeight.setStyleSheet(snap.delta_weight.style)
 
-            self.lblState.setText(snap.state.text)
-            self.lblState.setStyleSheet(snap.state.style)
+        self.lblState.setText(snap.state.text)
+        self.lblState.setStyleSheet(snap.state.style)
 
-            self.lblAvgWeight.setText(snap.avg_weight)
-            self.lblTolHigh.setText(snap.tolerance_high)
-            self.lblTolLow.setText(snap.tolerance_low)
-            self.lblTotalPieces.setText(snap.total_pieces)
-            self.lblLastStableWeight.setText(snap.last_stable_weight)
-            self.lblBaselineWeight.setText(snap.baseline_weight)
+        self.lblAvgWeight.setText(snap.avg_weight)
+        self.lblTolHigh.setText(snap.tolerance_high)
+        self.lblTolLow.setText(snap.tolerance_low)
+        self.lblTotalPieces.setText(snap.total_pieces)
+        self.lblLastStableWeight.setText(snap.last_stable_weight)
+        self.lblBaselineWeight.setText(snap.baseline_weight)
 
-            self.wgtPieceTable.update_piece_weights(snap.piece_weights)
-            self.wgtPieceChart.update_piece_weights(snap.piece_weights)
-
-        except Exception as e:
-            logger.exception("UI更新失败")
-            QMessageBox.critical(self, "错误", f"UI 更新时出错: {e}")
+        self.wgtPieceTable.update_piece_weights(snap.piece_weights)
+        self.wgtPieceChart.update_piece_weights(snap.piece_weights)
 
     def _apply_bar_label_item(self, item: LabelItem, label: QLabel) -> None:
         """把 LabelItem 的文案与样式应用到 QLabel。"""
         label.setText(item.text)
         label.setStyleSheet(item.style)
 
-    def _bind_ui_signals(self) -> None:
-        """绑定按钮点击与参数控件变更。"""
+    def _bind_controls(self) -> None:
+        """按钮 / 参数旋钮 → 本窗方法。"""
         self.btnStart.clicked.connect(self.start)
         self.btnStop.clicked.connect(self.stop)
         self.btnForce.clicked.connect(self.force_calibrate)
         self.btnSaveParams.clicked.connect(self.save_params)
 
-        for _, widget, _, _ in _PARAM_FIELDS:
-            getattr(self, widget).valueChanged.connect(self._sync_ui_to_params)
+        for field in _PARAM_FIELDS:
+            getattr(self, field.widget).valueChanged.connect(self._sync_ui_to_params)
 
     def start(self) -> None:
         """Start：打开串口并开始计件。"""
@@ -209,13 +214,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _load_params_to_ui(self) -> None:
         """把 Params 中的可编辑字段写到对应控件。"""
-        for attr, widget, _, _ in _PARAM_FIELDS:
-            getattr(self, widget).setValue(getattr(self.params, attr))
+        for field in _PARAM_FIELDS:
+            getattr(self, field.widget).setValue(getattr(self.params, field.attr))
 
     def _sync_ui_to_params(self) -> None:
         """把参数控件当前值写回共享 Params。"""
-        for attr, widget, cast, _ in _PARAM_FIELDS:
-            setattr(self.params, attr, cast(getattr(self, widget).value()))
+        for field in _PARAM_FIELDS:
+            setattr(
+                self.params,
+                field.attr,
+                field.cast(getattr(self, field.widget).value()),
+            )
 
     def _init_port_list(self) -> None:
         """枚举并填充可用串口列表。"""
@@ -249,11 +258,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         sizes = self.params.splitter_sizes
         if not isinstance(sizes, list):
             sizes = [400, 600]
-        try:
-            sizes = [int(x) for x in sizes]
-        except Exception:
-            logger.warning("splitter_sizes 格式错误, 使用默认值")
-            sizes = [400, 600]
+        else:
+            try:
+                sizes = [int(x) for x in sizes]
+            except (TypeError, ValueError):
+                logger.warning("splitter_sizes 格式错误, 使用默认值")
+                sizes = [400, 600]
         self.splitter.setSizes(sizes)
 
         self.cbPort.setCurrentText(self.params.port)

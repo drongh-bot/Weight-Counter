@@ -28,7 +28,7 @@ def main():
     config_service = ConfigService()
     params = config_service.load(ResourceManager.get_external_root() / "config.toml")
 
-    ui = UiBridge()
+    ui_bridge = UiBridge()
     serial_service = SerialService(params.timeout_millis)
     counter_service = CounterService(params)
     weight_input_service = WeightInputService(params)
@@ -36,7 +36,7 @@ def main():
     csv_log_service = CsvLogService()
 
     controller = MainController(
-        ui=ui,
+        ui_bridge=ui_bridge,
         serial_service=serial_service,
         counter_service=counter_service,
         weight_input_service=weight_input_service,
@@ -45,7 +45,7 @@ def main():
     )
 
     window = MainWindow(
-        ui=ui,
+        ui_bridge=ui_bridge,
         controller=controller,
         params=params,
         config_service=config_service,

@@ -19,7 +19,7 @@ class MainController:
 
     def __init__(
         self,
-        ui: UiBridge,
+        ui_bridge: UiBridge,
         serial_service: SerialService,
         counter_service: CounterService,
         weight_input_service: WeightInputService,
@@ -27,7 +27,7 @@ class MainController:
         csv_log_service: CsvLogService,
     ):
         """接上串口、计件、界面等依赖，并监听超时/串口错误/写日志错误。"""
-        self.ui: UiBridge = ui
+        self.ui_bridge: UiBridge = ui_bridge
         self.serial_service: SerialService = serial_service
         self.counter_service: CounterService = counter_service
         self.weight_input_service: WeightInputService = weight_input_service
@@ -48,7 +48,7 @@ class MainController:
     def _init_ui(self) -> None:
         """开机时把件数区和底部提示刷成初始状态。"""
         self._sync_count_ui()
-        self.ui.update_bar(self._bar.reset())
+        self.ui_bridge.update_bar(self._bar.reset())
 
     def _button_status(self) -> ButtonStatus:
         """按是否在跑、是否在等强制校准，决定 Start/Stop/强制校准等按钮能不能点。"""
@@ -62,7 +62,7 @@ class MainController:
 
     def _sync_button_status(self) -> None:
         """把按钮能不能点告诉界面。"""
-        self.ui.update_button_status(self._button_status())
+        self.ui_bridge.update_button_status(self._button_status())
 
     def _clear_pending(self) -> None:
         """取消「等重量稳住再强制校准」。"""
@@ -77,12 +77,12 @@ class MainController:
 
     def _clear_actual_weight(self) -> None:
         """界面上的「当前秤重」显示成占位符。"""
-        self.ui.update_actual_weight(None, self.counter_service.decimal_places)
+        self.ui_bridge.update_actual_weight(None, self.counter_service.decimal_places)
 
     def _sync_count_ui(self) -> None:
         """按当前件数刷新中间计件区，并清空当前秤重。"""
         snap = self.counter_service.snapshot()
-        self.ui.update_count(snap)
+        self.ui_bridge.update_count(snap)
         self._sync_button_status()
         self._clear_actual_weight()
 
@@ -100,17 +100,17 @@ class MainController:
         weight = self.weight_input_service.parse(raw_data)
 
         if weight is None:
-            self.ui.update_bar(self._bar.on_parse_fail())
+            self.ui_bridge.update_bar(self._bar.on_parse_fail())
             self._clear_actual_weight()
             return
 
         stable_weight = self.weight_input_service.stabilize(weight)
         snap = self.counter_service.snapshot()
-        self.ui.update_actual_weight(weight, snap.decimal_places)
+        self.ui_bridge.update_actual_weight(weight, snap.decimal_places)
 
         if self._pending_force_pieces is not None:
             if stable_weight is None or self._raw_mismatches_stable(weight, stable_weight):
-                self.ui.update_bar(self._bar.on_force_waiting())
+                self.ui_bridge.update_bar(self._bar.on_force_waiting())
                 return
         elif stable_weight is None:
             # 重量还在晃：先不计件，也不改底部提示（免得盖住异常/报错）
@@ -118,7 +118,7 @@ class MainController:
 
         frame, bar = self._resolve_stable_frame(stable_weight)
         self._handle_frame(frame, stable_weight)
-        self.ui.update_bar(bar)
+        self.ui_bridge.update_bar(bar)
 
     def _resolve_stable_frame(
         self, stable_weight: float
@@ -152,8 +152,8 @@ class MainController:
 
     def _handle_frame(self, frame: CountFrame, stable_weight: float) -> None:
         """刷新件数和当前秤重；刚进异常/刚达目标则播放提示音；有新件则记生产。"""
-        self.ui.update_actual_weight(stable_weight, frame.decimal_places)
-        self.ui.update_count(frame)
+        self.ui_bridge.update_actual_weight(stable_weight, frame.decimal_places)
+        self.ui_bridge.update_count(frame)
         self._sync_button_status()
         if frame.abnormal_edge:
             self.sound_player.play_error()
@@ -171,17 +171,17 @@ class MainController:
 
     def _on_timeout(self) -> None:
         """秤超时未回数据：底部提示等待，当前秤重清空。"""
-        self.ui.update_bar(self._bar.on_timeout())
+        self.ui_bridge.update_bar(self._bar.on_timeout())
         self._clear_actual_weight()
 
     def _on_serial_error(self, msg: str) -> None:
         """串口故障：底部显示错误，当前秤重清空。"""
-        self.ui.update_bar(self._bar.on_serial_error(msg))
+        self.ui_bridge.update_bar(self._bar.on_serial_error(msg))
         self._clear_actual_weight()
 
     def _on_csv_error(self, msg: str) -> None:
         """写生产日志失败：只改底部消息。"""
-        self.ui.update_bar(self._bar.on_csv_error(msg))
+        self.ui_bridge.update_bar(self._bar.on_csv_error(msg))
 
     def request_force_calibrate(self, pieces: int) -> None:
         """操作员点了强制校准：记下片数，等重量稳住后再真正改单重/件数。"""
@@ -191,14 +191,14 @@ class MainController:
             return
         self._pending_force_pieces = pieces
         self._sync_button_status()
-        self.ui.update_bar(self._bar.on_force_waiting())
+        self.ui_bridge.update_bar(self._bar.on_force_waiting())
 
     def _reset_all(self) -> None:
         """件数清零、稳重状态清空，界面恢复初始。"""
         self.counter_service.reset()
         self.weight_input_service.reset()
         self._sync_count_ui()
-        self.ui.update_bar(self._bar.reset())
+        self.ui_bridge.update_bar(self._bar.reset())
 
     def start(self, port: str, baud: int) -> bool:
         """点 Start：套用当前界面参数、打开秤串口，开始收数计件。"""
@@ -218,7 +218,7 @@ class MainController:
         """Start 失败（通常是串口打不开）：停下来并在底部显示原因。"""
         self._is_running = False
         self._sync_count_ui()
-        self.ui.update_bar(self._bar.on_start_failed(str(error)))
+        self.ui_bridge.update_bar(self._bar.on_start_failed(str(error)))
         logger.exception("串口打开失败")
 
     def stop(self) -> None:

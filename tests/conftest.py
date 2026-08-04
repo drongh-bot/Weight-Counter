@@ -67,15 +67,15 @@ def make_controller(qapp) -> Callable[..., tuple[MainController, UiBridge]]:
         for key, value in param_overrides.items():
             setattr(params, key, value)
 
-        ui = UiBridge()
+        ui_bridge = UiBridge()
         controller = MainController(
-            ui=ui,
+            ui_bridge=ui_bridge,
             serial_service=SerialService(2000),
             counter_service=CounterService(params),
             weight_input_service=WeightInputService(params),
             sound_player=sound_player or SoundPlayer(),
             csv_log_service=CsvLogService(),
         )
-        return controller, ui
+        return controller, ui_bridge
 
     return _factory
