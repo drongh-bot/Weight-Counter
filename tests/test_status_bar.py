@@ -6,10 +6,10 @@ from app.presentation.status_bar import (
     MSG_NONE,
     MSG_TARGET,
     MSG_WAIT_STABLE,
-    ForceOutcome,
     StatusBar,
 )
 from app.presentation.styles import Styles
+from app.presentation.view_models import ForceCalibrateResult
 
 
 class TestStatusBarLink:
@@ -34,7 +34,7 @@ class TestStatusBarMessage:
         bar = StatusBar()
         snap = bar.on_stable_frame(
             state=CounterState.ABNORMAL,
-            force=ForceOutcome.NONE,
+            force=ForceCalibrateResult.NONE,
             target_reached=False,
             piece_added=False,
         )
@@ -45,7 +45,7 @@ class TestStatusBarMessage:
         bar = StatusBar()
         bar.on_stable_frame(
             state=CounterState.NORMAL,
-            force=ForceOutcome.NONE,
+            force=ForceCalibrateResult.NONE,
             target_reached=True,
             piece_added=True,
         )
@@ -53,7 +53,7 @@ class TestStatusBarMessage:
 
         bar.on_stable_frame(
             state=CounterState.NORMAL,
-            force=ForceOutcome.NONE,
+            force=ForceCalibrateResult.NONE,
             target_reached=False,
             piece_added=True,
         )
@@ -63,14 +63,14 @@ class TestStatusBarMessage:
         bar = StatusBar()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
-            force=ForceOutcome.NONE,
+            force=ForceCalibrateResult.NONE,
             target_reached=False,
             piece_added=False,
         )
         assert (
-            bar.snapshot(force=ForceOutcome.FAIL).message.text == MSG_FORCE_FAIL
+            bar.snapshot(force=ForceCalibrateResult.FAIL).message.text == MSG_FORCE_FAIL
         )
-        assert bar.snapshot(force=ForceOutcome.DONE).message.text == MSG_FORCE_DONE
+        assert bar.snapshot(force=ForceCalibrateResult.DONE).message.text == MSG_FORCE_DONE
         assert bar.snapshot().message.text == MSG_ABNORMAL
 
     def test_waiting_cleared_on_stable(self):
@@ -78,7 +78,7 @@ class TestStatusBarMessage:
         assert bar.on_force_waiting().message.text == MSG_WAIT_STABLE
         snap = bar.on_stable_frame(
             state=CounterState.NORMAL,
-            force=ForceOutcome.NONE,
+            force=ForceCalibrateResult.NONE,
             target_reached=False,
             piece_added=False,
         )
@@ -90,7 +90,7 @@ class TestStatusBarMessage:
         assert bar.on_csv_error("串口错误").message.style == Styles.RED
         snap = bar.on_stable_frame(
             state=CounterState.NORMAL,
-            force=ForceOutcome.NONE,
+            force=ForceCalibrateResult.NONE,
             target_reached=False,
             piece_added=False,
         )
@@ -100,7 +100,7 @@ class TestStatusBarMessage:
         bar = StatusBar()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
-            force=ForceOutcome.NONE,
+            force=ForceCalibrateResult.NONE,
             target_reached=False,
             piece_added=False,
         )
@@ -112,7 +112,7 @@ class TestStatusBarIntegration:
         bar = StatusBar()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
-            force=ForceOutcome.NONE,
+            force=ForceCalibrateResult.NONE,
             target_reached=False,
             piece_added=False,
         )
@@ -132,14 +132,14 @@ class TestStatusBarIntegration:
         assert bar.on_force_waiting().message.text == MSG_WAIT_STABLE
         snap = bar.on_stable_frame(
             state=CounterState.NORMAL,
-            force=ForceOutcome.DONE,
+            force=ForceCalibrateResult.DONE,
             target_reached=True,
             piece_added=False,
         )
         assert snap.message.text == MSG_FORCE_DONE
         assert bar.on_stable_frame(
             state=CounterState.NORMAL,
-            force=ForceOutcome.NONE,
+            force=ForceCalibrateResult.NONE,
             target_reached=False,
             piece_added=False,
         ).message.text == MSG_TARGET
@@ -149,7 +149,7 @@ class TestStatusBarIntegration:
         bar.on_force_waiting()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
-            force=ForceOutcome.NONE,
+            force=ForceCalibrateResult.NONE,
             target_reached=True,
             piece_added=False,
         )

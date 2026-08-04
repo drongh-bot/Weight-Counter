@@ -2,9 +2,9 @@
 import logging
 
 from app.models.count_result import CountResult
-from app.presentation.status_bar import ForceOutcome, StatusBar
+from app.presentation.status_bar import StatusBar
 from app.presentation.ui import UiBridge
-from app.presentation.view_models import ButtonStatus
+from app.presentation.view_models import ButtonStatus, ForceCalibrateResult
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
@@ -128,19 +128,19 @@ class MainController:
 
     def _resolve_stable_frame(
         self, stable_weight: float
-    ) -> tuple[ForceOutcome, CountResult]:
+    ) -> tuple[ForceCalibrateResult, CountResult]:
         """本帧稳定重：优先执行挂起的强制校准，否则走正常计件。"""
         if self._pending_force_pieces is None:
-            return ForceOutcome.NONE, self.counter_service.process(stable_weight)
+            return ForceCalibrateResult.NONE, self.counter_service.process(stable_weight)
 
         pieces = self._pending_force_pieces
         self._pending_force_pieces = None
         calibrated = self.counter_service.force_calibrate(stable_weight, pieces)
         if calibrated is None:
-            return ForceOutcome.FAIL, self.counter_service.process(stable_weight)
+            return ForceCalibrateResult.FAIL, self.counter_service.process(stable_weight)
 
         self._record_production(calibrated)
-        return ForceOutcome.DONE, calibrated
+        return ForceCalibrateResult.DONE, calibrated
 
     def _handle_result(self, result: CountResult, stable_weight: float) -> None:
         """刷新 UI，并按本帧边沿播放音效 / 记生产。"""

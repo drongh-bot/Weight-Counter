@@ -10,8 +10,8 @@ from app.presentation.status_bar import (
     MSG_FORCE_FAIL,
     MSG_TARGET,
     MSG_WAIT_STABLE,
-    ForceOutcome,
 )
+from app.presentation.view_models import ForceCalibrateResult
 from tests.conftest import STABLE_FRAMES, feed_stable
 
 
@@ -58,7 +58,7 @@ class TestControllerPipeline:
         ui.update_bar(
             controller._bar.on_stable_frame(
                 state=CounterState.ABNORMAL,
-                force=ForceOutcome.NONE,
+                force=ForceCalibrateResult.NONE,
                 target_reached=False,
                 piece_added=False,
             )
@@ -286,12 +286,12 @@ class TestControllerPipeline:
         assert controller._pending_force_pieces == 3
 
         force, _ = controller._resolve_stable_frame(0.01)
-        assert force is ForceOutcome.FAIL
+        assert force is ForceCalibrateResult.FAIL
         assert controller._pending_force_pieces is None
         ui.update_bar(
             controller._bar.on_stable_frame(
                 state=controller.counter_service.current_result().state,
-                force=ForceOutcome.FAIL,
+                force=ForceCalibrateResult.FAIL,
                 target_reached=False,
                 piece_added=False,
             )

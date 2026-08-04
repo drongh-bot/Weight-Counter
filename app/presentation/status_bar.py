@@ -21,7 +21,7 @@ from enum import Enum, auto
 
 from app.models.counter_state import CounterState
 from app.presentation.styles import Styles
-from app.presentation.view_models import BarSnapshot, LabelItem
+from app.presentation.view_models import BarSnapshot, ForceCalibrateResult, LabelItem
 
 # 导出供测试断言文案（非独立公共子系统）
 MSG_NONE = "无异常"
@@ -30,14 +30,6 @@ MSG_FORCE_DONE = "强制校准完成"
 MSG_FORCE_FAIL = "强制校准失败：重量过轻"
 MSG_ABNORMAL = "计数异常：调回基准附近可自动恢复，或点强制校准"
 MSG_TARGET = "已达目标件数"
-
-
-class ForceOutcome(Enum):
-    """当帧强制校准结果（不锁存）。"""
-
-    NONE = auto()
-    DONE = auto()
-    FAIL = auto()
 
 
 class _LinkKind(Enum):
@@ -132,7 +124,7 @@ class StatusBar:
         self,
         *,
         state: CounterState,
-        force: ForceOutcome,
+        force: ForceCalibrateResult,
         target_reached: bool,
         piece_added: bool,
     ) -> BarSnapshot:
@@ -147,7 +139,7 @@ class StatusBar:
             self._hold_target = False
         return self.snapshot(force=force)
 
-    def snapshot(self, force: ForceOutcome = ForceOutcome.NONE) -> BarSnapshot:
+    def snapshot(self, force: ForceCalibrateResult = ForceCalibrateResult.NONE) -> BarSnapshot:
         """按当前锁存状态生成三标签快照。"""
         parse, comm = self._link.labels()
         text, info = self._resolve_message(force)
@@ -157,11 +149,11 @@ class StatusBar:
             message=_message_label(text, info=info),
         )
 
-    def _resolve_message(self, force: ForceOutcome) -> tuple[str, bool]:
+    def _resolve_message(self, force: ForceCalibrateResult) -> tuple[str, bool]:
         """按优先级解析消息文案；返回 (文本, 是否信息色)。"""
-        if force is ForceOutcome.FAIL:
+        if force is ForceCalibrateResult.FAIL:
             return MSG_FORCE_FAIL, False
-        if force is ForceOutcome.DONE:
+        if force is ForceCalibrateResult.DONE:
             return MSG_FORCE_DONE, True
         if self._waiting:
             return MSG_WAIT_STABLE, True
