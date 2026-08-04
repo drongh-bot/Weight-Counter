@@ -6,7 +6,7 @@ from pathlib import Path
 
 import toml
 
-from app.models.params import LIVE_FIELDS, Params
+from app.models.params import Params
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +33,7 @@ class ConfigService:
     }
 
     def __init__(self) -> None:
-        """校验 LIVE 字段不会被持久化。"""
         self._lock = threading.Lock()
-        persisted = self.persisted_keys()
-        overlap = persisted & LIVE_FIELDS
-        if overlap:
-            raise RuntimeError(f"LIVE 字段不得写入配置文件：{overlap}")
 
     @classmethod
     def persisted_keys(cls) -> frozenset[str]:

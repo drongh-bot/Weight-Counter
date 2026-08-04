@@ -13,9 +13,6 @@ START_SYNC_FIELDS = frozenset(
     }
 )
 
-# 目标件数：计件过程中随时跟界面走，不用再按 Start；也不写入配置文件。
-LIVE_FIELDS = frozenset({"target_pieces"})
-
 
 @dataclass
 class Params:
@@ -23,7 +20,7 @@ class Params:
 
     怎么生效：
     - START_SYNC_FIELDS：点 Start 时拷进算法
-    - LIVE_FIELDS（目前是目标件数）：计件时直接读这里的最新值
+    - target_pieces：计件时直接读这里的最新值（界面改了立刻算），也不写入配置文件
     - 其余：开机从配置文件加载，退出时可保存
     """
 
