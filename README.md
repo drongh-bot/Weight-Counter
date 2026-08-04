@@ -153,10 +153,12 @@ uv run mypy app                  # 类型检查
 ## 打包
 
 ```bash
-uv run pyinstaller main.spec --clean
+uv run pyinstaller main.spec --clean -y
 ```
 
-产物：`dist/WeightCounter/`（务必用 spec，不要裸跑 `pyinstaller main.py`）。
+产物：`dist/WeightCounter/`。
+
+`main.spec` 关掉默认 Qt hooks，只收集用到的 PySide6 模块，平台插件只打入 `qwindows.dll`，并踢掉多余 DLL。务必用 spec，不要裸跑 `pyinstaller main.py`。
 
 ---
 

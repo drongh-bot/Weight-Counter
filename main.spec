@@ -1,40 +1,45 @@
 # -*- mode: python ; coding: utf-8 -*-
+"""WeightCounter 打包说明（Windows onedir）。
 
-# ============================================================
-# 1. Disable default PyInstaller Qt hooks
-# ============================================================
+策略：关掉默认 Qt hooks，只收集用到的 PySide6 模块；
+平台插件只打入 qwindows.dll；再踢掉无关 DLL / 插件目录以控制体积。
+务必：uv run pyinstaller main.spec --clean -y（不要裸跑 pyinstaller main.py）。
+"""
+
+# —— 关掉默认 hooks（避免把整套 Qt 拖进来）——
 import PyInstaller.hooks
+
 PyInstaller.hooks.is_hook_enabled = lambda name: False
 
-import os
+from pathlib import Path
+
 import PySide6
 from PyInstaller.utils.hooks import collect_submodules
 
-project_path = os.path.abspath(".")
-pyside6_path = os.path.dirname(PySide6.__file__)
+project_root = Path(".").resolve()
+pyside6_root = Path(PySide6.__file__).resolve().parent
 
-# ============================================================
-# 2. Minimal PySide6 modules (Widgets + SerialPort)
-# ============================================================
+# —— 只用到的 PySide6 模块 ——
 qt_modules = ["QtCore", "QtGui", "QtWidgets", "QtSerialPort"]
-
-hiddenimports = []
+hiddenimports: list[str] = []
 for module in qt_modules:
     hiddenimports += collect_submodules(f"PySide6.{module}")
 
-# ============================================================
-# 3. Resource files + required plugins
-# ============================================================
+# —— 应用资源 + 必需插件（平台插件只打 qwindows）——
 datas = [
     ("app/resources/icons", "app/resources/icons"),
     ("app/resources/sounds", "app/resources/sounds"),
-    (os.path.join(pyside6_path, "plugins", "platforms"), "PySide6/plugins/platforms"),
-    (os.path.join(pyside6_path, "plugins", "imageformats"), "PySide6/plugins/imageformats"),
+    (
+        str(pyside6_root / "plugins" / "platforms" / "qwindows.dll"),
+        "PySide6/plugins/platforms",
+    ),
+    (
+        str(pyside6_root / "plugins" / "imageformats"),
+        "PySide6/plugins/imageformats",
+    ),
 ]
 
-# ============================================================
-# 4. Analysis — exclude unused Qt modules
-# ============================================================
+# —— Analysis：显式排除用不到的 Qt 模块 ——
 excludes = [
     "PySide6.QtNetwork",
     "PySide6.QtQml",
@@ -48,7 +53,7 @@ excludes = [
 
 a = Analysis(
     ["main.py"],
-    pathex=[project_path],
+    pathex=[str(project_root)],
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
@@ -56,18 +61,8 @@ a = Analysis(
     noarchive=False,
 )
 
-# ============================================================
-# 5. Keep only qwindows.dll platform plugin
-# ============================================================
-a.datas = [
-    item for item in a.datas
-    if ("plugins\\platforms" not in item[0] or "qwindows.dll" in item[0])
-]
-
-# ============================================================
-# 6. Strip unused DLLs
-# ============================================================
-remove_prefixes = [
+# —— 踢掉多余二进制 / 数据（体积）——
+remove_prefixes = (
     "qt6network",
     "qt6opengl",
     "qt6openglwidgets",
@@ -78,36 +73,47 @@ remove_prefixes = [
     "qt6pdf",
     "qt6virtualkeyboard",
     "opengl32sw.dll",
-]
-
-filtered_binaries = []
-for (dest, src, kind) in a.binaries:
-    if not any(p in dest.lower() for p in remove_prefixes):
-        filtered_binaries.append((dest, src, kind))
-a.binaries = filtered_binaries
-
-# ============================================================
-# 7. Strip unused plugin directories
-# ============================================================
-remove_dirs = [
+)
+remove_dirs = (
     "translations",
     "tls",
     "networkinformation",
     "platforminputcontexts",
     "generic",
+)
+
+
+def _dest_key(dest: str) -> str:
+    return dest.replace("\\", "/").lower()
+
+
+def _keep_binary(dest: str) -> bool:
+    key = _dest_key(dest)
+    if any(p in key for p in remove_prefixes):
+        return False
+    # Analysis / hooks 仍可能带上其它平台插件，只留 Windows
+    if "/plugins/platforms/" in key and "qwindows.dll" not in key:
+        return False
+    return True
+
+
+def _keep_data(dest: str) -> bool:
+    key = _dest_key(dest)
+    if any(d in key for d in remove_dirs):
+        return False
+    if any(p in key for p in remove_prefixes):
+        return False
+    if "/plugins/platforms/" in key and "qwindows.dll" not in key:
+        return False
+    return True
+
+
+a.binaries = [
+    (dest, src, kind) for dest, src, kind in a.binaries if _keep_binary(dest)
 ]
+a.datas = [(dest, src, kind) for dest, src, kind in a.datas if _keep_data(dest)]
 
-filtered_datas = []
-for (dest, src, kind) in a.datas:
-    d = dest.lower()
-    if not any(dname in d for dname in remove_dirs) and \
-       not any(p in d for p in remove_prefixes):
-        filtered_datas.append((dest, src, kind))
-a.datas = filtered_datas
-
-# ============================================================
-# 8. Build EXE (no UPX, no strip)
-# ============================================================
+# —— 生成无控制台 EXE，再收集到 dist/WeightCounter/ ——
 pyz = PYZ(a.pure, a.zipped_data)
 
 exe = EXE(
@@ -121,9 +127,6 @@ exe = EXE(
     icon="app/resources/icons/app.ico",
 )
 
-# ============================================================
-# 9. Collect into dist folder
-# ============================================================
 coll = COLLECT(
     exe,
     a.binaries,

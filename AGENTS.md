@@ -44,7 +44,7 @@ app/
 ```
 uv sync                          # 安装依赖
 uv run main.py                   # 运行
-uv run pyinstaller main.spec     # 打包到 dist/WeightCounter/
+uv run pyinstaller main.spec     # 打包到 dist/WeightCounter/（建议加 --clean -y）
 uv run pytest tests/ -v          # 全部测试
 uv run mypy app                  # 类型检查
 ```
@@ -88,7 +88,9 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 
 ## PyInstaller 打包注意
 
-`main.spec` 关掉默认 hooks，只打入需要的 Qt 模块（QtCore、QtGui、QtWidgets、QtSerialPort），去掉多余 DLL，平台插件只留 `qwindows.dll`。务必用 spec 打包，不要裸跑 `pyinstaller main.py`。
+`main.spec` 关掉默认 Qt hooks，只收集 `QtCore` / `QtGui` / `QtWidgets` / `QtSerialPort`；
+平台插件**只打入** `qwindows.dll`（不再整目录再筛选）；并踢掉无关 DLL / 插件目录。
+务必用 spec 打包：`uv run pyinstaller main.spec --clean -y`，不要裸跑 `pyinstaller main.py`。
 
 ## 路径（ResourceManager）
 
