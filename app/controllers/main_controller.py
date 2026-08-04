@@ -78,12 +78,17 @@ class MainController:
             > self.weight_input_service.stability_threshold
         )
 
+    def _clear_actual_weight(self) -> None:
+        """清空实重显示（用当前生效的小数位格式化占位）。"""
+        dp = self.counter_service.current_result().decimal_places
+        self.ui.update_actual_weight(None, dp)
+
     def _sync_count_ui(self) -> None:
         """用当前计件快照刷新件数区，并清空实重显示。"""
         result = self.counter_service.current_result()
         self.ui.update_count(result)
         self._sync_button_status()
-        self.ui.update_actual_weight(None, result.decimal_places)
+        self._clear_actual_weight()
 
     def _on_raw_data(self, raw_data: str) -> None:
         """串口一帧入口（串行编排）。
@@ -99,9 +104,7 @@ class MainController:
 
         if weight is None:
             self.ui.update_bar(self._bar.on_parse_fail())
-            self.ui.update_actual_weight(
-                None, self.counter_service.current_result().decimal_places
-            )
+            self._clear_actual_weight()
             return
 
         stable_weight = self.weight_input_service.stabilize(weight)
@@ -165,16 +168,12 @@ class MainController:
     def _on_timeout(self) -> None:
         """串口超时：更新状态栏并清空实重显示。"""
         self.ui.update_bar(self._bar.on_timeout())
-        self.ui.update_actual_weight(
-            None, self.counter_service.current_result().decimal_places
-        )
+        self._clear_actual_weight()
 
     def _on_serial_error(self, msg: str) -> None:
         """串口错误：更新状态栏并清空实重显示。"""
         self.ui.update_bar(self._bar.on_serial_error(msg))
-        self.ui.update_actual_weight(
-            None, self.counter_service.current_result().decimal_places
-        )
+        self._clear_actual_weight()
 
     def _on_csv_error(self, msg: str) -> None:
         """CSV 错误：仅更新状态栏消息。"""
