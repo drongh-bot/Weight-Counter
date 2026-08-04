@@ -12,6 +12,9 @@ from app.presentation.status_bar import (
     MSG_WAIT_STABLE,
     ForceOutcome,
 )
+from tests.conftest import STABLE_FRAMES, feed_stable
+
+
 class TestControllerPipeline:
     def test_raw_data_pipeline(self, make_controller):
         controller, ui = make_controller()
@@ -96,14 +99,12 @@ class TestControllerPipeline:
         controller, ui = make_controller()
         controller._is_running = True
 
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
+        feed_stable(controller, "10.0 kg")
 
         controller.force_calibrate(3)
         assert controller._pending_force_pieces == 3
 
-        for _ in range(12):
-            controller._on_raw_data("30.0 kg")
+        feed_stable(controller, "30.0 kg")
 
         result = controller.counter_service.current_result()
         assert result.total_pieces == 3
@@ -114,16 +115,13 @@ class TestControllerPipeline:
         controller, ui = make_controller()
         controller._is_running = True
 
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
+        feed_stable(controller, "10.0 kg")
         assert controller.counter_service.current_result().state == CounterState.NORMAL
 
         # 先稳定在 30，再强制校准，避免 pending 在过渡帧用旧 stable 重量执行
-        for _ in range(12):
-            controller._on_raw_data("30.0 kg")
+        feed_stable(controller, "30.0 kg")
         controller.force_calibrate(3)
-        for _ in range(12):
-            controller._on_raw_data("30.0 kg")
+        feed_stable(controller, "30.0 kg")
 
         result = controller.counter_service.current_result()
         assert result.state == CounterState.NORMAL
@@ -134,14 +132,11 @@ class TestControllerPipeline:
         controller, ui = make_controller()
         controller._is_running = True
 
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
-        for _ in range(12):
-            controller._on_raw_data("25.0 kg")
+        feed_stable(controller, "10.0 kg")
+        feed_stable(controller, "25.0 kg")
         assert controller.counter_service.current_result().state == CounterState.ABNORMAL
 
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
+        feed_stable(controller, "10.0 kg")
         assert controller.counter_service.current_result().state == CounterState.NORMAL
 
     def test_abnormal_status_persists_until_recovered(self, make_controller):
@@ -149,9 +144,8 @@ class TestControllerPipeline:
         controller, ui = make_controller(sound_service=sound)
         controller._is_running = True
 
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
-        for _ in range(12):
+        feed_stable(controller, "10.0 kg")
+        for _ in range(STABLE_FRAMES):
             controller._on_raw_data("25.0 kg")
             if controller.counter_service.current_result().state == CounterState.ABNORMAL:
                 break
@@ -167,8 +161,7 @@ class TestControllerPipeline:
         assert controller.counter_service.current_result().state == CounterState.ABNORMAL
         assert ui._last_bar.message.text == MSG_ABNORMAL
 
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
+        feed_stable(controller, "10.0 kg")
         assert controller.counter_service.current_result().state == CounterState.NORMAL
         assert ui._last_bar.message.text == "无异常"
 
@@ -177,9 +170,8 @@ class TestControllerPipeline:
         controller, ui = make_controller(sound_service=sound, target_pieces=2)
         controller._is_running = True
 
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
-        for _ in range(12):
+        feed_stable(controller, "10.0 kg")
+        for _ in range(STABLE_FRAMES):
             controller._on_raw_data("20.0 kg")
             if controller.counter_service.current_result().total_pieces >= 2:
                 break
@@ -196,7 +188,7 @@ class TestControllerPipeline:
         assert ui._last_bar.message.text == MSG_TARGET
 
         # next add clears target hold
-        for _ in range(12):
+        for _ in range(STABLE_FRAMES):
             controller._on_raw_data("30.0 kg")
             if controller.counter_service.current_result().total_pieces >= 3:
                 break
@@ -214,8 +206,7 @@ class TestControllerPipeline:
         controller, ui = make_controller()
         controller._is_running = True
 
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
+        feed_stable(controller, "10.0 kg")
         assert controller.counter_service.current_result().total_pieces == 1
 
         controller.stop()
@@ -226,8 +217,7 @@ class TestControllerPipeline:
     def test_start_resets_and_starts_serial(self, make_controller):
         controller, ui = make_controller()
         controller._is_running = True
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
+        feed_stable(controller, "10.0 kg")
 
         original_open = controller.serial_service.open
         controller.serial_service.open = MagicMock()
@@ -266,10 +256,8 @@ class TestControllerPipeline:
         controller, ui = make_controller()
         controller._is_running = True
 
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
-        for _ in range(12):
-            controller._on_raw_data("25.0 kg")
+        feed_stable(controller, "10.0 kg")
+        feed_stable(controller, "25.0 kg")
 
         result = controller.counter_service.current_result()
         assert result.state == CounterState.ABNORMAL
@@ -280,8 +268,7 @@ class TestControllerPipeline:
     def test_force_pending_disables_force_button(self, make_controller):
         controller, ui = make_controller()
         controller._is_running = True
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
+        feed_stable(controller, "10.0 kg")
 
         controller.force_calibrate(3)
         status = controller._button_status()
@@ -315,7 +302,7 @@ class TestControllerPipeline:
 
     def test_raw_mismatches_stable(self, make_controller):
         controller, ui = make_controller()
-        controller.params.stability_threshold = 0.02
+        controller.counter_service.params.stability_threshold = 0.02
         controller.weight_input_service.apply_start_params()
         assert controller._raw_mismatches_stable(30.0, 10.0) is True
         assert controller._raw_mismatches_stable(10.01, 10.0) is False
@@ -325,8 +312,7 @@ class TestControllerPipeline:
         """NORMAL 下强制校准：raw/stable 不一致时保持等待，不立刻执行"""
         controller, ui = make_controller()
         controller._is_running = True
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
+        feed_stable(controller, "10.0 kg")
         assert controller.counter_service.current_result().total_pieces == 1
 
         controller.force_calibrate(3)
@@ -342,13 +328,12 @@ class TestControllerPipeline:
         sound = MagicMock()
         controller, ui = make_controller(sound_service=sound, target_pieces=3)
         controller._is_running = True
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
+        feed_stable(controller, "10.0 kg")
         assert controller.counter_service.current_result().total_pieces == 1
         controller.force_calibrate(3)
 
         saw_force_done = False
-        for _ in range(12):
+        for _ in range(STABLE_FRAMES):
             controller._on_raw_data("30.0 kg")
             if ui._last_bar and ui._last_bar.message.text == MSG_FORCE_DONE:
                 saw_force_done = True
@@ -367,8 +352,7 @@ class TestControllerPipeline:
         controller, ui = make_controller()
         spy = QSignalSpy(ui.actual_weight_changed)
         controller._is_running = True
-        for _ in range(12):
-            controller._on_raw_data("10.0 kg")
+        feed_stable(controller, "10.0 kg")
         controller._on_raw_data("not-a-weight")
         assert spy.at(spy.count() - 1)[0] == "-----"
 
@@ -376,11 +360,11 @@ class TestControllerPipeline:
         controller, ui = make_controller()
         controller._is_running = True
         controller.counter_service.process(10.0)
-        controller.params.decimal_places = 4
+        controller.counter_service.params.decimal_places = 4
         # mid-run: Params changed but algorithm keeps old decimal places
-        assert controller.counter_service.current_result().decimal_places == 2
+        assert controller.counter_service.decimal_places == 2
 
         controller.serial_service.open = MagicMock()
         controller.serial_service.close = MagicMock()
         controller.start("COM99", 9600)
-        assert controller.counter_service.current_result().decimal_places == 4
+        assert controller.counter_service.decimal_places == 4

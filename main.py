@@ -42,7 +42,6 @@ def main():
         weight_input_service=weight_input_service,
         sound_service=sound_service,
         csv_log_service=csv_log_service,
-        params=params,
     )
 
     window = MainWindow(

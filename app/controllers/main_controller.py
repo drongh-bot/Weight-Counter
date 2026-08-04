@@ -2,7 +2,6 @@
 import logging
 
 from app.models.count_result import CountResult
-from app.models.params import Params
 from app.presentation.status_bar import ForceOutcome, StatusBar
 from app.presentation.ui import UiBridge
 from app.presentation.view_models import ButtonStatus
@@ -26,7 +25,6 @@ class MainController:
         weight_input_service: WeightInputService,
         sound_service: SoundService,
         csv_log_service: CsvLogService,
-        params: Params,
     ):
         """注入各服务并连接串口/CSV 信号。"""
         self.ui: UiBridge = ui
@@ -35,7 +33,6 @@ class MainController:
         self.weight_input_service: WeightInputService = weight_input_service
         self.sound_service: SoundService = sound_service
         self.csv_log_service: CsvLogService = csv_log_service
-        self.params: Params = params
 
         self._is_running: bool = False
         self._pending_force_pieces: int | None = None
@@ -80,8 +77,7 @@ class MainController:
 
     def _clear_actual_weight(self) -> None:
         """清空实重显示（用当前生效的小数位格式化占位）。"""
-        dp = self.counter_service.current_result().decimal_places
-        self.ui.update_actual_weight(None, dp)
+        self.ui.update_actual_weight(None, self.counter_service.decimal_places)
 
     def _sync_count_ui(self) -> None:
         """用当前计件快照刷新件数区，并清空实重显示。"""

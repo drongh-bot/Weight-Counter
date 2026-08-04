@@ -15,6 +15,20 @@ from app.services.serial_service import SerialService
 from app.core.sound import SoundService
 from app.services.weight_input_service import WeightInputService
 
+# 默认稳重：long_win=10 + stable_count=3 → 连续同重约 12 帧可稳定锁定。
+STABLE_FRAMES = 12
+
+
+def feed_stable(
+    controller: MainController,
+    raw: str,
+    *,
+    frames: int = STABLE_FRAMES,
+) -> None:
+    """连续喂入相同原始重量串，直到稳重器锁定（默认 12 帧）。"""
+    for _ in range(frames):
+        controller._on_raw_data(raw)
+
 
 @pytest.fixture
 def make_controller(qapp) -> Callable[..., tuple[MainController, UiBridge]]:
@@ -39,7 +53,6 @@ def make_controller(qapp) -> Callable[..., tuple[MainController, UiBridge]]:
             weight_input_service=WeightInputService(params),
             sound_service=sound_service or SoundService(),
             csv_log_service=CsvLogService(),
-            params=params,
         )
         return controller, ui
 

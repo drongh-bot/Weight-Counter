@@ -103,6 +103,11 @@ class CounterService:
         """重置计件器。"""
         self._piece_counter.reset()
 
+    @property
+    def decimal_places(self) -> int:
+        """当前生效的小数位（Start 快照）。"""
+        return self._piece_counter.decimal_places
+
     def current_result(self) -> CountResult:
         """返回当前计件快照（不推进 FSM，边沿标志为 False）。"""
         return self._build_result()
