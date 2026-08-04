@@ -36,7 +36,7 @@ class WeightStabilizer:
         self.stability_threshold: float = stability_threshold
 
     def apply_start_params(self, params: Params) -> None:
-        """从共享 Params 复制 START_SYNC 的 stability_threshold（快照）。"""
+        """从共享 Params 复制稳定阈值（点 Start 才生效）。"""
         if params.stability_threshold > 0:
             self.stability_threshold = params.stability_threshold
 

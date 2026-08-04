@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from app.models.params import START_SYNC_FIELDS
 from app.services.config_service import ConfigService
 
 
@@ -34,6 +33,15 @@ class TestConfigService:
         text = path.read_text(encoding="utf-8")
         assert "target_pieces" not in text
 
-    def test_start_sync_fields_are_persisted(self):
+    def test_ui_count_params_are_persisted(self):
+        """界面上要再 Start 才生效的那几项，应能写入配置文件。"""
         persisted = ConfigService.persisted_keys()
-        assert START_SYNC_FIELDS <= persisted
+        for key in (
+            "initial_min_weight",
+            "tolerance_percent",
+            "stability_threshold",
+            "max_batch_pieces",
+            "initial_single_pieces",
+            "decimal_places",
+        ):
+            assert key in persisted

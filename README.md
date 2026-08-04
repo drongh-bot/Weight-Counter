@@ -41,7 +41,7 @@ app/
 - **Signal-driven UI** — `UiBridge` emits view snapshots; MainWindow renders only (not Qt Designer `Ui_MainWindow`)
 - **No bare attribute access** — Controller communicates with services through methods only
 - **Model layer is Qt-free** — unit-testable without a GUI; `CounterService` and `WeightInputService` are also Qt-free
-- **Params freshness** — `START_SYNC_FIELDS` copied on Start; `target_pieces` follows the UI anytime and is not persisted
+- **Params freshness** — most UI count params copied on Start; `target_pieces` follows the UI anytime and is not persisted
 
 ### Core Algorithms
 

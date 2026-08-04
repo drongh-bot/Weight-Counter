@@ -15,7 +15,7 @@ class CounterService:
         self._piece_counter = PieceCounter(params)
 
     def apply_start_params(self, params: Params) -> None:
-        """点 Start 时：把界面上的计件相关参数拷进算法（中途改参数要再 Start 才生效）。"""
+        """点 Start 时：把界面上的计件相关参数拷进算法（中途改了要再 Start）。"""
         self._piece_counter.apply_start_params(params)
 
     def _target_crossed(

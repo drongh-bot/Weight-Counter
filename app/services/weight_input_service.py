@@ -56,7 +56,7 @@ class WeightInputService:
         self._stabilizer.reset()
 
     def apply_start_params(self, params: Params) -> None:
-        """Start 时将给定 Params 的 START_SYNC 稳定阈值复制进 stabilizer。"""
+        """点 Start 时把稳定阈值拷进稳重器（中途改了要再 Start）。"""
         self._stabilizer.apply_start_params(params)
 
     @property

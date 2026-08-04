@@ -1,39 +1,26 @@
 # app/models/params.py
 from dataclasses import dataclass, field
 
-# 点 Start 时拷进计件/稳重算法的参数。跑起来以后在界面上改它们，要再按一次 Start 才生效。
-START_SYNC_FIELDS = frozenset(
-    {
-        "initial_min_weight",
-        "tolerance_percent",
-        "stability_threshold",
-        "max_batch_pieces",
-        "initial_single_pieces",
-        "decimal_places",
-    }
-)
-
 
 @dataclass
 class Params:
     """整机参数（串口、公差、目标件数、窗口布局等）。
 
-    怎么生效：
-    - START_SYNC_FIELDS：点 Start 时拷进算法
-    - target_pieces：计件时直接读这里的最新值（界面改了立刻算），也不写入配置文件
-    - 其余：开机从配置文件加载，退出时可保存
+    界面可调参数怎么生效，见各字段旁注释；其余多在开机加载 / 退出保存。
     """
 
-    # 计件界面可调（多数要再 Start；目标件数除外）
+    # —— 计件界面可调 ——
+    # 下面几项：点 Start 时拷进算法；跑起来以后改了要再按 Start 才生效
     initial_min_weight: float = 0.5
     tolerance_percent: float = 20.0
     stability_threshold: float = 0.02
     max_batch_pieces: int = 1
     initial_single_pieces: int = 5
-    target_pieces: int = 100  # 随时生效，不存盘
     decimal_places: int = 2
+    # 目标件数：界面改了立刻算，也不写入配置文件
+    target_pieces: int = 100
 
-    # 稳重窗口（多数在创建稳重器时固定；稳定阈值见上面 START_SYNC）
+    # 稳重窗口（创建稳重器时固定；稳定阈值见上面，要再 Start）
     stability_short_win: int = 5
     stability_long_win: int = 10
     stability_stable_count: int = 3

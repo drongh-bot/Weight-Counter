@@ -48,7 +48,7 @@ class PieceCounter:
         )
 
     def apply_start_params(self, params: Params) -> None:
-        """从共享 Params 复制 START_SYNC 字段（快照，不持有引用）。"""
+        """从共享 Params 复制「点 Start 才生效」的那些字段（拷贝值，不跟着界面一直变）。"""
         if params.initial_single_pieces > 0:
             self.initial_single_pieces = params.initial_single_pieces
         if params.max_batch_pieces > 0:
