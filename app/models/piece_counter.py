@@ -54,8 +54,6 @@ class PieceCounter:
         self.thresholds: Thresholds = Thresholds(
             initial_min_weight=initial_min_weight,
             avg_weight=0.0,
-            tolerance_percent=tolerance_percent,
-            min_tol=min_tol,
             dynamic_weight_ratio=dynamic_weight_ratio,
             initial_min_ratio=initial_min_ratio,
         )
@@ -200,7 +198,7 @@ class PieceCounter:
         # Use 1.5x, leave some margin for physical error
         if (
             abs(current_delta)
-            > self.thresholds.recover_threshold * self.abnormal_recover_factor
+            > self.tolerance.recover_threshold * self.abnormal_recover_factor
         ):
             return
 
@@ -320,7 +318,6 @@ class PieceCounter:
     def set_tolerance_percent(self, tolerance_percent: float) -> None:
         if 0.0 < tolerance_percent < 100.0:
             self.tolerance.tolerance_percent = tolerance_percent
-            self.thresholds.tolerance_percent = tolerance_percent
             self._sync_all()
 
     def set_initial_min_weight(self, initial_min_weight: float) -> None:
@@ -342,5 +339,4 @@ class PieceCounter:
         resolution = 10 ** (-self.decimal_places)
         min_tol = max(resolution * 2, self._stability_threshold * 2)
         self.tolerance.min_tol = min_tol
-        self.thresholds.min_tol = min_tol
         self._sync_all()

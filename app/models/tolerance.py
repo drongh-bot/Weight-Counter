@@ -2,6 +2,8 @@
 
 
 class Tolerance:
+    """单件公差带 + sqrt(n) 批量判定 + 异常恢复阈值。"""
+
     def __init__(self, min_tol: float, tolerance_percent: float) -> None:
         self.min_tol: float = min_tol
         self.low: float = 0.0
@@ -39,6 +41,16 @@ class Tolerance:
 
         # Single Piece Error (Take the Larger Side)
         self.half_range = max(avg_weight - self.low, self.high - avg_weight)
+
+    @property
+    def recover_threshold(self) -> float:
+        """异常恢复阈值：avg × 公差%，至少 min_tol。"""
+        if self.current_avg <= 0:
+            return self.min_tol
+        return max(
+            self.current_avg * (self.tolerance_percent / 100.0),
+            self.min_tol,
+        )
 
     def is_within_tolerance(self, delta_abs: float, n: int) -> bool:
         """
