@@ -93,7 +93,7 @@ The app requires a serial port with a connected electronic scale. Without hardwa
 
 - **`Params`** (`app/models/params.py`): `@dataclass` holding all parameter values — pure data, no I/O. One shared instance is injected into window / services (`CounterService` / `WeightInputService` hold it; `MainController` does not); **freshness rules differ by field** (see `START_SYNC_FIELDS` / `LIVE_FIELDS` in that module).
 - **`ConfigService`**: loads/saves only keys in `_SECTION_MAP`. Must never persist `LIVE_FIELDS` (enforced at init + tests).
-- **Start-sync params**: fields in `START_SYNC_FIELDS` are **copied** into `PieceCounter` / `WeightStabilizer` via `apply_start_params()` on Start. Algorithms do **not** hold a reference to shared `Params`. Mid-run UI edits apply on the next Start.
+- **Start-sync params**: fields in `START_SYNC_FIELDS` are **copied** into `PieceCounter` / `WeightStabilizer` via `apply_start_params(params)` on Start (Service and Model both take explicit `Params`). Algorithms do **not** hold a reference to shared `Params`. Mid-run UI edits apply on the next Start.
 - **`target_pieces` (LIVE)**: read each stable frame from shared `Params` by `CounterService`. Not in `_SECTION_MAP`; default `100`; not saved on exit.
 
 ## Core Algorithms

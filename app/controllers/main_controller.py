@@ -196,8 +196,9 @@ class MainController:
         """Start：复制 START_SYNC 参数、打开串口。"""
         self._is_running = True
         self._reset_all()
-        self.counter_service.apply_start_params()
-        self.weight_input_service.apply_start_params()
+        params = self.counter_service.params
+        self.counter_service.apply_start_params(params)
+        self.weight_input_service.apply_start_params(params)
         try:
             self.serial_service.open(port, baud)
             return True

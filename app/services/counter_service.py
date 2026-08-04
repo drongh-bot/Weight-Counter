@@ -22,9 +22,9 @@ class CounterService:
         self.params = params
         self._piece_counter = PieceCounter(params)
 
-    def apply_start_params(self) -> None:
-        """Start 时将共享 Params 的 START_SYNC 字段复制进 PieceCounter。"""
-        self._piece_counter.apply_start_params(self.params)
+    def apply_start_params(self, params: Params) -> None:
+        """Start 时将给定 Params 的 START_SYNC 字段复制进 PieceCounter。"""
+        self._piece_counter.apply_start_params(params)
 
     def _target_crossed(
         self, old_count: int, new_count: int, state: CounterState

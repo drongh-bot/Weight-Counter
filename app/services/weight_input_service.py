@@ -17,8 +17,7 @@ class WeightInputService:
     """
 
     def __init__(self, params: Params) -> None:
-        """用共享 Params 构造稳重器（窗口参数在构造时拷贝）。"""
-        self.params = params
+        """用传入的 Params 构造稳重器（窗口参数在构造时拷贝）。"""
         self._stabilizer = WeightStabilizer(
             short_win=params.stability_short_win,
             long_win=params.stability_long_win,
@@ -56,9 +55,9 @@ class WeightInputService:
         """重置稳重器窗口与锁定状态。"""
         self._stabilizer.reset()
 
-    def apply_start_params(self) -> None:
-        """Start 时将 START_SYNC 稳定阈值复制进 stabilizer。"""
-        self._stabilizer.apply_start_params(self.params)
+    def apply_start_params(self, params: Params) -> None:
+        """Start 时将给定 Params 的 START_SYNC 稳定阈值复制进 stabilizer。"""
+        self._stabilizer.apply_start_params(params)
 
     @property
     def stability_threshold(self) -> float:

@@ -66,7 +66,7 @@ class TestCounterServiceProcess:
         params.max_batch_pieces = 5
         params.initial_single_pieces = 1
         svc = CounterService(params)
-        svc.apply_start_params()
+        svc.apply_start_params(svc.params)
 
         assert svc.force_calibrate(980.0, 98) is not None
         result = svc.process(1010.0)  # 98 + 3 = 101，跳过 100
@@ -80,7 +80,7 @@ class TestCounterServiceProcess:
         params.max_batch_pieces = 5
         params.initial_single_pieces = 1
         svc = CounterService(params)
-        svc.apply_start_params()
+        svc.apply_start_params(svc.params)
 
         calibrated = svc.force_calibrate(1000.0, 100)
         assert calibrated is not None
@@ -97,7 +97,7 @@ class TestCounterServiceProcess:
         params.max_batch_pieces = 4
         params.tolerance_percent = 25.0
         svc = CounterService(params)
-        svc.apply_start_params()
+        svc.apply_start_params(svc.params)
 
         svc.process(10.0)
         svc.process(20.0)
@@ -190,7 +190,7 @@ class TestCounterServiceProcess:
         params.initial_single_pieces = 8
         params.decimal_places = 3
 
-        svc.apply_start_params()
+        svc.apply_start_params(svc.params)
 
         # initial_min_weight=1.0：低于阈值不计件
         svc.reset()
