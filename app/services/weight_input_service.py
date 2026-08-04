@@ -19,7 +19,14 @@ class WeightInputService:
     def __init__(self, params: Params) -> None:
         """用共享 Params 构造稳重器（窗口参数在构造时拷贝）。"""
         self.params = params
-        self._stabilizer = WeightStabilizer.from_params(params)
+        self._stabilizer = WeightStabilizer(
+            short_win=params.stability_short_win,
+            long_win=params.stability_long_win,
+            stable_count=params.stability_stable_count,
+            unlock_confirm=params.stability_unlock_confirm,
+            unlock_factor=params.stability_unlock_factor,
+            stability_threshold=params.stability_threshold,
+        )
 
     def parse(self, raw: str) -> float | None:
         """解析串口重量字符串；成功返回 float，失败返回 None。"""

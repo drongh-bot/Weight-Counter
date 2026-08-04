@@ -35,18 +35,6 @@ class WeightStabilizer:
         self.unlock_pending: int = 0
         self.stability_threshold: float = stability_threshold
 
-    @classmethod
-    def from_params(cls, params: Params) -> "WeightStabilizer":
-        """从 Params 构造实例。"""
-        return cls(
-            short_win=params.stability_short_win,
-            long_win=params.stability_long_win,
-            stable_count=params.stability_stable_count,
-            unlock_confirm=params.stability_unlock_confirm,
-            unlock_factor=params.stability_unlock_factor,
-            stability_threshold=params.stability_threshold,
-        )
-
     def apply_start_params(self, params: Params) -> None:
         """从共享 Params 复制 START_SYNC 的 stability_threshold（快照）。"""
         if params.stability_threshold > 0:
