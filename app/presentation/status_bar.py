@@ -11,7 +11,7 @@
   abnormal   = 每帧由 CounterState 推导
   target     = 边沿锁存；后续加件时清除
   waiting    = 强制校准待稳定期间；稳定路径清除
-  force result = 仅当帧
+  force result = 仅当帧（on_force_*_frame）
   soft error = 直至下一稳定帧；超时/未稳定不清除
 """
 
@@ -126,10 +126,63 @@ class StatusBar:
         state: CounterState,
         target_reached: bool,
         piece_added: bool,
-        force_done: bool = False,
-        force_failed: bool = False,
     ) -> BarSnapshot:
-        """稳定帧：更新链路/状态并解析消息优先级。"""
+        """普通稳定帧：更新锁存，按优先级出消息（无强制结果）。"""
+        self._apply_stable_latches(
+            state=state,
+            target_reached=target_reached,
+            piece_added=piece_added,
+        )
+        return self.snapshot()
+
+    def on_force_done_frame(
+        self,
+        *,
+        state: CounterState,
+        target_reached: bool,
+        piece_added: bool,
+    ) -> BarSnapshot:
+        """强制校准成功当帧：更新锁存，消息为完成。"""
+        self._apply_stable_latches(
+            state=state,
+            target_reached=target_reached,
+            piece_added=piece_added,
+        )
+        return self._snapshot_with_message(MSG_FORCE_DONE, info=True)
+
+    def on_force_fail_frame(
+        self,
+        *,
+        state: CounterState,
+        target_reached: bool,
+        piece_added: bool,
+    ) -> BarSnapshot:
+        """强制校准失败当帧：更新锁存，消息为失败。"""
+        self._apply_stable_latches(
+            state=state,
+            target_reached=target_reached,
+            piece_added=piece_added,
+        )
+        return self._snapshot_with_message(MSG_FORCE_FAIL, info=False)
+
+    def snapshot(self) -> BarSnapshot:
+        """按当前锁存状态生成三标签快照（不含当帧强制结果）。"""
+        parse, comm = self._link.labels()
+        text, info = self._resolve_message()
+        return BarSnapshot(
+            parse=parse,
+            comm=comm,
+            message=_message_label(text, info=info),
+        )
+
+    def _apply_stable_latches(
+        self,
+        *,
+        state: CounterState,
+        target_reached: bool,
+        piece_added: bool,
+    ) -> None:
+        """稳定路径共用：链路 OK、清等待/软错误、更新状态与目标锁存。"""
         self._link = _LinkKind.OK
         self._state = state
         self._error = None
@@ -138,30 +191,18 @@ class StatusBar:
             self._hold_target = True
         if piece_added and self._hold_target and not target_reached:
             self._hold_target = False
-        return self.snapshot(force_done=force_done, force_failed=force_failed)
 
-    def snapshot(
-        self, *, force_done: bool = False, force_failed: bool = False
-    ) -> BarSnapshot:
-        """按当前锁存状态生成三标签快照。"""
+    def _snapshot_with_message(self, text: str, *, info: bool) -> BarSnapshot:
+        """组装快照，消息固定为给定文案（当帧强制结果用）。"""
         parse, comm = self._link.labels()
-        text, info = self._resolve_message(
-            force_done=force_done, force_failed=force_failed
-        )
         return BarSnapshot(
             parse=parse,
             comm=comm,
             message=_message_label(text, info=info),
         )
 
-    def _resolve_message(
-        self, *, force_done: bool, force_failed: bool
-    ) -> tuple[str, bool]:
-        """按优先级解析消息文案；返回 (文本, 是否信息色)。"""
-        if force_failed:
-            return MSG_FORCE_FAIL, False
-        if force_done:
-            return MSG_FORCE_DONE, True
+    def _resolve_message(self) -> tuple[str, bool]:
+        """按锁存优先级解析消息文案；返回 (文本, 是否信息色)。"""
         if self._waiting:
             return MSG_WAIT_STABLE, True
         if self._error is not None:

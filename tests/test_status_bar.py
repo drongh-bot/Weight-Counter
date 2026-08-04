@@ -63,9 +63,21 @@ class TestStatusBarMessage:
             piece_added=False,
         )
         assert (
-            bar.snapshot(force_failed=True).message.text == MSG_FORCE_FAIL
+            bar.on_force_fail_frame(
+                state=CounterState.ABNORMAL,
+                target_reached=False,
+                piece_added=False,
+            ).message.text
+            == MSG_FORCE_FAIL
         )
-        assert bar.snapshot(force_done=True).message.text == MSG_FORCE_DONE
+        assert (
+            bar.on_force_done_frame(
+                state=CounterState.ABNORMAL,
+                target_reached=False,
+                piece_added=False,
+            ).message.text
+            == MSG_FORCE_DONE
+        )
         assert bar.snapshot().message.text == MSG_ABNORMAL
 
     def test_waiting_cleared_on_stable(self):
@@ -121,11 +133,10 @@ class TestStatusBarIntegration:
     def test_force_waiting_then_done_then_target(self):
         bar = StatusBar()
         assert bar.on_force_waiting().message.text == MSG_WAIT_STABLE
-        snap = bar.on_stable_frame(
+        snap = bar.on_force_done_frame(
             state=CounterState.NORMAL,
             target_reached=True,
             piece_added=False,
-            force_done=True,
         )
         assert snap.message.text == MSG_FORCE_DONE
         assert bar.on_stable_frame(

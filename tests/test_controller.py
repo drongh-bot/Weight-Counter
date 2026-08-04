@@ -283,18 +283,10 @@ class TestControllerPipeline:
         controller.request_force_calibrate(3)
         assert controller._pending_force_pieces == 3
 
-        result, force_done, force_failed = controller._resolve_stable_frame(0.01)
-        assert force_done is False
-        assert force_failed is True
+        frame, bar = controller._resolve_stable_frame(0.01)
+        assert bar.message.text == MSG_FORCE_FAIL
         assert controller._pending_force_pieces is None
-        ui.update_bar(
-            controller._bar.on_stable_frame(
-                state=result.state,
-                target_reached=False,
-                piece_added=False,
-                force_failed=True,
-            )
-        )
+        ui.update_bar(bar)
         assert ui._last_bar is not None
         assert ui._last_bar.message.text == MSG_FORCE_FAIL
         assert controller._button_status().force_enabled is True

@@ -4,7 +4,7 @@ import logging
 from app.models.count_snapshot import CountFrame, CountSnapshot
 from app.presentation.status_bar import StatusBar
 from app.presentation.ui import UiBridge
-from app.presentation.view_models import ButtonStatus
+from app.presentation.view_models import BarSnapshot, ButtonStatus
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
@@ -115,36 +115,42 @@ class MainController:
             # 日常未稳定：不计件即可，勿改写状态栏（避免覆盖错误/异常等提示）
             return
 
-        frame, force_done, force_failed = self._resolve_stable_frame(stable_weight)
+        frame, bar = self._resolve_stable_frame(stable_weight)
         self._handle_frame(frame, stable_weight)
-        self.ui.update_bar(
-            self._bar.on_stable_frame(
-                state=frame.state,
-                target_reached=frame.target_edge,
-                piece_added=frame.added,
-                force_done=force_done,
-                force_failed=force_failed,
-            )
-        )
+        self.ui.update_bar(bar)
 
     def _resolve_stable_frame(
         self, stable_weight: float
-    ) -> tuple[CountFrame, bool, bool]:
+    ) -> tuple[CountFrame, BarSnapshot]:
         """本帧稳定重：优先执行挂起的强制校准，否则走正常计件。
 
-        返回 (frame, force_done, force_failed)。
+        返回 (frame, 对应状态栏快照)。
         """
         if self._pending_force_pieces is None:
-            return self.counter_service.process(stable_weight), False, False
+            frame = self.counter_service.process(stable_weight)
+            return frame, self._bar.on_stable_frame(
+                state=frame.state,
+                target_reached=frame.target_edge,
+                piece_added=frame.added,
+            )
 
         pieces = self._pending_force_pieces
         self._pending_force_pieces = None
         calibrated = self.counter_service.force_calibrate(stable_weight, pieces)
         if calibrated is None:
-            return self.counter_service.process(stable_weight), False, True
+            frame = self.counter_service.process(stable_weight)
+            return frame, self._bar.on_force_fail_frame(
+                state=frame.state,
+                target_reached=frame.target_edge,
+                piece_added=frame.added,
+            )
 
         self._record_production(calibrated)
-        return calibrated, True, False
+        return calibrated, self._bar.on_force_done_frame(
+            state=calibrated.state,
+            target_reached=calibrated.target_edge,
+            piece_added=calibrated.added,
+        )
 
     def _handle_frame(self, frame: CountFrame, stable_weight: float) -> None:
         """刷新 UI，并按本帧边沿播放音效 / 记生产。"""
