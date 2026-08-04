@@ -12,8 +12,6 @@ class TestThresholds:
         th = Thresholds(
             initial_min_weight=0.5,
             avg_weight=10.0,
-            tolerance_percent=10.0,
-            min_tol=0.04,
         )
         expected = max(10.0 * 0.5, 0.5 * 0.3)
         assert th.dynamic_min_weight == expected
@@ -23,39 +21,14 @@ class TestThresholds:
         th = Thresholds(
             initial_min_weight=0.5,
             avg_weight=0.0,
-            tolerance_percent=10.0,
-            min_tol=0.04,
         )
         assert th.dynamic_min_weight == 0.5
-
-    def test_recover_threshold(self):
-        """恢复正常阈值 = max(avg * tolerance%, min_tol)"""
-        th = Thresholds(
-            initial_min_weight=0.5,
-            avg_weight=5.0,
-            tolerance_percent=20.0,
-            min_tol=0.1,
-        )
-        expected = max(5.0 * 0.20, 0.1)
-        assert th.recover_threshold == expected
-
-    def test_recover_threshold_zero_avg(self):
-        """avg_weight = 0 时的恢复阈值"""
-        th = Thresholds(
-            initial_min_weight=0.5,
-            avg_weight=0.0,
-            tolerance_percent=20.0,
-            min_tol=0.1,
-        )
-        assert th.recover_threshold == max(0.5, 0.1)
 
     def test_update_changes_avg(self):
         """update 更新 avg_weight"""
         th = Thresholds(
             initial_min_weight=0.5,
             avg_weight=3.0,
-            tolerance_percent=10.0,
-            min_tol=0.04,
         )
         th.update(7.0)
         assert th.avg_weight == 7.0
@@ -167,6 +140,19 @@ class TestTolerance:
         tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
         tol.update(0.0)
         assert not tol.is_within_tolerance(10.0, 1)
+
+    def test_recover_threshold(self):
+        """恢复正常阈值 = max(avg * tolerance%, min_tol)"""
+        tol = Tolerance(min_tol=0.1, tolerance_percent=20.0)
+        tol.update(5.0)
+        expected = max(5.0 * 0.20, 0.1)
+        assert tol.recover_threshold == expected
+
+    def test_recover_threshold_zero_avg(self):
+        """avg_weight = 0 时的恢复阈值 = min_tol"""
+        tol = Tolerance(min_tol=0.1, tolerance_percent=20.0)
+        tol.update(0.0)
+        assert tol.recover_threshold == 0.1
 
 
 class TestPieceCounterFSM:
@@ -368,4 +354,3 @@ class TestPieceCounterParamUpdate:
         counter = PieceCounter(decimal_places=2, stability_threshold=0.02)
         counter.set_stability_threshold(0.10)
         assert counter.tolerance.min_tol == max(0.02, 0.20)
-        assert counter.thresholds.min_tol == counter.tolerance.min_tol
