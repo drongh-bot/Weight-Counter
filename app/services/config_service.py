@@ -1,18 +1,21 @@
 # app/services/config_service.py
-import logging
-import threading
 from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 import toml
 
 from app.models.params import Params
 
-logger = logging.getLogger(__name__)
-
 
 class ConfigService:
-    """I/O 服务：Params ↔ config.toml 加载与保存。"""
+    """读写 config.toml ↔ 扁平 Params。
+
+    TOML 按节存放，Params 字段是扁平的；``_SECTION_MAP`` 同时决定：
+    - 文件里有哪些节、每节哪些键
+    - 哪些字段会落盘（未列入的如 ``target_pieces`` 不读也不写）
+    文件缺项时用 Params 默认值。
+    """
 
     _SECTION_MAP: dict[str, list[str]] = {
         "parameters": [
@@ -32,42 +35,45 @@ class ConfigService:
         "ui": ["splitter_sizes"],
     }
 
-    def __init__(self) -> None:
-        self._lock = threading.Lock()
-
     @classmethod
     def persisted_keys(cls) -> frozenset[str]:
-        """返回会写入 config.toml 的字段名集合。"""
+        """会写入 config.toml 的字段名。"""
         return frozenset(k for keys in cls._SECTION_MAP.values() for k in keys)
 
     def load(self, path: Path) -> Params:
-        """加载 config.toml，缺失项用 Params 默认值填充。"""
-        with self._lock:
-            if path.exists():
-                with open(path, "r", encoding="utf-8") as f:
-                    raw: dict = toml.load(f)
-            else:
-                raw = {}
+        """加载 config.toml；文件不存在或缺键时用 Params 默认值。"""
+        if path.exists():
+            with open(path, "r", encoding="utf-8") as f:
+                raw: dict[str, Any] = toml.load(f)
+        else:
+            raw = {}
+        return self._params_from_toml(raw)
 
-        flat: dict = {}
+    def save(self, params: Params, path: Path) -> None:
+        """只把 ``_SECTION_MAP`` 里的字段写入 config.toml。"""
+        toml_data = self._toml_from_params(params)
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                toml.dump(toml_data, f)
+        except Exception as e:
+            raise RuntimeError(f"保存配置失败: {e}") from e
+
+    def _params_from_toml(self, raw: dict[str, Any]) -> Params:
+        """按 ``_SECTION_MAP`` 从分节 dict 收成 Params（缺键走默认）。"""
+        flat: dict[str, Any] = {}
         for section, keys in self._SECTION_MAP.items():
             section_data = raw.get(section, {})
+            if not isinstance(section_data, dict):
+                continue
             for key in keys:
                 if key in section_data:
                     flat[key] = section_data[key]
-
         return Params(**flat)
 
-    def save(self, params: Params, path: Path) -> None:
-        """将 Params 持久化到 config.toml。"""
+    def _toml_from_params(self, params: Params) -> dict[str, dict[str, Any]]:
+        """按 ``_SECTION_MAP`` 从 Params 只抽出要落盘的分节。"""
         data = asdict(params)
-        toml_data: dict = {}
-        for section, keys in self._SECTION_MAP.items():
-            toml_data[section] = {key: data[key] for key in keys}
-
-        with self._lock:
-            try:
-                with open(path, "w", encoding="utf-8") as f:
-                    toml.dump(toml_data, f)
-            except Exception as e:
-                raise RuntimeError(f"保存配置失败: {e}") from e
+        return {
+            section: {key: data[key] for key in keys}
+            for section, keys in self._SECTION_MAP.items()
+        }
