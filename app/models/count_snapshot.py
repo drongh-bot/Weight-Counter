@@ -27,6 +27,6 @@ class CountSnapshot:
 class CountFrame(CountSnapshot):
     """本帧计件结果：快照 + 边沿（仅 process / force_calibrate 产生）。"""
 
-    added: bool = False
+    piece_added: bool = False
     abnormal_edge: bool = False
     target_edge: bool = False

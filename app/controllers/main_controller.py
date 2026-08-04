@@ -130,8 +130,8 @@ class MainController:
             frame = self.counter_service.process(stable_weight)
             return frame, self._bar.on_stable_frame(
                 state=frame.state,
-                target_reached=frame.target_edge,
-                piece_added=frame.added,
+                target_edge=frame.target_edge,
+                piece_added=frame.piece_added,
             )
 
         pieces = self._pending_force_pieces
@@ -141,15 +141,15 @@ class MainController:
             frame = self.counter_service.process(stable_weight)
             return frame, self._bar.on_force_fail_frame(
                 state=frame.state,
-                target_reached=frame.target_edge,
-                piece_added=frame.added,
+                target_edge=frame.target_edge,
+                piece_added=frame.piece_added,
             )
 
         self._record_production(calibrated)
         return calibrated, self._bar.on_force_done_frame(
             state=calibrated.state,
-            target_reached=calibrated.target_edge,
-            piece_added=calibrated.added,
+            target_edge=calibrated.target_edge,
+            piece_added=calibrated.piece_added,
         )
 
     def _handle_frame(self, frame: CountFrame, stable_weight: float) -> None:
@@ -161,7 +161,7 @@ class MainController:
             self.sound_player.play_error()
         if frame.target_edge:
             self.sound_player.play_alert()
-        if frame.added:
+        if frame.piece_added:
             self._record_production(frame)
 
     def _record_production(self, snap: CountSnapshot) -> None:

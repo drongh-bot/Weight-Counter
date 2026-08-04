@@ -33,7 +33,7 @@ class TestStatusBarMessage:
         bar = StatusBar()
         snap = bar.on_stable_frame(
             state=CounterState.ABNORMAL,
-            target_reached=False,
+            target_edge=False,
             piece_added=False,
         )
         assert snap.message.text == MSG_ABNORMAL
@@ -43,14 +43,14 @@ class TestStatusBarMessage:
         bar = StatusBar()
         bar.on_stable_frame(
             state=CounterState.NORMAL,
-            target_reached=True,
+            target_edge=True,
             piece_added=True,
         )
         assert bar.snapshot().message.text == MSG_TARGET
 
         bar.on_stable_frame(
             state=CounterState.NORMAL,
-            target_reached=False,
+            target_edge=False,
             piece_added=True,
         )
         assert bar.snapshot().message.text == MSG_NONE
@@ -59,13 +59,13 @@ class TestStatusBarMessage:
         bar = StatusBar()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
-            target_reached=False,
+            target_edge=False,
             piece_added=False,
         )
         assert (
             bar.on_force_fail_frame(
                 state=CounterState.ABNORMAL,
-                target_reached=False,
+                target_edge=False,
                 piece_added=False,
             ).message.text
             == MSG_FORCE_FAIL
@@ -73,7 +73,7 @@ class TestStatusBarMessage:
         assert (
             bar.on_force_done_frame(
                 state=CounterState.ABNORMAL,
-                target_reached=False,
+                target_edge=False,
                 piece_added=False,
             ).message.text
             == MSG_FORCE_DONE
@@ -85,7 +85,7 @@ class TestStatusBarMessage:
         assert bar.on_force_waiting().message.text == MSG_WAIT_STABLE
         snap = bar.on_stable_frame(
             state=CounterState.NORMAL,
-            target_reached=False,
+            target_edge=False,
             piece_added=False,
         )
         assert snap.message.text == MSG_NONE
@@ -96,7 +96,7 @@ class TestStatusBarMessage:
         assert bar.on_csv_error("串口错误").message.style == Styles.RED
         snap = bar.on_stable_frame(
             state=CounterState.NORMAL,
-            target_reached=False,
+            target_edge=False,
             piece_added=False,
         )
         assert snap.message.text == MSG_NONE
@@ -105,7 +105,7 @@ class TestStatusBarMessage:
         bar = StatusBar()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
-            target_reached=False,
+            target_edge=False,
             piece_added=False,
         )
         assert bar.on_force_waiting().message.text == MSG_WAIT_STABLE
@@ -116,7 +116,7 @@ class TestStatusBarIntegration:
         bar = StatusBar()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
-            target_reached=False,
+            target_edge=False,
             piece_added=False,
         )
         snap = bar.on_timeout()
@@ -135,13 +135,13 @@ class TestStatusBarIntegration:
         assert bar.on_force_waiting().message.text == MSG_WAIT_STABLE
         snap = bar.on_force_done_frame(
             state=CounterState.NORMAL,
-            target_reached=True,
+            target_edge=True,
             piece_added=False,
         )
         assert snap.message.text == MSG_FORCE_DONE
         assert bar.on_stable_frame(
             state=CounterState.NORMAL,
-            target_reached=False,
+            target_edge=False,
             piece_added=False,
         ).message.text == MSG_TARGET
 
@@ -150,7 +150,7 @@ class TestStatusBarIntegration:
         bar.on_force_waiting()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
-            target_reached=True,
+            target_edge=True,
             piece_added=False,
         )
         snap = bar.reset()

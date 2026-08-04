@@ -57,7 +57,7 @@ class TestControllerPipeline:
         ui.update_bar(
             controller._bar.on_stable_frame(
                 state=CounterState.ABNORMAL,
-                target_reached=False,
+                target_edge=False,
                 piece_added=False,
             )
         )

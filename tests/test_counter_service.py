@@ -111,12 +111,12 @@ class TestCounterServiceProcess:
         assert again.total_pieces == 3
         assert again.target_edge is True
 
-    def test_added_flag(self):
+    def test_piece_added_flag(self):
         svc = self._make_service()
         result = svc.process(10.0)
-        assert result.added is True
+        assert result.piece_added is True
         result = svc.process(10.0)  # 无变化
-        assert result.added is False
+        assert result.piece_added is False
 
     def test_force_calibrate(self):
         svc = self._make_service()

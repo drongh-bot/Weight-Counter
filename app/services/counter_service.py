@@ -48,7 +48,7 @@ class CounterService:
         new_state = self._piece_counter.state
 
         return self._build_frame(
-            added=new_count > old_count,
+            piece_added=new_count > old_count,
             abnormal_edge=(
                 old_state != CounterState.ABNORMAL
                 and new_state == CounterState.ABNORMAL
@@ -80,7 +80,7 @@ class CounterService:
     def _build_frame(
         self,
         *,
-        added: bool = False,
+        piece_added: bool = False,
         abnormal_edge: bool = False,
         target_edge: bool = False,
     ) -> CountFrame:
@@ -99,7 +99,7 @@ class CounterService:
             baseline_weight=snap.baseline_weight,
             piece_weights=snap.piece_weights,
             decimal_places=snap.decimal_places,
-            added=added,
+            piece_added=piece_added,
             abnormal_edge=abnormal_edge,
             target_edge=target_edge,
         )

@@ -125,13 +125,13 @@ class StatusBar:
         self,
         *,
         state: CounterState,
-        target_reached: bool,
+        target_edge: bool,
         piece_added: bool,
     ) -> BarSnapshot:
         """普通稳定帧：更新锁存，按优先级出消息（无强制结果）。"""
         self._apply_stable_latches(
             state=state,
-            target_reached=target_reached,
+            target_edge=target_edge,
             piece_added=piece_added,
         )
         return self.snapshot()
@@ -140,13 +140,13 @@ class StatusBar:
         self,
         *,
         state: CounterState,
-        target_reached: bool,
+        target_edge: bool,
         piece_added: bool,
     ) -> BarSnapshot:
         """强制校准成功当帧：更新锁存，消息为完成。"""
         self._apply_stable_latches(
             state=state,
-            target_reached=target_reached,
+            target_edge=target_edge,
             piece_added=piece_added,
         )
         return self._snapshot_with_message(MSG_FORCE_DONE, info=True)
@@ -155,13 +155,13 @@ class StatusBar:
         self,
         *,
         state: CounterState,
-        target_reached: bool,
+        target_edge: bool,
         piece_added: bool,
     ) -> BarSnapshot:
         """强制校准失败当帧：更新锁存，消息为失败。"""
         self._apply_stable_latches(
             state=state,
-            target_reached=target_reached,
+            target_edge=target_edge,
             piece_added=piece_added,
         )
         return self._snapshot_with_message(MSG_FORCE_FAIL, info=False)
@@ -180,7 +180,7 @@ class StatusBar:
         self,
         *,
         state: CounterState,
-        target_reached: bool,
+        target_edge: bool,
         piece_added: bool,
     ) -> None:
         """稳定路径共用：解析/通讯 OK、清等待/软错误、更新状态与目标锁存。"""
@@ -188,9 +188,9 @@ class StatusBar:
         self._state = state
         self._error = None
         self._waiting = False
-        if target_reached:
+        if target_edge:
             self._hold_target = True
-        if piece_added and self._hold_target and not target_reached:
+        if piece_added and self._hold_target and not target_edge:
             self._hold_target = False
 
     def _snapshot_with_message(self, text: str, *, info: bool) -> BarSnapshot:
