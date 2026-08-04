@@ -11,6 +11,9 @@ from app.core.resource_manager import ResourceManager
 
 logger = logging.getLogger(__name__)
 
+# (时间, 重量, 总件数)；None 为关闭哨兵
+_ProductionItem = tuple[str, str, str] | None
+
 
 class CsvLogService(QObject):
     """
@@ -32,10 +35,10 @@ class CsvLogService(QObject):
             base / "production", ("时间", "重量", "总件数")
         )
 
-        self._production_queue: queue.Queue = queue.Queue()
+        self._production_queue: queue.Queue[_ProductionItem] = queue.Queue()
 
-        self._is_active = True
-        self._writer_thread = threading.Thread(
+        self._is_active: bool = True
+        self._writer_thread: threading.Thread = threading.Thread(
             target=self._worker_loop, name="LogWorker", daemon=True
         )
         self._writer_thread.start()
