@@ -11,24 +11,21 @@ from app.core.resource_manager import ResourceManager
 
 logger = logging.getLogger(__name__)
 
-# (时间, 重量, 总件数)；None 为关闭哨兵
+# (时间, 重量, 总件数)；None 表示「可以收工了」
 _ProductionItem = tuple[str, str, str] | None
 
 
 class CsvLogService(QObject):
-    """
-    异步 CSV 记录服务：
-    - 主线程 / API 调用方仅入队，不做 IO
-    - 后台线程统一写入，避免阻塞 GUI
-    - 支持安全关闭（不丢记录）
-    - 支持哨兵机制（Poison Pill）
-    - 支持 queue.get(timeout) 防止线程死锁
+    """把生产记录写到 CSV，不卡住界面。
+
+    计件线程只往队列里丢一条；后台线程慢慢写文件。
+    退出时先把队列里剩下的写完，再关文件。
     """
 
     error_occurred = Signal(str)
 
     def __init__(self) -> None:
-        """启动后台写线程与生产日志 Writer。"""
+        """打开生产日志，拉起后台写线程。"""
         super().__init__()
         base = ResourceManager.get_external("log")
         self._production_writer: CsvWriter | None = CsvWriter(
@@ -44,7 +41,7 @@ class CsvLogService(QObject):
         self._writer_thread.start()
 
     def _worker_loop(self) -> None:
-        """后台线程：从队列取记录并写入 CSV。"""
+        """后台循环：有记录就写；收到收工信号或已停用且队列空则退出。"""
         while True:
             try:
                 item = self._production_queue.get(timeout=1.0)
@@ -69,11 +66,11 @@ class CsvLogService(QObject):
 
     @staticmethod
     def _timestamp() -> str:
-        """当前时间戳字符串。"""
+        """当前时间，写成日志里的时间列。"""
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def record_production(self, weight: float, total: int) -> None:
-        """入队一条生产记录（weight=最新单重，total=当前总件数）。"""
+        """记一笔生产：最新单重 + 当前总件数（只入队，马上返回）。"""
         if not self._is_active:
             return
 
@@ -83,7 +80,7 @@ class CsvLogService(QObject):
             self.error_occurred.emit(f"生产记录入队失败：{e}")
 
     def close(self) -> None:
-        """安全关闭：排空队列、结束后台线程、关闭文件。"""
+        """退出时调用：等队列写完，通知后台收工，再关日志文件。"""
         if not self._is_active:
             return
 

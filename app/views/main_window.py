@@ -64,7 +64,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """组装控件、加载配置并绑定信号。"""
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle("称重计数 v1.3.5")
+        self.setWindowTitle("称重计数 v1.4.0")
 
         self.setWindowIcon(
             QIcon(str(ResourceManager.get_resource("app/resources/icons/app.ico")))
