@@ -1,5 +1,5 @@
 from app.models.counter_state import CounterState
-from app.presentation.count_builder import to_count_view
+from app.presentation.count_view import to_count_view
 from app.presentation.styles import Styles
 from tests.conftest import make_count_snapshot
 

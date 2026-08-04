@@ -1,4 +1,4 @@
-# app/presentation/count_builder.py
+# app/presentation/count_view.py
 from app.models.count_snapshot import CountSnapshot
 from app.models.counter_state import CounterState
 from app.presentation.styles import Styles

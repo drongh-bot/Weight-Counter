@@ -20,9 +20,9 @@ app/
 ## Design Principles (must follow)
 
 - **DI**: all objects created and wired in `main.py`
-- **FSM vs facade**: `PieceCounter.on_stable_weight` mutates state; `CounterService.process` detects edges and builds `CountResult`
+- **FSM vs facade**: `PieceCounter.on_stable_weight` mutates state; `CounterService.process` detects edges and builds `CountFrame`
 - **Signal-driven UI**: `presentation.UiBridge` emits `count_changed`, `bar_snapshot_changed`, `button_status_changed`, and `actual_weight_changed`; MainWindow renders, never touches business logic. Do not confuse with Qt Designer `Ui_MainWindow`.
-- **Status bar**: `StatusBar` is the only public API for the three labels (`on_*` → `BarSnapshot`); link/message latches are internal
+- **Status bar**: `StatusBar` is the only public API for the three labels (`on_*` → `BarSnapshot`); parse/comm and message latches are internal
 - **No bare attribute access**: Controller communicates with services through methods only
 - **Model layer is Qt-free**: unit-testable without a GUI, no I/O (see Params vs ConfigService split)
 - **Business services / controller are Qt-free**: `CounterService`, `WeightInputService`, and `MainController` are plain Python classes; I/O services (`SerialService`, etc.) and `UiBridge` inherit `QObject`
@@ -57,7 +57,7 @@ Model tests and `CounterService` / `WeightInputService` tests are Qt-free; `UiBr
 |------|-------|-------|
 | `tests/test_weight_stabilizer.py` | model | 12 |
 | `tests/test_piece_counter.py` | model | 36 |
-| `tests/test_count_builder.py` | presentation | 5 |
+| `tests/test_count_view.py` | presentation | 5 |
 | `tests/test_weight_input_service.py` | service | 14 |
 | `tests/test_counter_service.py` | service | 19 |
 | `tests/test_config_service.py` | service | 5 |

@@ -2,7 +2,7 @@
 from PySide6.QtCore import QObject, Signal
 
 from app.models.count_snapshot import CountSnapshot
-from app.presentation.count_builder import to_count_view
+from app.presentation.count_view import to_count_view
 from app.presentation.view_models import BarSnapshot, ButtonStatus, CountView
 
 

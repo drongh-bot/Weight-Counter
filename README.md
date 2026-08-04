@@ -37,7 +37,7 @@ app/
 ### Key Design Principles
 
 - **Dependency Injection** — all objects created and wired in `main.py`
-- **FSM vs facade** — `PieceCounter.on_stable_weight` mutates state; `CounterService.process` detects edges and builds `CountResult`
+- **FSM vs facade** — `PieceCounter.on_stable_weight` mutates state; `CounterService.process` detects edges and builds `CountFrame`
 - **Signal-driven UI** — `UiBridge` emits view snapshots; MainWindow renders only (not Qt Designer `Ui_MainWindow`)
 - **No bare attribute access** — Controller communicates with services through methods only
 - **Model layer is Qt-free** — unit-testable without a GUI; `CounterService` and `WeightInputService` are also Qt-free
