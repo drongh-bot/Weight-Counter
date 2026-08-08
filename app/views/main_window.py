@@ -100,7 +100,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         horizontal_layout = self.centralWidget().layout()
         assert isinstance(horizontal_layout, QHBoxLayout)
-        horizontal_layout.addWidget(self.splitter)
+        horizontal_layout.addWidget(self.splitter, 1)
 
         self.lblParse = QLabel()
         self.lblComm = QLabel()

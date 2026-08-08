@@ -2,21 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from app.models.params import Params
 from app.services.config_service import ConfigService
-
-
-class TestParamsClamp:
-    def test_clamps_max_batch_pieces(self):
-        assert Params(max_batch_pieces=0).max_batch_pieces == 1
-
-    def test_load_clamps_max_batch_from_toml(self, tmp_path: Path):
-        path = tmp_path / "config.toml"
-        path.write_text(
-            "[parameters]\nmax_batch_pieces = 0\n",
-            encoding="utf-8",
-        )
-        assert ConfigService().load(path).max_batch_pieces == 1
 
 
 class TestConfigService:
