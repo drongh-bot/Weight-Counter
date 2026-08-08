@@ -16,8 +16,6 @@
   - 串口/CSV 报错：一直显示到下次重量稳住
 """
 
-from __future__ import annotations
-
 from enum import Enum, auto
 
 from app.models.counter_state import CounterState
