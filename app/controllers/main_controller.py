@@ -1,8 +1,6 @@
 # app/controllers/main_controller.py
 import logging
 
-from PySide6.QtCore import Qt
-
 from app.core.sound_player import SoundPlayer
 from app.models.count_snapshot import CountFrame, CountSnapshot
 from app.presentation.status_bar import StatusBar
@@ -43,11 +41,7 @@ class MainController:
         self.serial_service.data_received.connect(self._on_raw_data)
         self.serial_service.timeout_detected.connect(self._on_timeout)
         self.serial_service.error_occurred.connect(self._on_serial_error)
-        # CSV 在工作线程 emit，显式排队到接收方线程，避免跨线程碰 UI 状态
-        self.csv_log_service.error_occurred.connect(
-            self._on_csv_error,
-            Qt.ConnectionType.QueuedConnection,
-        )
+        self.csv_log_service.error_occurred.connect(self._on_csv_error)
 
         self._init_ui()
 

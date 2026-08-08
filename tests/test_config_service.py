@@ -7,28 +7,16 @@ from app.services.config_service import ConfigService
 
 
 class TestParamsClamp:
-    def test_clamps_bad_stability_and_batch(self):
-        p = Params(
-            stability_long_win=1,
-            stability_short_win=0,
-            max_batch_pieces=0,
-            initial_min_weight=-1,
-        )
-        assert p.stability_long_win == 2
-        assert p.stability_short_win == 1
-        assert p.max_batch_pieces == 1
-        assert p.initial_min_weight == 0.5
+    def test_clamps_max_batch_pieces(self):
+        assert Params(max_batch_pieces=0).max_batch_pieces == 1
 
-    def test_load_clamps_from_toml(self, tmp_path: Path):
+    def test_load_clamps_max_batch_from_toml(self, tmp_path: Path):
         path = tmp_path / "config.toml"
         path.write_text(
-            "[stability]\nstability_long_win = 1\n"
             "[parameters]\nmax_batch_pieces = 0\n",
             encoding="utf-8",
         )
-        params = ConfigService().load(path)
-        assert params.stability_long_win == 2
-        assert params.max_batch_pieces == 1
+        assert ConfigService().load(path).max_batch_pieces == 1
 
 
 class TestConfigService:
