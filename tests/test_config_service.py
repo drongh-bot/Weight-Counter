@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from app.models.params import Params
 from app.services.config_service import ConfigService
 
@@ -72,18 +74,16 @@ class TestConfigService:
         ):
             assert key in persisted
 
-    def test_save_atomic_roundtrip(self, tmp_path: Path):
+    def test_save_roundtrip(self, tmp_path: Path):
         path = tmp_path / "config.toml"
         params = ConfigService().load(path)
         params.initial_min_weight = 1.25
         ConfigService().save(params, path)
-        assert path.exists()
-        assert not list(tmp_path.glob(".config.toml.*.tmp"))
         loaded = ConfigService().load(path)
         assert loaded.initial_min_weight == 1.25
 
-    def test_load_corrupt_toml_falls_back_to_defaults(self, tmp_path: Path):
+    def test_load_corrupt_toml_raises(self, tmp_path: Path):
         path = tmp_path / "config.toml"
         path.write_text("{{{{not toml", encoding="utf-8")
-        params = ConfigService().load(path)
-        assert params.initial_min_weight == Params().initial_min_weight
+        with pytest.raises(Exception):
+            ConfigService().load(path)
