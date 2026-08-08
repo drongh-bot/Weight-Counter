@@ -102,17 +102,17 @@ class PieceChart(QWidget):
         self.scrollbar.valueChanged.connect(self._on_scrollbar_moved)
 
     def update_piece_weights(self, piece_weights: list[float]) -> None:
-        """更新件重数据并重绘（不可见时仅缓存）。"""
+        """更新件重数据并重绘（不可见时仅缓存；清空时始终清散点）。"""
         if piece_weights == self._piece_weights:
             return
 
         self._piece_weights = list(piece_weights)
 
-        if not self.isVisible():
-            return
-
         if not self._piece_weights:
             self.reset()
+            return
+
+        if not self.isVisible():
             return
 
         self._render()
@@ -264,7 +264,10 @@ class PieceChart(QWidget):
         self.scrollbar.blockSignals(False)
 
     def showEvent(self, event) -> None:
-        """窗口首次显示时补绘缓存数据。"""
+        """窗口显示时补绘缓存数据；缓存为空则确保散点已清空。"""
         super().showEvent(event)
         if self._piece_weights:
             self._render()
+        else:
+            self.scatter.setData([])
+            self.hover_point.setData([])

@@ -49,8 +49,10 @@ class WeightLearner:
                 # 触发跳变：重置学习
                 self.jump_count = 0
                 return piece_weight
-        else:
-            self.jump_count = 0
+            # 未确认前不写入 EMA，避免单次跳变污染均重
+            return avg_weight
+
+        self.jump_count = 0
 
         # 动态 EMA
         alpha = min(max(diff_ratio, self.ema_alpha_min), self.ema_alpha_max)

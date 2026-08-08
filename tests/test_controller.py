@@ -216,6 +216,9 @@ class TestControllerPipeline:
         controller, ui_bridge = make_controller()
         controller._is_running = True
         feed_stable(controller, "10.0 kg")
+        assert controller.counter_service.snapshot().total_pieces == 1
+        # Stop 语义：允许再次 Start
+        controller._is_running = False
 
         original_open = controller.serial_service.open
         controller.serial_service.open = MagicMock()
@@ -223,13 +226,22 @@ class TestControllerPipeline:
         controller.serial_service.close = MagicMock()
 
         try:
-            controller.start("COM99", 9600)
+            assert controller.start("COM99", 9600) is True
             assert controller._is_running is True
             assert controller.counter_service.snapshot().total_pieces == 0
             controller.serial_service.open.assert_called_once_with("COM99", 9600)
         finally:
             controller.serial_service.open = original_open
             controller.serial_service.close = original_close
+
+    def test_start_ignored_when_already_running(self, make_controller):
+        controller, ui_bridge = make_controller()
+        controller._is_running = True
+        feed_stable(controller, "10.0 kg")
+        controller.serial_service.open = MagicMock()
+        assert controller.start("COM99", 9600) is False
+        controller.serial_service.open.assert_not_called()
+        assert controller.counter_service.snapshot().total_pieces == 1
 
     def test_ui_button_state_when_running(self, make_controller):
         controller, ui_bridge = make_controller()
@@ -280,12 +292,19 @@ class TestControllerPipeline:
     def test_force_calibrate_failed_shows_message(self, make_controller):
         controller, ui_bridge = make_controller()
         controller._is_running = True
+        feed_stable(controller, "10.0 kg")
+        feed_stable(controller, "20.0 kg")
+        assert controller.counter_service.snapshot().total_pieces == 2
+
         controller.request_force_calibrate(3)
         assert controller._pending_force_pieces == 3
 
         frame, bar = controller._resolve_stable_frame(0.01)
         assert bar.message.text == MSG_FORCE_FAIL
         assert controller._pending_force_pieces is None
+        # 失败不得 process/reset，已计件数保留（B2）
+        assert frame.total_pieces == 2
+        assert controller.counter_service.snapshot().total_pieces == 2
         ui_bridge.update_bar(bar)
         assert ui_bridge._last_bar is not None
         assert ui_bridge._last_bar.message.text == MSG_FORCE_FAIL
@@ -358,5 +377,6 @@ class TestControllerPipeline:
 
         controller.serial_service.open = MagicMock()
         controller.serial_service.close = MagicMock()
-        controller.start("COM99", 9600)
+        controller._is_running = False
+        assert controller.start("COM99", 9600) is True
         assert controller.counter_service.decimal_places == 4

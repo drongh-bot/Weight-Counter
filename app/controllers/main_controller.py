@@ -1,6 +1,8 @@
 # app/controllers/main_controller.py
 import logging
 
+from PySide6.QtCore import Qt
+
 from app.core.sound_player import SoundPlayer
 from app.models.count_snapshot import CountFrame, CountSnapshot
 from app.presentation.status_bar import StatusBar
@@ -41,7 +43,11 @@ class MainController:
         self.serial_service.data_received.connect(self._on_raw_data)
         self.serial_service.timeout_detected.connect(self._on_timeout)
         self.serial_service.error_occurred.connect(self._on_serial_error)
-        self.csv_log_service.error_occurred.connect(self._on_csv_error)
+        # CSV 在工作线程 emit，显式排队到接收方线程，避免跨线程碰 UI 状态
+        self.csv_log_service.error_occurred.connect(
+            self._on_csv_error,
+            Qt.ConnectionType.QueuedConnection,
+        )
 
         self._init_ui()
 
@@ -105,8 +111,9 @@ class MainController:
             return
 
         stable_weight = self.weight_input_service.stabilize(weight)
-        snap = self.counter_service.snapshot()
-        self.ui_bridge.update_actual_weight(weight, snap.decimal_places)
+        self.ui_bridge.update_actual_weight(
+            weight, self.counter_service.decimal_places
+        )
 
         if self._pending_force_pieces is not None:
             if stable_weight is None or self._raw_mismatches_stable(
@@ -138,11 +145,12 @@ class MainController:
         self._pending_force_pieces = None
         calibrated = self.counter_service.force_calibrate(stable_weight, pieces)
         if calibrated is None:
-            frame = self.counter_service.process(stable_weight)
+            # 失败只提示，不再 process（过轻时会 reset 清空已计件数）
+            frame = self.counter_service.current_frame()
             return frame, self._bar.on_force_fail_frame(
                 state=frame.state,
-                target_edge=frame.target_edge,
-                piece_added=frame.piece_added,
+                target_edge=False,
+                piece_added=False,
             )
 
         self._record_production(calibrated)
@@ -168,7 +176,9 @@ class MainController:
         """把最新一件的单重和当前总件数写入生产日志。"""
         if snap.piece_weights:
             self.csv_log_service.record_production(
-                snap.piece_weights[-1], snap.total_pieces
+                snap.piece_weights[-1],
+                snap.total_pieces,
+                snap.decimal_places,
             )
 
     def _on_timeout(self) -> None:
@@ -204,6 +214,8 @@ class MainController:
 
     def start(self, port: str, baud: int) -> bool:
         """点 Start：套用当前界面参数、打开秤串口，开始收数计件。"""
+        if self._is_running:
+            return False
         self._is_running = True
         self._reset_all()
         params = self.counter_service.params

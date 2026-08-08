@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 
 import pytest
 
@@ -53,8 +53,12 @@ def make_count_snapshot(**overrides: object) -> CountSnapshot:
 
 
 @pytest.fixture
-def make_controller(qapp) -> Callable[..., tuple[MainController, UiBridge]]:
+def make_controller(
+    qapp,
+) -> Iterator[Callable[..., tuple[MainController, UiBridge]]]:
     """按 main.py 方式组装 MainController + UiBridge（测试用默认参数）。"""
+
+    controllers: list[MainController] = []
 
     def _factory(
         *,
@@ -76,6 +80,10 @@ def make_controller(qapp) -> Callable[..., tuple[MainController, UiBridge]]:
             sound_player=sound_player or SoundPlayer(),
             csv_log_service=CsvLogService(),
         )
+        controllers.append(controller)
         return controller, ui_bridge
 
-    return _factory
+    yield _factory
+
+    for controller in controllers:
+        controller.shutdown()

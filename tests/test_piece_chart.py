@@ -30,6 +30,19 @@ class TestPieceChart:
         assert len(chart.scatter.data) == 0
         assert chart.scrollbar.isHidden()
 
+    def test_update_empty_while_hidden_clears_scatter(self, qapp):
+        """隐藏时清空数据也要清散点，避免再次显示残留（B8）。"""
+        chart = PieceChart()
+        chart.show()
+        chart.update_piece_weights([1.0, 2.0])
+        assert len(chart.scatter.data) == 2
+        chart.hide()
+        chart.update_piece_weights([])
+        assert chart._piece_weights == []
+        assert len(chart.scatter.data) == 0
+        chart.show()
+        assert len(chart.scatter.data) == 0
+
     def test_set_decimal_places(self, qapp):
         chart = PieceChart(decimal_places=2)
         chart.set_decimal_places(3)

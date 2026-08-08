@@ -1,6 +1,32 @@
 from pathlib import Path
 
+from app.models.params import Params
 from app.services.config_service import ConfigService
+
+
+class TestParamsClamp:
+    def test_clamps_bad_stability_and_batch(self):
+        p = Params(
+            stability_long_win=1,
+            stability_short_win=0,
+            max_batch_pieces=0,
+            initial_min_weight=-1,
+        )
+        assert p.stability_long_win == 2
+        assert p.stability_short_win == 1
+        assert p.max_batch_pieces == 1
+        assert p.initial_min_weight == 0.5
+
+    def test_load_clamps_from_toml(self, tmp_path: Path):
+        path = tmp_path / "config.toml"
+        path.write_text(
+            "[stability]\nstability_long_win = 1\n"
+            "[parameters]\nmax_batch_pieces = 0\n",
+            encoding="utf-8",
+        )
+        params = ConfigService().load(path)
+        assert params.stability_long_win == 2
+        assert params.max_batch_pieces == 1
 
 
 class TestConfigService:
@@ -45,3 +71,19 @@ class TestConfigService:
             "decimal_places",
         ):
             assert key in persisted
+
+    def test_save_atomic_roundtrip(self, tmp_path: Path):
+        path = tmp_path / "config.toml"
+        params = ConfigService().load(path)
+        params.initial_min_weight = 1.25
+        ConfigService().save(params, path)
+        assert path.exists()
+        assert not list(tmp_path.glob(".config.toml.*.tmp"))
+        loaded = ConfigService().load(path)
+        assert loaded.initial_min_weight == 1.25
+
+    def test_load_corrupt_toml_falls_back_to_defaults(self, tmp_path: Path):
+        path = tmp_path / "config.toml"
+        path.write_text("{{{{not toml", encoding="utf-8")
+        params = ConfigService().load(path)
+        assert params.initial_min_weight == Params().initial_min_weight

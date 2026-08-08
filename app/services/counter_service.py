@@ -121,3 +121,7 @@ class CounterService:
     def snapshot(self) -> CountSnapshot:
         """只读当前件数等情况，不根据新重量往下计。"""
         return self._build_snapshot()
+
+    def current_frame(self) -> CountFrame:
+        """当前状态快照，无边沿（失败路径刷新 UI、不改计件）。"""
+        return self._build_frame()

@@ -69,13 +69,17 @@ class CsvLogService(QObject):
         """当前时间，写成日志里的时间列。"""
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def record_production(self, weight: float, total: int) -> None:
+    def record_production(
+        self, weight: float, total: int, decimal_places: int = 3
+    ) -> None:
         """记一笔生产：最新单重 + 当前总件数（只入队，马上返回）。"""
         if not self._is_active:
             return
 
         try:
-            self._production_queue.put((self._timestamp(), f"{weight:.3f}", str(total)))
+            places = max(0, int(decimal_places))
+            weight_str = f"{weight:.{places}f}"
+            self._production_queue.put((self._timestamp(), weight_str, str(total)))
         except Exception as e:
             self.error_occurred.emit(f"生产记录入队失败：{e}")
 

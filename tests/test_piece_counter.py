@@ -58,20 +58,23 @@ class TestWeightLearner:
             avg = learner.update(avg, 10.0, 1, 10)
         avg = learner.update(avg, 20.0, 1, 11)
         assert learner.jump_count == 1
+        assert avg == pytest.approx(10.0)  # 未确认前不污染
         avg = learner.update(avg, 20.0, 1, 12)
         assert avg == 20.0
         assert learner.jump_count == 0
 
     def test_jump_not_confirmed(self):
-        """单次跳变后恢复正常，不触发"""
+        """单次跳变后恢复正常，不触发、不污染均重"""
         learner = WeightLearner()
         avg = 10.0
         for _ in range(6):
             avg = learner.update(avg, 10.0, 1, 10)
         avg = learner.update(avg, 20.0, 1, 11)
         assert learner.jump_count == 1
+        assert avg == pytest.approx(10.0)
         avg = learner.update(avg, 10.0, 1, 12)
         assert learner.jump_count == 0
+        assert avg == pytest.approx(10.0)
 
     def test_reset(self):
         learner = WeightLearner()
@@ -245,6 +248,29 @@ class TestPieceCounterFSM:
         counter.on_stable_weight(0.0)
         assert counter.state == CounterState.ZERO
         assert counter.total_pieces == 0
+
+    def test_remove_all_returns_zero_and_can_recount(self):
+        """清空件数后应回 ZERO；非零皮重下再放件可重新计件（B1）。"""
+        counter = _pc(
+            initial_min_weight=0.5,
+            max_batch_pieces=4,
+            initial_single_pieces=5,
+            tolerance_percent=20.0,
+        )
+        counter.on_stable_weight(10.0)
+        counter.on_stable_weight(20.0)
+        assert counter.total_pieces == 2
+        counter.on_stable_weight(10.0)
+        counter.on_stable_weight(0.6)
+        assert counter.total_pieces == 0
+        assert counter.avg_weight == 0.0
+        assert counter.state == CounterState.ZERO
+        assert counter.baseline_weight == pytest.approx(0.6)
+
+        counter.on_stable_weight(10.6)
+        assert counter.total_pieces == 1
+        assert counter.state == CounterState.NORMAL
+        assert counter.avg_weight == pytest.approx(10.0)
 
     def test_jitter_filter(self):
         counter = _pc(

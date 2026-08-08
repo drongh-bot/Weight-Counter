@@ -248,7 +248,13 @@ class PieceCounter:
         """接受减件：删除末尾 n 件并重算均重。"""
         del self.piece_weights[-n:]
         if not self.piece_weights:
+            # 清空后回到 ZERO，避免 avg=0 的 NORMAL 无法再匹配加件
             self.avg_weight = 0.0
+            self.state = CounterState.ZERO
+            self.abnormal_high = False
+            self.abnormal_low = False
+            self.abnormal_anchor = 0.0
+            self.learner.reset()
         else:
             self.avg_weight = sum(self.piece_weights) / len(self.piece_weights)
         self.baseline_weight = stable_weight
