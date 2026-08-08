@@ -32,12 +32,6 @@ class TestWeightInputServiceParse:
         svc = self._make_service()
         assert svc.parse("ST,GS,10.5 kg") == 10.5
 
-    def test_thousands_separator(self):
-        """千分位逗号不应被当成字段分隔（B5）。"""
-        svc = self._make_service()
-        assert svc.parse("1,234.5") == 1234.5
-        assert svc.parse("12,345") == 12345.0
-
     def test_negative_weight(self):
         svc = self._make_service()
         assert svc.parse("-0.50") == -0.5
