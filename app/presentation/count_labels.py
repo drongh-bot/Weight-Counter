@@ -21,4 +21,4 @@ def delta_style(snap: CountSnapshot) -> str:
     """Δ 重量在异常态时跟状态同色，否则无样式。"""
     if snap.state != CounterState.ABNORMAL:
         return ""
-    return state_label(snap).style
+    return Styles.ABNORMAL_HIGH if snap.abnormal_high else Styles.ABNORMAL_LOW
