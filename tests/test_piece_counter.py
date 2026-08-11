@@ -4,7 +4,7 @@ from app.models.counter_state import CounterState
 from app.models.params import Params
 from app.models.piece_counter import PieceCounter
 from app.models.thresholds import Thresholds
-from app.models.tolerance import Tolerance
+from app.models.tolerance import Tolerance, ToleranceBand
 from app.models.weight_learner import WeightLearner
 
 
@@ -86,14 +86,14 @@ class TestWeightLearner:
 class TestTolerance:
     def test_band_sets_range(self):
         tol = Tolerance(min_tol=0.1)
-        low, high, half_range = tol.band(100.0, 10.0)
-        assert low < 100.0
-        assert high > 100.0
-        assert half_range > 0
+        band = tol.band(100.0, 10.0)
+        assert band.low < 100.0
+        assert band.high > 100.0
+        assert band.half_range > 0
 
     def test_band_zero_avg(self):
         tol = Tolerance(min_tol=0.1)
-        assert tol.band(0.0, 10.0) == (0.0, 0.0, 0.0)
+        assert tol.band(0.0, 10.0) == ToleranceBand(0.0, 0.0, 0.0)
 
     def test_match_single_piece(self):
         tol = Tolerance(min_tol=0.1)

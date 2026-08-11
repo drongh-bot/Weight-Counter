@@ -51,17 +51,15 @@ class CounterService:
     def _build_snapshot(self) -> CountSnapshot:
         """整理当前件数、均重、公差带等，给界面显示用。"""
         pc = self._piece_counter
-        tol_low, tol_high, _ = pc.tolerance.band(
-            pc.avg_weight, pc.tolerance_percent
-        )
+        tol = pc.tolerance.band(pc.avg_weight, pc.tolerance_percent)
         return CountSnapshot(
             abnormal_high=pc.abnormal_high,
             abnormal_low=pc.abnormal_low,
             state=pc.state,
             delta=pc.delta,
             avg_weight=pc.avg_weight,
-            tolerance_high=tol_high,
-            tolerance_low=tol_low,
+            tolerance_high=tol.high,
+            tolerance_low=tol.low,
             total_pieces=pc.total_pieces,
             last_stable_weight=pc.last_stable_weight,
             baseline_weight=pc.baseline_weight,
