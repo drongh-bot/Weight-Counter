@@ -13,8 +13,8 @@
   → SerialService         （读写 + 超时；统一 data_received）
   → WeightInputService    （解析 + 双窗口稳重）
   → CounterService        （PieceCounter 状态机 + 上升沿）
-  → UiBridge              （to_count_view + 件数/状态栏/按钮/当前重量信号）
-  → MainWindow            （只负责渲染标签、表、图）
+  → UiBridge              （CountSnapshot / 状态栏 / 按钮 / 当前重量信号）
+  → MainWindow            （计件区格式化 + 渲染标签、表、图）
 ```
 
 ## 架构
@@ -22,10 +22,10 @@
 ```
 app/
 ├── core/                  驱动（csv_writer、sound_player、log_config、resource_manager）
-├── models/                纯业务（PieceCounter、Thresholds、Tolerance、WeightLearner、WeightStabilizer、Params）
+├── models/                纯业务（PieceCounter、Params、CountSnapshot、稳重/公差等）
 ├── services/              串口、重量输入、计件、生产 CSV、配置
 ├── controllers/           MainController — 每帧顺序编排
-├── presentation/          UiBridge、StatusBar、to_count_view、view_models、styles
+├── presentation/          UiBridge、StatusBar、count_labels、view_models
 ├── views/                 MainWindow、PieceTable、PieceChart
 │   ├── widgets/
 │   └── ui_generated/      Qt Designer 生成
@@ -36,7 +36,7 @@ app/
 
 - **依赖注入** — 对象在 `main.py` 创建并接线
 - **FSM 与门面** — `PieceCounter.on_stable_weight` 改状态；`CounterService.process` 认边沿并产出 `CountFrame`
-- **信号驱动 UI** — `UiBridge` 推送界面数据；`MainWindow` 只渲染（勿与 `Ui_MainWindow` 混淆）
+- **信号驱动 UI** — `UiBridge` 推送 `CountSnapshot` 等；`MainWindow` 格式化并渲染（勿与 `Ui_MainWindow` 混淆）
 - **禁止乱穿属性** — Controller 只调服务方法
 - **Model / 计件服务无 Qt** — 可脱离界面单测
 - **参数生效时机** — 多数界面计件参数点 Start 才拷进算法；`target_pieces` 随时跟界面，且不写入配置文件
@@ -52,8 +52,8 @@ app/
 
 **计件（PieceCounter）**
 
-- 三态：ZERO → NORMAL → ABNORMAL
-- EMA 学均重，跳变检测（约 50% 变化、连续 2 帧确认）
+- 三态：ZERO → NORMAL → ABNORMAL；件数减到 0 时回 ZERO
+- EMA 学均重；跳变约 50%、连续 2 次确认才重置，未确认前不写入 EMA
 - √n 统计公差做批量匹配
 - 异常可按方向自动恢复
 
@@ -73,8 +73,8 @@ uv run main.py
 
 唯一配置文件为 `config.toml`，由下列两者配合：
 
-- **`Params`**（`app/models/params.py`）— 纯数据，无 I/O
-- **`ConfigService`**（`app/services/config_service.py`）— 按 `_SECTION_MAP` 读写其中一部分字段
+- **`Params`**（`app/models/params.py`）— 纯数据，无 I/O；构造时 `__post_init__` 夹紧非法值
+- **`ConfigService`**（`app/services/config_service.py`）— 按 `_SECTION_MAP` 读写其中一部分字段；文件损坏则加载失败
 
 ### 路径（ResourceManager）
 
@@ -136,7 +136,7 @@ splitter_sizes = [140, 199]
 ## 测试
 
 ```bash
-uv run pytest tests/ -v          # 约 148 条
+uv run pytest tests/ -v          # 约 155 条
 uv run mypy app                  # 类型检查
 ```
 
