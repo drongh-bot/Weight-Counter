@@ -113,7 +113,7 @@ class MainController:
             if stable_weight is None or self._raw_mismatches_stable(
                 weight, stable_weight
             ):
-                self.ui_bridge.update_bar(self._bar.on_force_waiting())
+                self.ui_bridge.update_bar(self._bar.on_force_waiting_frame())
                 return
         elif stable_weight is None:
             # 重量还在晃：先不计件，也不改底部提示（免得盖住异常/报错）
@@ -197,7 +197,7 @@ class MainController:
             return
         self._pending_force_pieces = pieces
         self._sync_button_status()
-        self.ui_bridge.update_bar(self._bar.on_force_waiting())
+        self.ui_bridge.update_bar(self._bar.on_force_waiting_frame())
 
     def _reset_all(self) -> None:
         """件数清零、稳重状态清空，界面恢复初始。"""

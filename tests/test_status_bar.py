@@ -82,7 +82,7 @@ class TestStatusBarMessage:
 
     def test_waiting_cleared_on_stable(self):
         bar = StatusBar()
-        assert bar.on_force_waiting().message.text == MSG_WAIT_STABLE
+        assert bar.on_force_waiting_frame().message.text == MSG_WAIT_STABLE
         snap = bar.on_stable_frame(
             state=CounterState.NORMAL,
             target_edge=False,
@@ -108,7 +108,7 @@ class TestStatusBarMessage:
             target_edge=False,
             piece_added=False,
         )
-        assert bar.on_force_waiting().message.text == MSG_WAIT_STABLE
+        assert bar.on_force_waiting_frame().message.text == MSG_WAIT_STABLE
 
 
 class TestStatusBarIntegration:
@@ -132,7 +132,7 @@ class TestStatusBarIntegration:
 
     def test_force_waiting_then_done_then_target(self):
         bar = StatusBar()
-        assert bar.on_force_waiting().message.text == MSG_WAIT_STABLE
+        assert bar.on_force_waiting_frame().message.text == MSG_WAIT_STABLE
         snap = bar.on_force_done_frame(
             state=CounterState.NORMAL,
             target_edge=True,
@@ -147,7 +147,7 @@ class TestStatusBarIntegration:
 
     def test_reset(self):
         bar = StatusBar()
-        bar.on_force_waiting()
+        bar.on_force_waiting_frame()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
             target_edge=True,

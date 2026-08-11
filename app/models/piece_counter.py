@@ -73,7 +73,7 @@ class PieceCounter:
         self.abnormal_high = False
         self.abnormal_low = False
         self.avg_weight = 0.0
-        self.abnormal_anchor = 0.0
+        self.abnormal_extreme = 0.0
         self.learner.reset()
 
     @property
@@ -135,7 +135,7 @@ class PieceCounter:
             self.state = CounterState.ABNORMAL
             self.abnormal_high = self.delta > 0
             self.abnormal_low = self.delta < 0
-            self.abnormal_anchor = stable_weight
+            self.abnormal_extreme = stable_weight
 
     def _handle_abnormal(self, stable_weight: float) -> None:
         """ABNORMAL 态：跟踪锚点，满足恢复条件则退出异常。"""
@@ -144,18 +144,18 @@ class PieceCounter:
         if current_delta > 0 and not self.abnormal_high:
             self.abnormal_high = True
             self.abnormal_low = False
-            self.abnormal_anchor = stable_weight
+            self.abnormal_extreme = stable_weight
         elif current_delta < 0 and not self.abnormal_low:
             self.abnormal_low = True
             self.abnormal_high = False
-            self.abnormal_anchor = stable_weight
+            self.abnormal_extreme = stable_weight
 
-        if self.abnormal_high and stable_weight > self.abnormal_anchor:
-            self.abnormal_anchor = stable_weight
+        if self.abnormal_high and stable_weight > self.abnormal_extreme:
+            self.abnormal_extreme = stable_weight
             return
 
-        if self.abnormal_low and stable_weight < self.abnormal_anchor:
-            self.abnormal_anchor = stable_weight
+        if self.abnormal_low and stable_weight < self.abnormal_extreme:
+            self.abnormal_extreme = stable_weight
             return
 
         if (
@@ -180,7 +180,7 @@ class PieceCounter:
         self.state = CounterState.NORMAL
         self.abnormal_high = False
         self.abnormal_low = False
-        self.abnormal_anchor = 0.0
+        self.abnormal_extreme = 0.0
         self.last_stable_weight = stable_weight
         self.baseline_weight = stable_weight
 
@@ -251,7 +251,7 @@ class PieceCounter:
             self.state = CounterState.ZERO
             self.abnormal_high = False
             self.abnormal_low = False
-            self.abnormal_anchor = 0.0
+            self.abnormal_extreme = 0.0
             self.learner.reset()
         else:
             self.avg_weight = sum(self.piece_weights) / len(self.piece_weights)

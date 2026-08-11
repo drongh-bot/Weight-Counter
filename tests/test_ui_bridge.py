@@ -119,7 +119,7 @@ class TestUi:
     def test_update_bar_duplicate_not_emitted(self, qapp):
         ui = UiBridge()
         spy = QSignalSpy(ui.bar_snapshot_changed)
-        status = StatusBar().on_force_waiting()
+        status = StatusBar().on_force_waiting_frame()
         ui.update_bar(status)
         ui.update_bar(status)
         assert spy.count() == 1

@@ -95,7 +95,7 @@ class StatusBar:
         self._parse_comm = _ParseCommStatus.PARSE_FAIL
         return self.bar_snapshot()
 
-    def on_force_waiting(self) -> BarSnapshot:
+    def on_force_waiting_frame(self) -> BarSnapshot:
         """已点强制校准，等秤上重量稳住。"""
         self._parse_comm = _ParseCommStatus.OK
         self._waiting = True
