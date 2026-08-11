@@ -8,7 +8,7 @@ from app.presentation.status_bar import (
     MSG_WAIT_STABLE,
     StatusBar,
 )
-from app.presentation.styles import Styles
+from app.presentation.view_models import Styles
 
 
 class TestStatusBarLink:

@@ -19,8 +19,7 @@
 from enum import Enum, auto
 
 from app.models.counter_state import CounterState
-from app.presentation.styles import Styles
-from app.presentation.view_models import BarSnapshot, LabelItem
+from app.presentation.view_models import BarSnapshot, LabelItem, Styles
 
 # 供测试核对文案
 MSG_NONE = "无异常"

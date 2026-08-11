@@ -1,10 +1,12 @@
+from dataclasses import asdict
+
 from PySide6.QtTest import QSignalSpy
 
+from app.models.count_snapshot import CountFrame
 from app.models.counter_state import CounterState
 from app.presentation.status_bar import StatusBar
-from app.presentation.styles import Styles
 from app.presentation.ui_bridge import UiBridge
-from app.presentation.view_models import ButtonStatus
+from app.presentation.view_models import ButtonStatus, Styles
 from tests.conftest import make_count_snapshot
 
 
@@ -32,7 +34,8 @@ class TestUi:
 
         assert spy.count() == 1
         d = self._last(spy)
-        assert d.state.text == "正常"
+        assert d.state == CounterState.NORMAL
+        assert d.total_pieces == 1
 
     def test_count_duplicate_not_emitted(self, qapp):
         ui = UiBridge()
@@ -43,6 +46,21 @@ class TestUi:
         assert spy.count() == 1
 
         ui.update_count(result)
+        assert spy.count() == 1
+
+    def test_count_frame_edges_do_not_reemit(self, qapp):
+        """同一展示数据、不同边沿，不重复刷新计件区。"""
+        ui = UiBridge()
+        spy = QSignalSpy(ui.count_changed)
+        base = make_count_snapshot(
+            state=CounterState.NORMAL,
+            delta=10.0,
+            avg_weight=10.0,
+            total_pieces=1,
+            piece_weights=[10.0],
+        )
+        ui.update_count(CountFrame(**asdict(base), piece_added=True))
+        ui.update_count(CountFrame(**asdict(base), piece_added=False))
         assert spy.count() == 1
 
     def test_count_different_data_emits_again(self, qapp):

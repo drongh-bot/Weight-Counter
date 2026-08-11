@@ -15,14 +15,11 @@ from PySide6.QtWidgets import (
 
 from app.controllers.main_controller import MainController
 from app.core.resource_manager import ResourceManager
+from app.models.count_snapshot import CountSnapshot
 from app.models.params import Params
+from app.presentation.count_labels import delta_style, state_label
 from app.presentation.ui_bridge import UiBridge
-from app.presentation.view_models import (
-    BarSnapshot,
-    ButtonStatus,
-    CountView,
-    LabelItem,
-)
+from app.presentation.view_models import BarSnapshot, ButtonStatus, LabelItem
 from app.services.config_service import ConfigService
 from app.views.ui_generated.form import Ui_MainWindow
 from app.views.widgets.piece_chart import PieceChart
@@ -138,20 +135,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if field.lock_on_start:
                 getattr(self, field.widget).setEnabled(state.start_params_enabled)
 
-    def _on_count_changed(self, snap: CountView) -> None:
+    def _on_count_changed(self, snap: CountSnapshot) -> None:
         """刷新计件标签、表格与散点图。"""
-        self.lblDeltaWeight.setText(snap.delta_weight.text)
-        self.lblDeltaWeight.setStyleSheet(snap.delta_weight.style)
+        dp = snap.decimal_places
+        state = state_label(snap)
 
-        self.lblState.setText(snap.state.text)
-        self.lblState.setStyleSheet(snap.state.style)
+        self.lblDeltaWeight.setText(f"{snap.delta:.{dp}f}")
+        self.lblDeltaWeight.setStyleSheet(delta_style(snap))
 
-        self.lblAvgWeight.setText(snap.avg_weight)
-        self.lblTolHigh.setText(snap.tolerance_high)
-        self.lblTolLow.setText(snap.tolerance_low)
-        self.lblTotalPieces.setText(snap.total_pieces)
-        self.lblLastStableWeight.setText(snap.last_stable_weight)
-        self.lblBaselineWeight.setText(snap.baseline_weight)
+        self.lblState.setText(state.text)
+        self.lblState.setStyleSheet(state.style)
+
+        self.lblAvgWeight.setText(f"{snap.avg_weight:.{dp}f}")
+        self.lblTolHigh.setText(f"{snap.tolerance_high:.{dp}f}")
+        self.lblTolLow.setText(f"{snap.tolerance_low:.{dp}f}")
+        self.lblTotalPieces.setText(str(snap.total_pieces))
+        self.lblLastStableWeight.setText(f"{snap.last_stable_weight:.{dp}f}")
+        self.lblBaselineWeight.setText(f"{snap.baseline_weight:.{dp}f}")
 
         self.wgtPieceTable.update_piece_weights(snap.piece_weights)
         self.wgtPieceChart.update_piece_weights(snap.piece_weights)

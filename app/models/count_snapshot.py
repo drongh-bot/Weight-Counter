@@ -20,7 +20,7 @@ class CountSnapshot:
     last_stable_weight: float
     baseline_weight: float
     piece_weights: list[float]
-    decimal_places: int = 2
+    decimal_places: int
 
 
 @dataclass

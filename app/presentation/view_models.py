@@ -2,6 +2,16 @@
 from dataclasses import dataclass
 
 
+class Styles:
+    """状态栏与计件标签的 Qt 样式表常量。"""
+
+    GREEN = "color: green;"
+    GRAY = "color: gray;"
+    RED = "color: red;"
+    ABNORMAL_HIGH = "color: white; background-color: red;"
+    ABNORMAL_LOW = "color: white; background-color: blue;"
+
+
 @dataclass
 class LabelItem:
     """通用标签项：文本 + 样式。"""
@@ -27,18 +37,3 @@ class ButtonStatus:
     stop_enabled: bool = True
     force_enabled: bool = False
     start_params_enabled: bool = True
-
-
-@dataclass
-class CountView:
-    """计件区 UI 展示数据。"""
-
-    delta_weight: LabelItem
-    state: LabelItem
-    avg_weight: str
-    tolerance_high: str
-    tolerance_low: str
-    total_pieces: str
-    last_stable_weight: str
-    baseline_weight: str
-    piece_weights: list[float]

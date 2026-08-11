@@ -46,6 +46,7 @@ def make_count_snapshot(**overrides: object) -> CountSnapshot:
         last_stable_weight=0.0,
         baseline_weight=0.0,
         piece_weights=[],
+        decimal_places=2,
     )
     for key, value in overrides.items():
         setattr(snap, key, value)

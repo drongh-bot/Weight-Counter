@@ -1,9 +1,10 @@
 # app/presentation/ui_bridge.py
+from dataclasses import fields
+
 from PySide6.QtCore import QObject, Signal
 
 from app.models.count_snapshot import CountSnapshot
-from app.presentation.count_view import to_count_view
-from app.presentation.view_models import BarSnapshot, ButtonStatus, CountView
+from app.presentation.view_models import BarSnapshot, ButtonStatus
 
 
 class UiBridge(QObject):
@@ -13,24 +14,31 @@ class UiBridge(QObject):
     内容没变就不通知，避免秤数据太密时界面一直闪。
     """
 
-    count_changed = Signal(CountView)
+    count_changed = Signal(CountSnapshot)
     bar_snapshot_changed = Signal(BarSnapshot)
     button_status_changed = Signal(ButtonStatus)
     actual_weight_changed = Signal(str)
 
     def __init__(self) -> None:
         super().__init__()
-        self._last_count: CountView | None = None
+        self._last_count: CountSnapshot | None = None
         self._last_bar: BarSnapshot | None = None
         self._last_button: ButtonStatus | None = None
         self._last_weight: str | None = None
 
+    @staticmethod
+    def _display_snapshot(snap: CountSnapshot) -> CountSnapshot:
+        """只留下界面要显示的那些数，方便判断「画面有没有真的变」。"""
+        return CountSnapshot(
+            **{f.name: getattr(snap, f.name) for f in fields(CountSnapshot)}
+        )
+
     def update_count(self, snap: CountSnapshot) -> None:
         """件数、均重、公差等变了就通知主窗口刷新计件区。"""
-        count_view = to_count_view(snap)
-        if count_view != self._last_count:
-            self._last_count = count_view
-            self.count_changed.emit(count_view)
+        display = self._display_snapshot(snap)
+        if display != self._last_count:
+            self._last_count = display
+            self.count_changed.emit(display)
 
     def update_bar(self, snapshot: BarSnapshot) -> None:
         """底部「解析 / 通讯 / 消息」三格有变化就通知主窗口。"""

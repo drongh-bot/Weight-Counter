@@ -10,7 +10,7 @@ app/
 ├── models/                纯业务（PieceCounter、Thresholds、Tolerance、WeightLearner、WeightStabilizer、Params、CountSnapshot）
 ├── services/              串口、重量输入、计件、生产 CSV、配置
 ├── controllers/           MainController — 每帧顺序编排
-├── presentation/          UiBridge、StatusBar、to_count_view、view_models、styles
+├── presentation/          UiBridge、StatusBar、count_labels、view_models
 ├── views/                 界面渲染（MainWindow、PieceTable、PieceChart）
 │   ├── widgets/           自定义控件
 │   └── ui_generated/      Qt Designer 生成代码
@@ -26,7 +26,7 @@ app/
 - **禁止裸属性乱穿**：Controller 只通过服务方法访问
 - **Model 无 Qt**：可单测、无 I/O（`Params` 与 `ConfigService` 分工）
 - **业务服务 / Controller 无 Qt**：`CounterService`、`WeightInputService`、`MainController` 为普通类；`SerialService`、`CsvLogService`、`UiBridge` 等继承 `QObject`
-- **Presentation ≠ services**：ViewModel / `to_count_view` / `UiBridge` 放在 `presentation/`
+- **Presentation ≠ services**：`count_labels` / `UiBridge` / `StatusBar` 放在 `presentation/`；计件区信号直接传 `CountSnapshot`，格式化在 `MainWindow`
 
 ## 技术栈
 
@@ -57,7 +57,7 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 |------|-------|-------|
 | `tests/test_weight_stabilizer.py` | model | 12 |
 | `tests/test_piece_counter.py` | model | 36 |
-| `tests/test_count_view.py` | presentation | 5 |
+| `tests/test_count_labels.py` | presentation | 6 |
 | `tests/test_weight_input_service.py` | service | 14 |
 | `tests/test_counter_service.py` | service | 19 |
 | `tests/test_config_service.py` | service | 5 |
