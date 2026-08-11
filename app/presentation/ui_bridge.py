@@ -14,7 +14,7 @@ class UiBridge(QObject):
     内容没变就不通知，避免秤数据太密时界面一直闪。
     """
 
-    count_changed = Signal(CountSnapshot)
+    count_snapshot_changed = Signal(CountSnapshot)
     bar_snapshot_changed = Signal(BarSnapshot)
     button_status_changed = Signal(ButtonStatus)
     actual_weight_text_changed = Signal(str)
@@ -38,7 +38,7 @@ class UiBridge(QObject):
         display = self._display_snapshot(snap)
         if display != self._last_count:
             self._last_count = display
-            self.count_changed.emit(display)
+            self.count_snapshot_changed.emit(display)
 
     def update_bar(self, snapshot: BarSnapshot) -> None:
         """底部「解析 / 通讯 / 消息」三格有变化就通知主窗口。"""

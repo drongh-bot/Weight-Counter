@@ -115,7 +115,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ui_bridge.actual_weight_text_changed.connect(self.lblActWeight.setText)
         self.ui_bridge.bar_snapshot_changed.connect(self._on_bar_snapshot_changed)
         self.ui_bridge.button_status_changed.connect(self._on_button_status_changed)
-        self.ui_bridge.count_changed.connect(self._on_count_changed)
+        self.ui_bridge.count_snapshot_changed.connect(self._on_count_snapshot_changed)
 
     def _on_bar_snapshot_changed(self, data: BarSnapshot) -> None:
         """刷新状态栏三标签。"""
@@ -132,7 +132,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if field.lock_on_start:
                 getattr(self, field.widget).setEnabled(state.start_params_enabled)
 
-    def _on_count_changed(self, snap: CountSnapshot) -> None:
+    def _on_count_snapshot_changed(self, snap: CountSnapshot) -> None:
         """刷新计件标签、表格与散点图。"""
         dp = snap.decimal_places
         state = state_label(snap)
@@ -162,7 +162,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """按钮 / 参数旋钮 → 本窗方法。"""
         self.btnStart.clicked.connect(self.start)
         self.btnStop.clicked.connect(self.stop)
-        self.btnForce.clicked.connect(self.force_calibrate)
+        self.btnForce.clicked.connect(self._on_force_clicked)
         self.btnSaveParams.clicked.connect(self.save_params)
 
         for field in _PARAM_FIELDS:
@@ -190,7 +190,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """Stop：停止计件并关闭串口。"""
         self.controller.stop()
 
-    def force_calibrate(self) -> None:
+    def _on_force_clicked(self) -> None:
         """读取强制片数并提交给控制器。"""
         pieces = int(self.spnForcePieces.value())
         if pieces <= 0:

@@ -21,7 +21,7 @@ app/
 
 - **DI**：所有对象在 `main.py` 创建并接线
 - **FSM 与门面**：`PieceCounter.on_stable_weight` 改状态；`CounterService.process` 认边沿并产出 `CountFrame`
-- **信号驱动 UI**：`presentation.UiBridge` 发 `count_changed`（`CountSnapshot`）/ `bar_snapshot_changed` / `button_status_changed` / `actual_weight_text_changed`；`MainWindow` 只渲染并做计件区数字格式化，不碰业务。勿与 Qt Designer 的 `Ui_MainWindow` 混淆；注入属性名为 `ui_bridge`
+- **信号驱动 UI**：`presentation.UiBridge` 发 `count_snapshot_changed`（`CountSnapshot`）/ `bar_snapshot_changed` / `button_status_changed` / `actual_weight_text_changed`；`MainWindow` 只渲染并做计件区数字格式化，不碰业务。勿与 Qt Designer 的 `Ui_MainWindow` 混淆；注入属性名为 `ui_bridge`
 - **状态栏**：对外只用 `StatusBar` 的 `on_*` → `BarSnapshot`；解析/通讯与消息锁存为内部细节
 - **禁止裸属性乱穿**：Controller 只通过服务方法访问
 - **Model 无 Qt**：可单测、无 I/O（`Params` 与 `ConfigService` 分工）
@@ -64,10 +64,10 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 | `tests/test_status_bar.py` | presentation | 13 |
 | `tests/test_ui_bridge.py` | presentation | 10 |
 | `tests/test_piece_table.py` | view | 4 |
-| `tests/test_piece_chart.py` | view | 5 |
+| `tests/test_piece_chart.py` | view | 6 |
 | `tests/test_controller.py` | controller | 27 |
 
-合计约 **154** 条。
+合计约 **155** 条。
 
 ## PySide6 QSignalSpy 注意（6.8.3）
 
@@ -112,7 +112,7 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 ## 核心算法
 
 - **WeightStabilizer**：双滑动窗口（默认短 5 / 长 10，见 `[stability]`）+ 速度/趋势/标准差三重判定 + 滞回解锁
-- **PieceCounter**：三态 FSM（ZERO → NORMAL → ABNORMAL）+ EMA 学均重 + √n 统计公差（`Tolerance.band` / `is_within_tolerance`；`min_tol` 仅在 `Tolerance`；异常恢复见 `_recover_limit`）。件数减到 0 时回 ZERO（保留当前空秤基准，便于非零皮重下重新计件）。跳变未确认前不写入 EMA。
+- **PieceCounter**：三态 FSM（ZERO → NORMAL → ABNORMAL）+ EMA 学均重 + √n 统计公差（`Tolerance.band` 返回 `ToleranceBand`；`is_within_tolerance` 批量判定；`min_tol` 仅在 `Tolerance`；异常恢复见 `_recover_limit`）。件数减到 0 时回 ZERO（保留当前空秤基准，便于非零皮重下重新计件）。跳变未确认前不写入 EMA。
 
 ## 计件结果类型
 

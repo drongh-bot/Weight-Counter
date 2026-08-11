@@ -17,7 +17,7 @@ class TestUi:
 
     def test_update_count_emits(self, qapp):
         ui = UiBridge()
-        spy = QSignalSpy(ui.count_changed)
+        spy = QSignalSpy(ui.count_snapshot_changed)
 
         ui.update_count(
             make_count_snapshot(
@@ -39,7 +39,7 @@ class TestUi:
 
     def test_count_duplicate_not_emitted(self, qapp):
         ui = UiBridge()
-        spy = QSignalSpy(ui.count_changed)
+        spy = QSignalSpy(ui.count_snapshot_changed)
 
         result = make_count_snapshot()
         ui.update_count(result)
@@ -51,7 +51,7 @@ class TestUi:
     def test_count_frame_edges_do_not_reemit(self, qapp):
         """同一展示数据、不同边沿，不重复刷新计件区。"""
         ui = UiBridge()
-        spy = QSignalSpy(ui.count_changed)
+        spy = QSignalSpy(ui.count_snapshot_changed)
         base = make_count_snapshot(
             state=CounterState.NORMAL,
             delta=10.0,
@@ -65,7 +65,7 @@ class TestUi:
 
     def test_count_different_data_emits_again(self, qapp):
         ui = UiBridge()
-        spy = QSignalSpy(ui.count_changed)
+        spy = QSignalSpy(ui.count_snapshot_changed)
 
         ui.update_count(make_count_snapshot())
         assert spy.count() == 1
