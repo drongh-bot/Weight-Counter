@@ -70,7 +70,7 @@ class CsvLogService(QObject):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def record_production(
-        self, weight: float, total: int, decimal_places: int = 3
+        self, weight: float, total: int, decimal_places: int
     ) -> None:
         """记一笔生产：最新单重 + 当前总件数（只入队，马上返回）。"""
         if not self._is_active:
