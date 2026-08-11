@@ -11,18 +11,18 @@ class CounterService:
 
     def __init__(self, params: Params) -> None:
         """用当前参数建好内部计件器。"""
-        self.params = params
+        self._params = params
         self._piece_counter = PieceCounter(params)
 
     def apply_start_params(self) -> None:
         """点 Start 时：把共享 Params 的计件相关参数拷进算法（中途改了要再 Start）。"""
-        self._piece_counter.apply_start_params(self.params)
+        self._piece_counter.apply_start_params(self._params)
 
     def _target_crossed(
         self, old_count: int, new_count: int, state: CounterState
     ) -> bool:
         """这一次计件是否刚从「未达目标」变成「达到或超过目标件数」。"""
-        target = self.params.target_pieces
+        target = self._params.target_pieces
         return (
             0 < target
             and old_count < target <= new_count

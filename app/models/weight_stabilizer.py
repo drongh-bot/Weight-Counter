@@ -32,7 +32,7 @@ class WeightStabilizer:
         self.locked_weight: float | None = None
         self.unlock_factor: float = unlock_factor
         self.unlock_confirm_required: int = unlock_confirm
-        self.unlock_pending: int = 0
+        self.unlock_counter: int = 0
         self.stability_threshold: float = stability_threshold
 
     def apply_start_params(self, params: Params) -> None:
@@ -47,7 +47,7 @@ class WeightStabilizer:
         self.stable_counter = 0
         self.locked = False
         self.locked_weight = None
-        self.unlock_pending = 0
+        self.unlock_counter = 0
 
     def stabilize(self, weight: float) -> float | None:
         """
@@ -64,20 +64,20 @@ class WeightStabilizer:
             locked_weight = self.locked_weight
             if locked_weight is None:
                 self.locked = False
-                self.unlock_pending = 0
+                self.unlock_counter = 0
                 self.stable_counter = 0
             else:
                 unlock_threshold = stability_threshold * self.unlock_factor
 
                 if abs(weight - locked_weight) > unlock_threshold:
-                    self.unlock_pending += 1
+                    self.unlock_counter += 1
                 else:
-                    self.unlock_pending = 0
+                    self.unlock_counter = 0
 
-                if self.unlock_pending >= self.unlock_confirm_required:
+                if self.unlock_counter >= self.unlock_confirm_required:
                     self.locked = False
                     self.locked_weight = None
-                    self.unlock_pending = 0
+                    self.unlock_counter = 0
                     self.stable_counter = 0
                 else:
                     return locked_weight

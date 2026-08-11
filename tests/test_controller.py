@@ -312,7 +312,7 @@ class TestControllerPipeline:
 
     def test_raw_mismatches_stable(self, make_controller):
         controller, ui_bridge = make_controller()
-        controller.counter_service.params.stability_threshold = 0.02
+        controller.counter_service._params.stability_threshold = 0.02
         controller.weight_input_service.apply_start_params()
         assert controller._raw_mismatches_stable(30.0, 10.0) is True
         assert controller._raw_mismatches_stable(10.01, 10.0) is False
@@ -369,7 +369,7 @@ class TestControllerPipeline:
         controller, ui_bridge = make_controller()
         controller._is_running = True
         controller.counter_service.process(10.0)
-        controller.counter_service.params.decimal_places = 4
+        controller.counter_service._params.decimal_places = 4
         # mid-run: Params changed but algorithm keeps old decimal places
         assert controller.counter_service.decimal_places == 2
 
