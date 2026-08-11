@@ -313,9 +313,7 @@ class TestControllerPipeline:
     def test_raw_mismatches_stable(self, make_controller):
         controller, ui_bridge = make_controller()
         controller.counter_service.params.stability_threshold = 0.02
-        controller.weight_input_service.apply_start_params(
-            controller.counter_service.params
-        )
+        controller.weight_input_service.apply_start_params()
         assert controller._raw_mismatches_stable(30.0, 10.0) is True
         assert controller._raw_mismatches_stable(10.01, 10.0) is False
         assert controller._raw_mismatches_stable(10.0, 10.0) is False

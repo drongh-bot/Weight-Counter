@@ -5,8 +5,8 @@ class TestStableDetection:
     def test_stable_after_consecutive_frames(self):
         """连续 stable_count 帧稳定后返回稳定值"""
         stabilizer = WeightStabilizer(
-            short_win=4,
-            long_win=8,
+            short_maxlen=4,
+            long_maxlen=8,
             stable_count=3,
             stability_threshold=0.02,
         )
@@ -26,8 +26,8 @@ class TestStableDetection:
     def test_unstable_by_speed(self):
         """短窗口内快速变化 → 不稳定"""
         stabilizer = WeightStabilizer(
-            short_win=4,
-            long_win=8,
+            short_maxlen=4,
+            long_maxlen=8,
             stable_count=3,
             stability_threshold=0.02,
         )
@@ -41,8 +41,8 @@ class TestStableDetection:
     def test_unstable_by_trend(self):
         """长窗口内持续漂移 → 不稳定"""
         stabilizer = WeightStabilizer(
-            short_win=4,
-            long_win=8,
+            short_maxlen=4,
+            long_maxlen=8,
             stable_count=3,
             stability_threshold=0.02,
         )
@@ -56,8 +56,8 @@ class TestStableDetection:
     def test_unstable_by_stddev(self):
         """长窗口内方差过大 → 不稳定"""
         stabilizer = WeightStabilizer(
-            short_win=4,
-            long_win=8,
+            short_maxlen=4,
+            long_maxlen=8,
             stable_count=3,
             stability_threshold=0.02,
         )
@@ -72,8 +72,8 @@ class TestLockAndUnlock:
     def test_lock_after_stable(self):
         """稳定后锁定，持续返回稳定值"""
         stabilizer = WeightStabilizer(
-            short_win=4,
-            long_win=8,
+            short_maxlen=4,
+            long_maxlen=8,
             stable_count=3,
             stability_threshold=0.02,
             unlock_factor=2.5,
@@ -89,8 +89,8 @@ class TestLockAndUnlock:
     def test_unlock_after_exceeding_threshold(self):
         """超过解锁阈值，连续 unlock_confirm 帧后解锁"""
         stabilizer = WeightStabilizer(
-            short_win=4,
-            long_win=8,
+            short_maxlen=4,
+            long_maxlen=8,
             stable_count=3,
             unlock_confirm=2,
             unlock_factor=2.5,
@@ -114,8 +114,8 @@ class TestLockAndUnlock:
     def test_no_unlock_on_minor_change(self):
         """小幅波动不足解锁阈值，保持锁定"""
         stabilizer = WeightStabilizer(
-            short_win=4,
-            long_win=8,
+            short_maxlen=4,
+            long_maxlen=8,
             stable_count=3,
             unlock_factor=2.5,
             stability_threshold=0.02,
@@ -134,8 +134,8 @@ class TestEdgeCases:
     def test_early_frame_skip(self):
         """长窗口未满时不判定稳定"""
         stabilizer = WeightStabilizer(
-            short_win=4,
-            long_win=8,
+            short_maxlen=4,
+            long_maxlen=8,
             stable_count=3,
         )
         for _ in range(5):
@@ -144,7 +144,7 @@ class TestEdgeCases:
 
     def test_reset(self):
         """reset 清空所有状态"""
-        stabilizer = WeightStabilizer(short_win=4, long_win=8)
+        stabilizer = WeightStabilizer(short_maxlen=4, long_maxlen=8)
         for _ in range(15):
             stabilizer.stabilize(42.0)
         assert stabilizer.locked
@@ -171,8 +171,8 @@ class TestEdgeCases:
     def test_lock_keeps_updating_windows(self):
         """锁定期间窗口持续滚动更新"""
         stabilizer = WeightStabilizer(
-            short_win=4,
-            long_win=8,
+            short_maxlen=4,
+            long_maxlen=8,
             stable_count=3,
             stability_threshold=0.02,
         )

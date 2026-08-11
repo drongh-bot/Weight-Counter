@@ -16,16 +16,16 @@ class WeightStabilizer:
 
     def __init__(
         self,
-        short_win: int = 5,
-        long_win: int = 10,
+        short_maxlen: int = 5,
+        long_maxlen: int = 10,
         stable_count: int = 3,
         unlock_confirm: int = 2,
         unlock_factor: float = 2.5,
         stability_threshold: float = 0.02,
     ) -> None:
         """初始化双滑动窗口与锁定/解锁参数。"""
-        self.short_win: deque[float] = deque(maxlen=short_win)
-        self.long_win: deque[float] = deque(maxlen=long_win)
+        self.short_win: deque[float] = deque(maxlen=short_maxlen)
+        self.long_win: deque[float] = deque(maxlen=long_maxlen)
         self.stable_count_required: int = stable_count
         self.stable_counter: int = 0
         self.locked: bool = False

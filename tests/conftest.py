@@ -17,7 +17,7 @@ from app.services.serial_service import SerialService
 from app.core.sound_player import SoundPlayer
 from app.services.weight_input_service import WeightInputService
 
-# 默认稳重：long_win=10 + stable_count=3 → 连续同重约 12 帧可稳定锁定。
+# 默认稳重：long_maxlen=10 + stable_count=3 → 连续同重约 12 帧可稳定锁定。
 STABLE_FRAMES = 12
 
 

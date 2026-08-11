@@ -212,9 +212,8 @@ class MainController:
             return False
         self._is_running = True
         self._reset_all()
-        params = self.counter_service.params
-        self.counter_service.apply_start_params(params)
-        self.weight_input_service.apply_start_params(params)
+        self.counter_service.apply_start_params()
+        self.weight_input_service.apply_start_params()
         try:
             self.serial_service.open(port, baud)
             return True
