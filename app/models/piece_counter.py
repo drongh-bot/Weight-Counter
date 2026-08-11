@@ -189,10 +189,8 @@ class PieceCounter:
         if stable_weight < self.thresholds.initial_min_weight or force_pieces <= 0:
             return False
 
-        self.piece_weights.clear()
         piece_weight = stable_weight / force_pieces
-        for _ in range(force_pieces):
-            self.piece_weights.append(piece_weight)
+        self.piece_weights = [piece_weight] * force_pieces
 
         self.avg_weight = piece_weight
         self._reset_baseline(stable_weight)
