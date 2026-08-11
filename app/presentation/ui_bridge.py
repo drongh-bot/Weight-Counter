@@ -17,7 +17,7 @@ class UiBridge(QObject):
     count_changed = Signal(CountSnapshot)
     bar_snapshot_changed = Signal(BarSnapshot)
     button_status_changed = Signal(ButtonStatus)
-    actual_weight_changed = Signal(str)
+    actual_weight_text_changed = Signal(str)
 
     def __init__(self) -> None:
         super().__init__()
@@ -57,4 +57,4 @@ class UiBridge(QObject):
         text = f"{weight:.{decimal_places}f}" if weight is not None else "-----"
         if text != self._last_weight:
             self._last_weight = text
-            self.actual_weight_changed.emit(text)
+            self.actual_weight_text_changed.emit(text)

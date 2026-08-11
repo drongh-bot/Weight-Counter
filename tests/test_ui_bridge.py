@@ -108,7 +108,7 @@ class TestUi:
 
     def test_actual_weight_none_shows_dashes(self, qapp):
         ui = UiBridge()
-        spy = QSignalSpy(ui.actual_weight_changed)
+        spy = QSignalSpy(ui.actual_weight_text_changed)
 
         ui.update_actual_weight(None, decimal_places=2)
 
@@ -117,7 +117,7 @@ class TestUi:
 
     def test_actual_weight_value_formatted(self, qapp):
         ui = UiBridge()
-        spy = QSignalSpy(ui.actual_weight_changed)
+        spy = QSignalSpy(ui.actual_weight_text_changed)
 
         ui.update_actual_weight(10.0, decimal_places=2)
 

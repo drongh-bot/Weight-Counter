@@ -18,7 +18,7 @@ class TestControllerPipeline:
     def test_raw_data_pipeline(self, make_controller):
         controller, ui_bridge = make_controller()
         controller._is_running = True
-        spy = QSignalSpy(ui_bridge.actual_weight_changed)
+        spy = QSignalSpy(ui_bridge.actual_weight_text_changed)
 
         initial_count = spy.count()
         controller._on_raw_data("10.0 kg")
@@ -27,7 +27,7 @@ class TestControllerPipeline:
 
     def test_raw_data_ignored_when_not_running(self, make_controller):
         controller, ui_bridge = make_controller()
-        spy = QSignalSpy(ui_bridge.actual_weight_changed)
+        spy = QSignalSpy(ui_bridge.actual_weight_text_changed)
         initial_count = spy.count()
         controller._on_raw_data("10.0 kg")
         assert spy.count() == initial_count
@@ -359,7 +359,7 @@ class TestControllerPipeline:
 
     def test_parse_fail_clears_actual_weight(self, make_controller):
         controller, ui_bridge = make_controller()
-        spy = QSignalSpy(ui_bridge.actual_weight_changed)
+        spy = QSignalSpy(ui_bridge.actual_weight_text_changed)
         controller._is_running = True
         feed_stable(controller, "10.0 kg")
         controller._on_raw_data("not-a-weight")

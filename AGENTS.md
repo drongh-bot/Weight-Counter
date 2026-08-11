@@ -21,7 +21,7 @@ app/
 
 - **DI**：所有对象在 `main.py` 创建并接线
 - **FSM 与门面**：`PieceCounter.on_stable_weight` 改状态；`CounterService.process` 认边沿并产出 `CountFrame`
-- **信号驱动 UI**：`presentation.UiBridge` 发 `count_changed`（`CountSnapshot`）/ `bar_snapshot_changed` / `button_status_changed` / `actual_weight_changed`；`MainWindow` 只渲染并做计件区数字格式化，不碰业务。勿与 Qt Designer 的 `Ui_MainWindow` 混淆；注入属性名为 `ui_bridge`
+- **信号驱动 UI**：`presentation.UiBridge` 发 `count_changed`（`CountSnapshot`）/ `bar_snapshot_changed` / `button_status_changed` / `actual_weight_text_changed`；`MainWindow` 只渲染并做计件区数字格式化，不碰业务。勿与 Qt Designer 的 `Ui_MainWindow` 混淆；注入属性名为 `ui_bridge`
 - **状态栏**：对外只用 `StatusBar` 的 `on_*` → `BarSnapshot`；解析/通讯与消息锁存为内部细节
 - **禁止裸属性乱穿**：Controller 只通过服务方法访问
 - **Model 无 Qt**：可单测、无 I/O（`Params` 与 `ConfigService` 分工）

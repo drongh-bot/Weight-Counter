@@ -112,7 +112,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _connect_bridge(self) -> None:
         """UiBridge 信号 → 本窗槽。"""
-        self.ui_bridge.actual_weight_changed.connect(self.lblActWeight.setText)
+        self.ui_bridge.actual_weight_text_changed.connect(self.lblActWeight.setText)
         self.ui_bridge.bar_snapshot_changed.connect(self._on_bar_snapshot_changed)
         self.ui_bridge.button_status_changed.connect(self._on_button_status_changed)
         self.ui_bridge.count_changed.connect(self._on_count_changed)
