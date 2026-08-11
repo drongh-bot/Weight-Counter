@@ -245,10 +245,7 @@ class PieceChart(QWidget):
     def _apply_y_range(self, y_min: float, y_max: float) -> None:
         self._setting_range = True
         self.plot.setYRange(y_min, y_max, padding=0)
-
-        if self.scrollbar.isVisible():
-            self._sync_scrollbar(y_min, y_max)
-
+        self._sync_scrollbar(y_min, y_max)
         self._setting_range = False
 
     def _sync_scrollbar(self, y_min: float, y_max: float) -> None:

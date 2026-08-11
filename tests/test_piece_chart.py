@@ -49,3 +49,16 @@ class TestPieceChart:
         assert chart._decimal_places == 3
         assert chart.plot.getAxis("top").decimals == 3
         assert chart.plot.getAxis("bottom").decimals == 3
+
+    def test_scrollbar_syncs_on_first_overflow(self, qapp):
+        """件数刚超过窗口时，滚动条首帧就要有正确 range（不依赖 isVisible）。"""
+        chart = PieceChart()
+        chart.show()
+        window = PieceChart._DEFAULT_Y_WINDOW_SIZE
+        weights = [float(i) for i in range(1, window + 2)]
+        chart.update_piece_weights(weights)
+
+        assert chart.scrollbar.isVisible()
+        assert chart.scrollbar.maximum() == 1
+        assert chart.scrollbar.pageStep() == window
+        assert chart.scrollbar.value() == 0
