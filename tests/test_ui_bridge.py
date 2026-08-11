@@ -84,24 +84,6 @@ class TestUi:
         )
         assert spy.count() == 2
 
-    def test_refresh_re_emits_last(self, qapp):
-        ui = UiBridge()
-        count_spy = QSignalSpy(ui.count_changed)
-        bar_spy = QSignalSpy(ui.bar_snapshot_changed)
-        btn_spy = QSignalSpy(ui.button_status_changed)
-
-        ui.update_count(make_count_snapshot())
-        ui.update_bar(StatusBar().reset())
-        ui.update_button_status(ButtonStatus())
-        assert count_spy.count() == 1
-        assert bar_spy.count() == 1
-        assert btn_spy.count() == 1
-
-        ui.refresh()
-        assert count_spy.count() == 2
-        assert bar_spy.count() == 2
-        assert btn_spy.count() == 2
-
     def test_update_bar_fields(self, qapp):
         ui = UiBridge()
         spy = QSignalSpy(ui.bar_snapshot_changed)

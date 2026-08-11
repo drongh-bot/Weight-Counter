@@ -58,14 +58,3 @@ class UiBridge(QObject):
         if text != self._last_weight:
             self._last_weight = text
             self.actual_weight_changed.emit(text)
-
-    def refresh(self) -> None:
-        """把上次的内容再推一遍（例如窗口重开后要立刻画出来）。"""
-        if self._last_count:
-            self.count_changed.emit(self._last_count)
-        if self._last_bar:
-            self.bar_snapshot_changed.emit(self._last_bar)
-        if self._last_button:
-            self.button_status_changed.emit(self._last_button)
-        if self._last_weight is not None:
-            self.actual_weight_changed.emit(self._last_weight)

@@ -81,6 +81,7 @@ def make_controller(
             sound_player=sound_player or SoundPlayer(),
             csv_log_service=CsvLogService(),
         )
+        controller.init_ui()
         controllers.append(controller)
         return controller, ui_bridge
 

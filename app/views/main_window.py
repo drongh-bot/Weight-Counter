@@ -84,9 +84,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._connect_bridge()
         self._bind_controls()
 
-        # 初始化完成后主动刷新一次底部状态栏
-        self.ui_bridge.refresh()
-
     def _init_extra_widgets(self) -> None:
         """装配件数表、散点图与自定义状态栏标签。"""
         self.splitter = QSplitter(Qt.Orientation.Horizontal)

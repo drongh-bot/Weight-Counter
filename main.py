@@ -50,6 +50,7 @@ def main():
         params=params,
         config_service=config_service,
     )
+    controller.init_ui()
     window.show()
 
     exit_code = app.exec()

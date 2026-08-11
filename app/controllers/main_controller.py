@@ -43,10 +43,8 @@ class MainController:
         self.serial_service.error_occurred.connect(self._on_serial_error)
         self.csv_log_service.error_occurred.connect(self._on_csv_error)
 
-        self._init_ui()
-
-    def _init_ui(self) -> None:
-        """开机时把件数区和底部提示刷成初始状态。"""
+    def init_ui(self) -> None:
+        """窗口连好信号后调用：把件数区、状态栏刷成初始状态。"""
         self._sync_count_ui()
         self.ui_bridge.update_bar(self._bar.reset())
 
