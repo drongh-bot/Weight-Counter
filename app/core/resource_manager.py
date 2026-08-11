@@ -6,8 +6,10 @@ from pathlib import Path
 class ResourceManager:
     """开发 / 打包两套根目录，统一用相对路径取文件。
 
-    两类路径（都返回 ``Path``）：
+    公开 API（都返回 ``Path``）：
 
+    - ``get_resource_root()`` / ``get_external_root()``：两类根目录本身
+      （需要根路径、列目录、或自行拼接时用）
     - ``get_resource(...)``：只读静态资源（图标、音效等）
       - 开发：项目根（含 ``pyproject.toml`` + ``app/``）
       - 打包：PyInstaller ``_MEIPASS``
@@ -20,9 +22,9 @@ class ResourceManager:
         ResourceManager.get_resource("app/resources/icons/app.ico")
         ResourceManager.get_external("config.toml")
         ResourceManager.get_external("log")  # 日志目录
+        ResourceManager.get_external_root()  # 外部根目录
 
     需要 ``str`` 时再 ``str(...)``（如 ``QIcon``、``winsound``）。
-    一般直接用上面两个方法，不必自己拼 ``get_*_root() / ...``。
     """
 
     _resource_root_cache: Path | None = None

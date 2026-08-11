@@ -80,10 +80,12 @@ uv run main.py
 
 | 方法 | 用途 | 开发 | 打包 |
 | ---- | ---- | ---- | ---- |
-| `get_resource` | 图标、音效等只读资源 | 项目根 | `_MEIPASS` |
-| `get_external` | `config.toml`、日志等可写文件 | 项目根 | EXE 所在目录 |
+| `get_resource_root` | 静态资源根目录 | 项目根 | `_MEIPASS` |
+| `get_external_root` | 外部可写根目录 | 项目根 | EXE 所在目录 |
+| `get_resource` | 图标、音效等只读资源 | 同上 | 同上 |
+| `get_external` | `config.toml`、日志等可写文件 | 同上 | 同上 |
 
-均返回 `Path`；需要字符串时再 `str(...)`。
+均返回 `Path`（根方法亦公开）；需要字符串时再 `str(...)`。
 
 ### 仅运行时有效（不写进 config.toml）
 

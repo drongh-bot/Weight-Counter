@@ -94,6 +94,7 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 
 ## 路径（ResourceManager）
 
+- `get_resource_root()` / `get_external_root()`：两类根目录（公开；需要根路径或自行拼接时用）
 - `get_resource(...)`：只读静态资源（图标、音效）→ `Path`；打包用 `_MEIPASS`
 - `get_external(...)`：可读写（`config.toml`、日志目录）→ `Path`；打包用 EXE 旁目录
 - 开发根目录：含 `pyproject.toml` 与 `app/` 的项目根
