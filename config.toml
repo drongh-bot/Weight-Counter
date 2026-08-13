@@ -31,4 +31,4 @@ baud_rate = 9600
 encoding = "utf-8"
 
 [ui]
-splitter_sizes = [ 307, 490,]
+splitter_sizes = [ 140, 223,]
