@@ -28,6 +28,7 @@ abnormal_recover_factor = 1.5
 timeout_millis = 2000
 port = "COM1"
 baud_rate = 9600
+encoding = "utf-8"
 
 [ui]
 splitter_sizes = [ 307, 490,]

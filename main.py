@@ -29,7 +29,7 @@ def main():
     params = config_service.load(ResourceManager.get_external("config.toml"))
 
     ui_bridge = UiBridge()
-    serial_service = SerialService(params.timeout_millis)
+    serial_service = SerialService(params.timeout_millis, params.encoding)
     counter_service = CounterService(params)
     weight_input_service = WeightInputService(params)
     sound_player = SoundPlayer()

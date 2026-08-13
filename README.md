@@ -127,6 +127,7 @@ abnormal_recover_factor = 1.5
 [serial]
 port = "COM1"
 baud_rate = 9600
+encoding = "utf-8"  # 文本秤协议；个别中文机型可改 gbk
 timeout_millis = 2000
 
 [ui]

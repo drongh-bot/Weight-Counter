@@ -31,7 +31,7 @@ class ConfigService:
             "jump_confirm_times", "early_learn_pieces", "ema_alpha_min",
             "ema_alpha_max", "count_rounding_tolerance", "abnormal_recover_factor",
         ],
-        "serial": ["timeout_millis", "port", "baud_rate"],
+        "serial": ["timeout_millis", "port", "baud_rate", "encoding"],
         "ui": ["splitter_sizes"],
     }
 

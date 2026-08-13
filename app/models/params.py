@@ -38,10 +38,11 @@ class Params:
     count_rounding_tolerance: float = 0.2
     abnormal_recover_factor: float = 1.5
 
-    # 串口
+    # 串口（开机加载；encoding 无界面，改 config.toml）
     timeout_millis: int = 2000
     port: str = "COM1"
     baud_rate: int = 9600
+    encoding: str = "utf-8"
 
     # 界面分割条位置
     splitter_sizes: list[int] = field(default_factory=lambda: [400, 600])

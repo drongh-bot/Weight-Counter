@@ -48,6 +48,16 @@ class TestConfigService:
         ):
             assert key in persisted
 
+    def test_serial_encoding_persisted_and_loaded(self, tmp_path: Path):
+        path = tmp_path / "config.toml"
+        path.write_text(
+            '[serial]\nencoding = "gbk"\n',
+            encoding="utf-8",
+        )
+        params = ConfigService().load(path)
+        assert params.encoding == "gbk"
+        assert "encoding" in ConfigService.persisted_keys()
+
     def test_save_roundtrip(self, tmp_path: Path):
         path = tmp_path / "config.toml"
         params = ConfigService().load(path)

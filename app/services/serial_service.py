@@ -18,11 +18,11 @@ class SerialService(QObject):
     timeout_detected = Signal()
     error_occurred = Signal(str)
 
-    def __init__(self, timeout_millis: int) -> None:
+    def __init__(self, timeout_millis: int, encoding: str = "utf-8") -> None:
         super().__init__()
         self.timeout_millis = timeout_millis
+        self._encoding = encoding or "utf-8"
         self._port = QSerialPort(self)
-        self._encoding = "utf-8"
         self._port.readyRead.connect(self._on_ready_read)
 
         self._timer = QTimer()
@@ -49,7 +49,6 @@ class SerialService(QObject):
                 f"打开串口失败：{self._port.errorString()}"
             )
 
-        self._encoding = "utf-8"
         self._timer.start(self.timeout_millis)
 
     def close(self) -> None:
@@ -62,15 +61,22 @@ class SerialService(QObject):
             logger.error("串口关闭失败: %s", e)
             self.error_occurred.emit(str(e))
 
+    def _decode_line(self, raw: bytes) -> str | None:
+        """按固定编码解码一行；空行或非法字节返回 None（丢弃，不切换编码）。"""
+        if not raw.strip():
+            return None
+        try:
+            return raw.decode(self._encoding)
+        except (UnicodeDecodeError, LookupError):
+            logger.debug("串口非文本行，已丢弃: %r", raw[:32])
+            return None
+
     def _on_ready_read(self) -> None:
         while self._port.canReadLine():
             raw = bytes(self._port.readLine().data())
-            try:
-                text = raw.decode(self._encoding)
-            except UnicodeDecodeError:
-                logger.warning("解码失败, 回退GBK: %.20s", raw)
-                text = raw.decode("gbk", errors="ignore")
-                self._encoding = "gbk"
+            text = self._decode_line(raw)
+            if text is None:
+                continue
             self._timer.start(self.timeout_millis)
             self.data_received.emit(text)
 
