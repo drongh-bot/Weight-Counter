@@ -1,5 +1,7 @@
 # app/services/counter_service.py
 
+from dataclasses import asdict
+
 from app.models.count_snapshot import CountFrame, CountSnapshot
 from app.models.params import Params
 from app.models.counter_state import CounterState
@@ -75,20 +77,8 @@ class CounterService:
         target_edge: bool = False,
     ) -> CountFrame:
         """在当前件数基础上，附上「这一次」是否加件、是否刚进异常、是否刚达目标。"""
-        snap = self._build_snapshot()
         return CountFrame(
-            abnormal_high=snap.abnormal_high,
-            abnormal_low=snap.abnormal_low,
-            state=snap.state,
-            delta=snap.delta,
-            avg_weight=snap.avg_weight,
-            tolerance_high=snap.tolerance_high,
-            tolerance_low=snap.tolerance_low,
-            total_pieces=snap.total_pieces,
-            last_stable_weight=snap.last_stable_weight,
-            baseline_weight=snap.baseline_weight,
-            piece_weights=snap.piece_weights,
-            decimal_places=snap.decimal_places,
+            **asdict(self._build_snapshot()),
             piece_added=piece_added,
             abnormal_edge=abnormal_edge,
             target_edge=target_edge,

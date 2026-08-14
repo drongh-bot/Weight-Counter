@@ -88,7 +88,7 @@ class PieceCounter:
                 self.last_stable_weight = stable_weight
                 return
 
-        if self._handle_zero_weight(stable_weight):
+        if self._reset_if_below_min_weight(stable_weight):
             return
 
         self._update_delta(stable_weight)
@@ -101,11 +101,7 @@ class PieceCounter:
             self._handle_abnormal(stable_weight)
 
     def _handle_zero(self, stable_weight: float) -> None:
-        """ZERO 态：首件入秤或低于初始最小重量。"""
-        if stable_weight < self.thresholds.initial_min_weight:
-            self.last_stable_weight = stable_weight
-            return
-
+        """ZERO 态：delta 足够大则作为首件入秤（过轻已在全局守卫处理）。"""
         if abs(self.delta) >= self.thresholds.initial_min_weight:
             self._add_pieces(1, self.delta, stable_weight)
             self.state = CounterState.NORMAL
@@ -196,8 +192,8 @@ class PieceCounter:
         self._reset_baseline(stable_weight)
         return True
 
-    def _handle_zero_weight(self, stable_weight: float) -> bool:
-        """全局归零：重量低于初始最小重量则 reset，返回是否已处理。"""
+    def _reset_if_below_min_weight(self, stable_weight: float) -> bool:
+        """全局守卫：重量低于初始最小重量则 reset 回零并记录空秤基准；返回是否已处理。"""
         if stable_weight < self.thresholds.initial_min_weight:
             self.reset()
             self.baseline_weight = stable_weight
