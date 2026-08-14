@@ -51,6 +51,7 @@ def _parse_comm_labels(status: _ParseCommStatus) -> tuple[LabelItem, LabelItem]:
             LabelItem(text="解析异常", style=Styles.RED),
             LabelItem(text="通讯正常", style=Styles.GREEN),
         )
+    # 超时与串口故障都显示「等待」；具体原因由消息格展示
     return (
         LabelItem(text="解析等待", style=Styles.GRAY),
         LabelItem(text="通讯等待", style=Styles.GRAY),
@@ -165,13 +166,8 @@ class StatusBar:
 
     def bar_snapshot(self) -> BarSnapshot:
         """按当前记住的状态拼出三格（不含「刚强制校准成功/失败」那种一次性提示）。"""
-        parse, comm = _parse_comm_labels(self._parse_comm)
         text, info = self._resolve_message()
-        return BarSnapshot(
-            parse=parse,
-            comm=comm,
-            message=_message_label(text, info=info),
-        )
+        return self._snapshot_with_message(text, info=info)
 
     def _apply_stable_latches(
         self,
@@ -191,7 +187,7 @@ class StatusBar:
             self._hold_target = False
 
     def _snapshot_with_message(self, text: str, *, info: bool) -> BarSnapshot:
-        """三格内容同上，但消息格改成指定一句话（强制校准结果用）。"""
+        """拼三格：解析/通讯按当前状态，消息格用传入文案。"""
         parse, comm = _parse_comm_labels(self._parse_comm)
         return BarSnapshot(
             parse=parse,
