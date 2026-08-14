@@ -73,7 +73,7 @@ uv run main.py
 
 唯一配置文件为 `config.toml`，由下列两者配合：
 
-- **`Params`**（`app/models/params.py`）— 纯数据，无 I/O；构造时 `__post_init__` 夹紧非法值
+- **`Params`**（`app/models/params.py`）— 纯数据，无 I/O，不夹紧；界面范围由 Designer 控件限定
 - **`ConfigService`**（`app/services/config_service.py`）— 按 `_SECTION_MAP` 读写其中一部分字段；文件损坏则加载失败
 
 ### 路径（ResourceManager）

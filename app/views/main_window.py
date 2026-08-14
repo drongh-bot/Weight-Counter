@@ -21,6 +21,7 @@ from app.presentation.count_labels import delta_style, state_label
 from app.presentation.ui_bridge import UiBridge
 from app.presentation.view_models import BarSnapshot, ButtonStatus, LabelItem
 from app.services.config_service import ConfigService
+from app.version import __version__
 from app.views.ui_generated.form import Ui_MainWindow
 from app.views.widgets.piece_chart import PieceChart
 from app.views.widgets.piece_table import PieceTable
@@ -61,7 +62,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """组装控件、加载配置并绑定信号。"""
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle("称重计数 v1.4.0")
+        self.setWindowTitle(f"称重计数 v{__version__}")
 
         self.setWindowIcon(
             QIcon(str(ResourceManager.get_resource("app/resources/icons/app.ico")))

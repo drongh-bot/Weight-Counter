@@ -1,6 +1,6 @@
 [project]
 name = "weightCounter"
-version = "1.4.0"
+version = "1.4.0"  # 运行时版本唯一来源：app/version.py
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
