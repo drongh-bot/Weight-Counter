@@ -249,6 +249,8 @@ class PieceChart(QWidget):
         self._setting_range = False
 
     def _sync_scrollbar(self, y_min: float, y_max: float) -> None:
+        # 滚动条值 ↔ Y 窗口下沿：value = 总件数 - 窗高 - y_min + 1
+        # （滚动条 0 表示窗口贴最新件，最大值 top 表示窗口下沿到件号 1）
         height = int(y_max - y_min)
         count = len(self._piece_weights)
         value = max(0, count - height - int(y_min) + 1)

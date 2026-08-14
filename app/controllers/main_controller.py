@@ -66,7 +66,7 @@ class MainController:
         """取消「等重量稳住再强制校准」。"""
         self._pending_force_pieces = None
 
-    def _raw_mismatches_stable(self, raw_weight: float, stable_weight: float) -> bool:
+    def _raw_far_from_stable(self, raw_weight: float, stable_weight: float) -> bool:
         """当前跳动重量和已稳住的重量差太大 → 还不能做强制校准。"""
         return (
             abs(raw_weight - stable_weight)
@@ -108,7 +108,7 @@ class MainController:
         )
 
         if self._pending_force_pieces is not None:
-            if stable_weight is None or self._raw_mismatches_stable(
+            if stable_weight is None or self._raw_far_from_stable(
                 weight, stable_weight
             ):
                 self.ui_bridge.update_bar(self._bar.on_force_waiting_frame())

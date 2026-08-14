@@ -34,6 +34,6 @@ class ButtonStatus:
     """Start / Stop / 强制校准等按钮的可用状态。"""
 
     start_enabled: bool = True
-    stop_enabled: bool = True
+    stop_enabled: bool = False
     force_enabled: bool = False
     start_params_enabled: bool = True

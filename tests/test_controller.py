@@ -310,13 +310,13 @@ class TestControllerPipeline:
         assert ui_bridge._last_bar.message.text == MSG_FORCE_FAIL
         assert controller._button_status().force_enabled is True
 
-    def test_raw_mismatches_stable(self, make_controller):
+    def test_raw_far_from_stable(self, make_controller):
         controller, ui_bridge = make_controller()
         controller.counter_service._params.stability_threshold = 0.02
         controller.weight_input_service.apply_start_params()
-        assert controller._raw_mismatches_stable(30.0, 10.0) is True
-        assert controller._raw_mismatches_stable(10.01, 10.0) is False
-        assert controller._raw_mismatches_stable(10.0, 10.0) is False
+        assert controller._raw_far_from_stable(30.0, 10.0) is True
+        assert controller._raw_far_from_stable(10.01, 10.0) is False
+        assert controller._raw_far_from_stable(10.0, 10.0) is False
 
     def test_force_calibrate_waits_when_raw_stable_mismatch(self, make_controller):
         """NORMAL 下强制校准：raw/stable 不一致时保持等待，不立刻执行"""
