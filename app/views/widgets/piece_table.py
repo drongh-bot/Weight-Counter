@@ -10,6 +10,9 @@ from PySide6.QtWidgets import (
 class PieceTable(QTableWidget):
     """单件重量表格，最新数据在顶部。"""
 
+    _VERTICAL_HEADER_WIDTH = 40
+    _MIN_SECTION_WIDTH = 100
+
     def __init__(self, decimal_places: int = 2, parent=None) -> None:
         super().__init__(parent)
 
@@ -22,7 +25,7 @@ class PieceTable(QTableWidget):
         self.setHorizontalHeaderLabels(["重量"])
 
         vertical_header = self.verticalHeader()
-        vertical_header.setFixedWidth(40)
+        vertical_header.setFixedWidth(self._VERTICAL_HEADER_WIDTH)
         vertical_header.setDefaultAlignment(
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         )
@@ -31,10 +34,10 @@ class PieceTable(QTableWidget):
 
         header = self.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        header.setMinimumSectionSize(100)
+        header.setMinimumSectionSize(self._MIN_SECTION_WIDTH)
         header.setFixedHeight(40)
 
-        self.setMinimumWidth(100 + 40)
+        self.setMinimumWidth(self._MIN_SECTION_WIDTH + self._VERTICAL_HEADER_WIDTH)
 
     def reset(self) -> None:
         """清空表格与缓存。"""

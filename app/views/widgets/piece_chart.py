@@ -16,7 +16,10 @@ class FixedAxis(pg.AxisItem):
 
 
 class PieceChart(QWidget):
-    """单件重量散点图，支持悬停与纵向滚动。"""
+    """单件重量散点图，支持悬停与纵向滚动。
+
+    约定：图中 Y 坐标 = 件号（从 1 起），与列表索引差 1。
+    """
 
     _DEFAULT_Y_WINDOW_SIZE: int = 20
     _MAX_Y_TICK_LABELS: int = 20
@@ -138,7 +141,7 @@ class PieceChart(QWidget):
         for name in ("bottom", "top"):
             axis = self.plot.getAxis(name)
             axis.decimals = places
-            axis.picture = None
+            axis.picture = None  # 清掉轴标签缓存，强制重绘
         if self._piece_weights and self.isVisible():
             self.plot.scene().update()
 
@@ -167,15 +170,16 @@ class PieceChart(QWidget):
         self.scatter.setData(spots)
 
         if count <= self._MAX_Y_TICK_LABELS:
-            ticks = [(i + 1, str(i + 1)) for i in range(count)]
+            step = 1
         else:
             step = max(count // self._MAX_Y_TICK_LABELS, 1)
-            ticks = [(i + 1, str(i + 1)) for i in range(0, count, step)]
+        ticks = [(i + 1, str(i + 1)) for i in range(0, count, step)]
         self.plot.getAxis("left").setTicks([ticks])
 
     def _update_x_range(self, count: int) -> None:
         """按可见件重自动调整 X 轴范围。"""
         vrange = self.plot.viewRange()[1]
+        # Y 刻度即件号（= 索引 + 1），把可见的件号范围转成索引切片
         start_idx = max(0, int(vrange[0]) - 1)
         end_idx = min(count, int(vrange[1]) + 1)
         visible = self._piece_weights[start_idx:end_idx]
@@ -239,6 +243,7 @@ class PieceChart(QWidget):
 
         ymin = ranges[1][0]
         ymax = ranges[1][1]
+        # 窗口顶贴近最新件（0.5 容忍半件）即视为跟随最新
         self._follow_latest = ymax >= len(self._piece_weights) - 0.5
         self._sync_scrollbar(ymin, ymax)
 
