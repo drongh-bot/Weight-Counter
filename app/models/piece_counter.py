@@ -83,10 +83,12 @@ class PieceCounter:
 
     def on_stable_weight(self, stable_weight: float) -> None:
         """处理一次稳定重量样本（会改变 FSM 状态）。"""
-        if self.state != CounterState.ABNORMAL:
-            if abs(stable_weight - self.last_stable_weight) < self.tolerance.min_tol:
-                self.last_stable_weight = stable_weight
-                return
+        if (
+            self.state != CounterState.ABNORMAL
+            and abs(stable_weight - self.last_stable_weight) < self.tolerance.min_tol
+        ):
+            self.last_stable_weight = stable_weight
+            return
 
         if self._reset_if_below_min_weight(stable_weight):
             return
@@ -112,13 +114,13 @@ class PieceCounter:
             self.last_stable_weight = stable_weight
             return
 
-        limit = (
+        max_match_pieces = (
             1
             if self.total_pieces < self.initial_single_pieces
             else self.max_batch_pieces
         )
 
-        n = self._try_match_piece_count(self.delta, limit)
+        n = self._try_match_piece_count(self.delta, max_match_pieces)
 
         if n is not None:
             if self.delta > 0:

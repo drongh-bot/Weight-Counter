@@ -38,6 +38,7 @@ class WeightInputService:
             if "," in raw:
                 raw = raw.split(",")[-1].strip()
 
+            # 从长到短剥离单位词（顺序不可改：先 KG 再 G、先 NT 再 N），最后去空格
             for ch in ["KG", "G", "NT", "N", " "]:
                 raw = raw.replace(ch, "")
 

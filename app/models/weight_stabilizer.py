@@ -92,15 +92,11 @@ class WeightStabilizer:
         trend_limit = dynamic_threshold * 1.5
         std_limit = dynamic_threshold * 1.2
 
-        if (max(self.short_win) - min(self.short_win)) > speed_limit:
-            self.stable_counter = 0
-            return None
-
-        if (max(self.long_win) - min(self.long_win)) > trend_limit:
-            self.stable_counter = 0
-            return None
-
-        if statistics.stdev(self.long_win) > std_limit:
+        if (
+            (max(self.short_win) - min(self.short_win)) > speed_limit
+            or (max(self.long_win) - min(self.long_win)) > trend_limit
+            or statistics.stdev(self.long_win) > std_limit
+        ):
             self.stable_counter = 0
             return None
 
