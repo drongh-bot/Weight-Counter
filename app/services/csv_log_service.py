@@ -41,14 +41,9 @@ class CsvLogService(QObject):
         self._writer_thread.start()
 
     def _worker_loop(self) -> None:
-        """后台循环：有记录就写；收到收工信号或已停用且队列空则退出。"""
+        """后台循环：有记录就写；收到 None 哨兵后退出。"""
         while True:
-            try:
-                item = self._production_queue.get(timeout=1.0)
-            except queue.Empty:
-                if not self._is_active:
-                    break
-                continue
+            item = self._production_queue.get()
 
             if item is None:
                 self._production_queue.task_done()
@@ -89,8 +84,8 @@ class CsvLogService(QObject):
             return
 
         self._is_active = False
-        self._production_queue.join()
         self._production_queue.put_nowait(None)
+        self._production_queue.join()
         self._writer_thread.join(timeout=3.0)
 
         try:
