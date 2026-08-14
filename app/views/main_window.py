@@ -17,7 +17,7 @@ from app.controllers.main_controller import MainController
 from app.core.resource_manager import ResourceManager
 from app.models.count_snapshot import CountSnapshot
 from app.models.params import Params
-from app.presentation.count_labels import delta_style, state_label
+from app.presentation.count_labels import build_count_display
 from app.presentation.ui_bridge import UiBridge
 from app.presentation.view_models import BarSnapshot, ButtonStatus, LabelItem
 from app.services.config_service import ConfigService
@@ -135,24 +135,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _on_count_snapshot_changed(self, snap: CountSnapshot) -> None:
         """刷新计件标签、表格与散点图。"""
-        dp = snap.decimal_places
-        state = state_label(snap)
+        d = build_count_display(snap)
 
-        self.lblDeltaWeight.setText(f"{snap.delta:.{dp}f}")
-        self.lblDeltaWeight.setStyleSheet(delta_style(snap))
+        self.lblDeltaWeight.setText(d.delta_text)
+        self.lblDeltaWeight.setStyleSheet(d.delta_style)
+        self.lblState.setText(d.state_text)
+        self.lblState.setStyleSheet(d.state_style)
+        self.lblAvgWeight.setText(d.avg_text)
+        self.lblTolHigh.setText(d.tol_high_text)
+        self.lblTolLow.setText(d.tol_low_text)
+        self.lblTotalPieces.setText(d.total_text)
+        self.lblLastStableWeight.setText(d.last_stable_text)
+        self.lblBaselineWeight.setText(d.baseline_text)
 
-        self.lblState.setText(state.text)
-        self.lblState.setStyleSheet(state.style)
-
-        self.lblAvgWeight.setText(f"{snap.avg_weight:.{dp}f}")
-        self.lblTolHigh.setText(f"{snap.tolerance_high:.{dp}f}")
-        self.lblTolLow.setText(f"{snap.tolerance_low:.{dp}f}")
-        self.lblTotalPieces.setText(str(snap.total_pieces))
-        self.lblLastStableWeight.setText(f"{snap.last_stable_weight:.{dp}f}")
-        self.lblBaselineWeight.setText(f"{snap.baseline_weight:.{dp}f}")
-
-        self.wgtPieceTable.update_piece_weights(snap.piece_weights)
-        self.wgtPieceChart.update_piece_weights(snap.piece_weights)
+        self.wgtPieceTable.update_piece_weights(d.piece_weights)
+        self.wgtPieceChart.update_piece_weights(d.piece_weights)
 
     def _apply_bar_label_item(self, item: LabelItem, label: QLabel) -> None:
         """把 LabelItem 的文案与样式应用到 QLabel。"""

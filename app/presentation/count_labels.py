@@ -3,22 +3,37 @@
 
 from app.models.count_snapshot import CountSnapshot
 from app.models.counter_state import CounterState
-from app.presentation.view_models import LabelItem, Styles
+from app.presentation.view_models import CountDisplay, Styles
 
 
-def state_label(snap: CountSnapshot) -> LabelItem:
-    """状态枚举 → 文案与样式。"""
+def build_count_display(snap: CountSnapshot) -> CountDisplay:
+    """CountSnapshot → 计件区展示数据；所有格式化与样式规则集中于此。"""
     if snap.state == CounterState.ZERO:
-        return LabelItem(text="等待第一件", style="")
-    if snap.state == CounterState.NORMAL:
-        return LabelItem(text="正常", style="")
-    if snap.abnormal_high:
-        return LabelItem(text="异常（偏高）", style=Styles.ABNORMAL_HIGH)
-    return LabelItem(text="异常（偏低）", style=Styles.ABNORMAL_LOW)
+        state_text, state_style = "等待第一件", ""
+    elif snap.state == CounterState.NORMAL:
+        state_text, state_style = "正常", ""
+    elif snap.abnormal_high:
+        state_text, state_style = "异常（偏高）", Styles.ABNORMAL_HIGH
+    else:
+        state_text, state_style = "异常（偏低）", Styles.ABNORMAL_LOW
 
+    # ZERO/NORMAL 时 state_style 为空，恰好符合「Δ 无样式」的规则
+    delta_style = state_style
 
-def delta_style(snap: CountSnapshot) -> str:
-    """Δ 重量在异常态时跟状态同色，否则无样式。"""
-    if snap.state != CounterState.ABNORMAL:
-        return ""
-    return Styles.ABNORMAL_HIGH if snap.abnormal_high else Styles.ABNORMAL_LOW
+    def weight_text(value: float) -> str:
+        dp = snap.decimal_places
+        return f"{value:.{dp}f}"
+
+    return CountDisplay(
+        delta_text=weight_text(snap.delta),
+        delta_style=delta_style,
+        state_text=state_text,
+        state_style=state_style,
+        avg_text=weight_text(snap.avg_weight),
+        tol_high_text=weight_text(snap.tolerance_high),
+        tol_low_text=weight_text(snap.tolerance_low),
+        total_text=str(snap.total_pieces),
+        last_stable_text=weight_text(snap.last_stable_weight),
+        baseline_text=weight_text(snap.baseline_weight),
+        piece_weights=snap.piece_weights,
+    )
