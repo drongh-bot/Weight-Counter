@@ -275,5 +275,4 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         except Exception:
             logger.exception("关闭时保存配置失败")
         finally:
-            self.controller.shutdown()
             event.accept()
