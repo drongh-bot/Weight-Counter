@@ -17,16 +17,13 @@ def build_count_display(snap: CountSnapshot) -> CountDisplay:
     else:
         state_text, state_style = "异常（偏低）", Styles.ABNORMAL_LOW
 
-    # ZERO/NORMAL 时 state_style 为空，恰好符合「Δ 无样式」的规则
-    delta_style = state_style
-
     def weight_text(value: float) -> str:
         dp = snap.decimal_places
         return f"{value:.{dp}f}"
 
     return CountDisplay(
         delta_text=weight_text(snap.delta),
-        delta_style=delta_style,
+        delta_style=state_style,  # ZERO/NORMAL 时 state_style 为空，恰好符合「Δ 无样式」的规则
         state_text=state_text,
         state_style=state_style,
         avg_text=weight_text(snap.avg_weight),
