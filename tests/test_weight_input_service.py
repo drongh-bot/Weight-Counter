@@ -56,6 +56,24 @@ class TestWeightInputServiceParse:
         svc = self._make_service()
         assert svc.parse("10.5 kg") == 10.5
 
+    def test_unit_embedded_in_middle_not_stripped(self):
+        svc = self._make_service()
+        # 数字中间的 N 不再被剥掉导致静默污染，应整体判为非法
+        assert svc.parse("12N34") is None
+
+    def test_status_prefix_with_unit(self):
+        svc = self._make_service()
+        assert svc.parse("ST, +123.4 kg") == 123.4
+
+    def test_unit_only_returns_none(self):
+        svc = self._make_service()
+        assert svc.parse("G") is None
+        assert svc.parse("KG") is None
+
+    def test_leading_sign_with_unit(self):
+        svc = self._make_service()
+        assert svc.parse("-5.5 G") == -5.5
+
     def test_apply_start_params_syncs_stability_threshold(self):
         params = Params(stability_threshold=0.02)
         svc = WeightInputService(params)

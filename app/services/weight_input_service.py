@@ -32,18 +32,23 @@ class WeightInputService:
         """解析串口重量字符串；成功返回 float，失败返回 None。"""
         try:
             raw = raw.strip().upper()
-            if not raw or not any(c.isdigit() for c in raw):
+            if not raw:
                 return None
 
+            # 逗号分隔时取最后一段（秤可能先发状态码，如 "ST,+123.4"）
             if "," in raw:
                 raw = raw.split(",")[-1].strip()
 
-            # 从长到短剥离单位词（顺序不可改：先 KG 再 G、先 NT 再 N），最后去空格
-            for ch in ["KG", "G", "NT", "N", " "]:
-                raw = raw.replace(ch, "")
+            # 只剥末尾单位词（顺序不可改：先 KG 再 G、先 NT 再 N），再清两侧空白
+            for unit in ("KG", "G", "NT", "N"):
+                if raw.endswith(unit):
+                    raw = raw[: -len(unit)].strip()
+                    break
 
-            weight = float(raw)
-            return weight
+            if not raw:
+                return None
+
+            return float(raw)
 
         except (ValueError, AttributeError):
             logger.warning("解析失败: %s", raw)
