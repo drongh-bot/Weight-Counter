@@ -65,6 +65,15 @@ class TestWeightInputServiceParse:
         svc = self._make_service()
         assert svc.parse("ST, +123.4 kg") == 123.4
 
+    def test_space_separated_status_prefix(self):
+        svc = self._make_service()
+        assert svc.parse("ST +1.234 kg") == 1.234
+
+    def test_padded_sign_after_comma(self):
+        svc = self._make_service()
+        assert svc.parse("ST,GS,+  1.234 kg") == 1.234
+        assert svc.parse("ST,GS,-  1.234 kg") == -1.234
+
     def test_unit_only_returns_none(self):
         svc = self._make_service()
         assert svc.parse("G") is None

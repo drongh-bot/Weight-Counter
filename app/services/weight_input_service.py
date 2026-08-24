@@ -31,26 +31,34 @@ class WeightInputService:
     def parse(self, raw: str) -> float | None:
         """解析串口重量字符串；成功返回 float，失败返回 None。"""
         try:
-            raw = raw.strip().upper()
-            if not raw:
+            text = raw.strip().upper()
+            if not text:
                 return None
 
             # 逗号分隔时取最后一段（秤可能先发状态码，如 "ST,+123.4"）
-            if "," in raw:
-                raw = raw.split(",")[-1].strip()
-
-            # 只剥末尾单位词（顺序不可改：先 KG 再 G、先 NT 再 N），再清两侧空白
-            for unit in ("KG", "G", "NT", "N"):
-                if raw.endswith(unit):
-                    raw = raw[: -len(unit)].strip()
-                    break
-
-            if not raw:
+            if "," in text:
+                text = text.split(",")[-1].strip()
+            if not text:
                 return None
 
-            return float(raw)
+            # "+  1.234" → "+1.234"；其余词（ST、KG…）float 失败就跳过
+            while "+ " in text:
+                text = text.replace("+ ", "+")
+            while "- " in text:
+                text = text.replace("- ", "-")
 
-        except (ValueError, AttributeError):
+            values: list[float] = []
+            for part in text.split():
+                try:
+                    values.append(float(part))
+                except ValueError:
+                    continue
+            if len(values) != 1:
+                logger.warning("解析失败: %s", text)
+                return None
+            return values[0]
+
+        except AttributeError:
             logger.warning("解析失败: %s", raw)
             return None
 
