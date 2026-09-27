@@ -4,7 +4,7 @@
 from app.models.count_snapshot import CountSnapshot
 from app.models.counter_state import CounterState
 from app.models.formatting import format_weight
-from app.presentation.view_models import CountDisplay, Styles
+from app.presentation.view_models import CountDisplay, LabelItem, Styles
 
 
 def build_count_display(snap: CountSnapshot) -> CountDisplay:
@@ -22,15 +22,13 @@ def build_count_display(snap: CountSnapshot) -> CountDisplay:
         return format_weight(value, snap.decimal_places)
 
     return CountDisplay(
-        delta_weight_text=weight_text(snap.delta_weight),
-        delta_weight_style=state_style,  # ZERO/NORMAL 时 state_style 为空，恰好符合「Δ 无样式」的规则
-        state_text=state_text,
-        state_style=state_style,
+        # state_style 在 ZERO/NORMAL 时是空串，恰好符合「Δ 不着色」的规则
+        delta=LabelItem(text=weight_text(snap.delta_weight), style=state_style),
+        state=LabelItem(text=state_text, style=state_style),
         avg_text=weight_text(snap.avg_weight),
         tol_high_text=weight_text(snap.tolerance_high),
         tol_low_text=weight_text(snap.tolerance_low),
         total_text=str(snap.total_pieces),
         last_stable_text=weight_text(snap.last_stable_weight),
         baseline_text=weight_text(snap.baseline_weight),
-        piece_weights=snap.piece_weights,
     )

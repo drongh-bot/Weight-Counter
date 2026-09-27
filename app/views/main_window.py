@@ -80,11 +80,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             lbl.setContentsMargins(5, 5, 5, 5)
             lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        status_bar = self.statusBar()
-        status_bar.setStyleSheet("QStatusBar::item { border: none; }")
-        status_bar.addWidget(self.lblParse, 1)
-        status_bar.addWidget(self.lblComm, 1)
-        status_bar.addWidget(self.lblMessage, 1)
+        bar = self.statusBar()
+        bar.setStyleSheet("QStatusBar::item { border: none; }")
+        bar.addWidget(self.lblParse, 1)
+        bar.addWidget(self.lblComm, 1)
+        bar.addWidget(self.lblMessage, 1)
 
     def _connect_bridge(self) -> None:
         """UiBridge 信号 → 本窗槽。"""
@@ -95,9 +95,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _on_bar_snapshot_changed(self, data: BarSnapshot) -> None:
         """刷新状态栏三标签。"""
-        self._apply_bar_label_item(data.parse, self.lblParse)
-        self._apply_bar_label_item(data.comm, self.lblComm)
-        self._apply_bar_label_item(data.message, self.lblMessage)
+        self._apply_label(data.parse, self.lblParse)
+        self._apply_label(data.comm, self.lblComm)
+        self._apply_label(data.message, self.lblMessage)
 
     def _on_button_status_changed(self, state: ButtonStatus) -> None:
         """同步按钮与 Start 参数控件的可用状态（target_pieces 不锁，改了立刻生效）。"""
@@ -117,10 +117,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """刷新计件标签、表格与散点图。"""
         display = build_count_display(snap)
 
-        self.lblDeltaWeight.setText(display.delta_weight_text)
-        self.lblDeltaWeight.setStyleSheet(display.delta_weight_style)
-        self.lblState.setText(display.state_text)
-        self.lblState.setStyleSheet(display.state_style)
+        self._apply_label(display.delta, self.lblDeltaWeight)
+        self._apply_label(display.state, self.lblState)
         self.lblAvgWeight.setText(display.avg_text)
         self.lblTolHigh.setText(display.tol_high_text)
         self.lblTolLow.setText(display.tol_low_text)
@@ -128,14 +126,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lblLastStableWeight.setText(display.last_stable_text)
         self.lblBaselineWeight.setText(display.baseline_text)
 
-        self.wgtPieceTable.update_piece_weights(display.piece_weights)
-        self.wgtPieceChart.update_piece_weights(display.piece_weights)
+        self.wgtPieceTable.update_piece_weights(snap.piece_weights)
+        self.wgtPieceChart.update_piece_weights(snap.piece_weights)
 
-    def _apply_bar_label_item(self, item: LabelItem, label: QLabel) -> None:
+    def _apply_label(self, item: LabelItem, label: QLabel) -> None:
         """把 LabelItem 的文案与样式应用到 QLabel。"""
         label.setText(item.text)
         label.setStyleSheet(item.style)
-
     def _bind_controls(self) -> None:
         """按钮 / 参数旋钮 → 本窗方法。"""
         self.btnStart.clicked.connect(self.start)

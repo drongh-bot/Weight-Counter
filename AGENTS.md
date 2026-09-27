@@ -10,7 +10,7 @@ app/
 ├── models/                纯业务（PieceCounter、Thresholds、Tolerance、WeightLearner、WeightStabilizer、Params(StartParams/FixedParams)、CountSnapshot）
 ├── services/              串口、重量输入、计件、生产 CSV、配置
 ├── controllers/           MainController — 每帧顺序编排
-├── presentation/          UiBridge、StatusBar、count_labels、view_models（含 Styles）
+├── presentation/          UiBridge、BarStatus、count_labels、view_models（含 Styles）
 ├── views/                 界面渲染（MainWindow、PieceTable、PieceChart）
 │   ├── widgets/           自定义控件
 │   └── ui_generated/      Qt Designer 生成代码
@@ -22,11 +22,11 @@ app/
 - **DI**：所有对象在 `main.py` 创建并接线
 - **FSM 与门面**：`PieceCounter.on_stable_weight` 改状态；`CounterService.process` 认边沿并产出 `CountFrame`
 - **信号驱动 UI**：`presentation.UiBridge` 发 `count_snapshot_changed`（`CountSnapshot`）/ `bar_snapshot_changed` / `button_status_changed` / `actual_weight_text_changed`；`MainWindow` 只渲染（贴 `build_count_display` 的 `CountDisplay` 文本），格式化与样式规则在 `presentation.count_labels`，不碰业务。勿与 Qt Designer 的 `Ui_MainWindow` 混淆；注入属性名为 `ui_bridge`
-- **状态栏**：对外只用 `StatusBar` 的 `on_*` → `BarSnapshot`；解析/通讯与消息锁存为内部细节
+- **状态栏**：对外只用 `BarStatus` 的 `on_*` → `BarSnapshot`；解析/通讯与消息锁存为内部细节
 - **禁止裸属性乱穿**：Controller 只通过服务方法访问
 - **Model 无 Qt**：可单测、无 I/O（`Params` 与 `ConfigService` 分工）
 - **业务服务 / Controller 无 Qt**：`CounterService`、`WeightInputService`、`MainController` 为普通类；`SerialService`、`CsvLogService`、`UiBridge` 等继承 `QObject`
-- **Presentation ≠ services**：`count_labels`（`build_count_display`）/ `UiBridge` / `StatusBar` 放在 `presentation/`；计件区信号直接传 `CountSnapshot`，格式化与样式规则在 `presentation`，`MainWindow` 只贴文本
+- **Presentation ≠ services**：`count_labels`（`build_count_display`）/ `UiBridge` / `BarStatus` 放在 `presentation/`；计件区信号直接传 `CountSnapshot`，格式化与样式规则在 `presentation`，`MainWindow` 只贴文本
 
 ## 技术栈
 
@@ -64,7 +64,7 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 | `tests/test_config_service.py` | service | 8 |
 | `tests/test_serial_service.py` | service | 5 |
 | `tests/test_csv_log_service.py` | service | 3 |
-| `tests/test_status_bar.py` | presentation | 13 |
+| `tests/test_bar_status.py` | presentation | 13 |
 | `tests/test_ui_bridge.py` | presentation | 10 |
 | `tests/test_piece_table.py` | view | 4 |
 | `tests/test_piece_chart.py` | view | 6 |

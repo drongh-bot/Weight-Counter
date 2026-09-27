@@ -25,7 +25,7 @@ app/
 ├── models/                纯业务（PieceCounter、Params、CountSnapshot、稳重/公差等）
 ├── services/              串口、重量输入、计件、生产 CSV、配置
 ├── controllers/           MainController — 每帧顺序编排
-├── presentation/          UiBridge、StatusBar、count_labels、view_models
+├── presentation/          UiBridge、BarStatus、count_labels、view_models
 ├── views/                 MainWindow、PieceTable、PieceChart
 │   ├── widgets/
 │   └── ui_generated/      Qt Designer 生成

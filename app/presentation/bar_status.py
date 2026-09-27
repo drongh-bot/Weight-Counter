@@ -1,4 +1,4 @@
-# app/presentation/status_bar.py
+# app/presentation/bar_status.py
 """界面底部三格提示：解析是否正常、秤是否连上、当前业务消息。
 
 谁用：MainController 在超时、解析失败、计件变化、强制校准等时机调用 on_*，
@@ -66,13 +66,13 @@ def _message_label(text: str, *, info: bool = False) -> LabelItem:
     return LabelItem(text=text, style=style)
 
 
-class StatusBar:
+class BarStatus:
     """记住当前该显示什么，每次 on_* 返回三格最新内容给界面。"""
 
     def __init__(self) -> None:
         self._parse_comm = _ParseCommStatus.OK
         self._state = CounterState.ZERO
-        self._hold_target = False
+        self._target_msg_latched = False
         self._waiting = False
         self._error: str | None = None
 
@@ -80,7 +80,7 @@ class StatusBar:
         """清空提示，回到开机空闲样子。"""
         self._parse_comm = _ParseCommStatus.OK
         self._state = CounterState.ZERO
-        self._hold_target = False
+        self._target_msg_latched = False
         self._waiting = False
         self._error = None
         return self.bar_snapshot()
@@ -181,9 +181,9 @@ class StatusBar:
         self._error = None
         self._waiting = False
         if target_edge:
-            self._hold_target = True
-        if piece_added and self._hold_target and not target_edge:
-            self._hold_target = False
+            self._target_msg_latched = True
+        if piece_added and self._target_msg_latched and not target_edge:
+            self._target_msg_latched = False
 
     def _snapshot_with_message(self, text: str, *, info: bool) -> BarSnapshot:
         """拼三格：解析/通讯按当前状态，消息格用传入文案。"""
@@ -202,6 +202,6 @@ class StatusBar:
             return self._error, False
         if self._state == CounterState.ABNORMAL:
             return MSG_ABNORMAL, True
-        if self._hold_target:
+        if self._target_msg_latched:
             return MSG_TARGET, True
         return MSG_NONE, False

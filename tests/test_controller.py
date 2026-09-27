@@ -4,7 +4,7 @@ import pytest
 from PySide6.QtTest import QSignalSpy
 
 from app.models.counter_state import CounterState
-from app.presentation.status_bar import (
+from app.presentation.bar_status import (
     MSG_ABNORMAL,
     MSG_FORCE_DONE,
     MSG_FORCE_FAIL,

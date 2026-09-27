@@ -1,36 +1,36 @@
 from app.models.counter_state import CounterState
-from app.presentation.status_bar import (
+from app.presentation.bar_status import (
     MSG_ABNORMAL,
     MSG_FORCE_DONE,
     MSG_FORCE_FAIL,
     MSG_NONE,
     MSG_TARGET,
     MSG_WAIT_STABLE,
-    StatusBar,
+    BarStatus,
 )
 from app.presentation.view_models import Styles
 
 
-class TestStatusBarLink:
+class TestBarStatusLink:
     def test_ok_after_reset(self):
-        snap = StatusBar().reset()
+        snap = BarStatus().reset()
         assert snap.parse.text == "解析正常"
         assert snap.comm.text == "通讯正常"
 
     def test_timeout_labels(self):
-        snap = StatusBar().on_timeout()
+        snap = BarStatus().on_timeout()
         assert snap.parse.text == "解析等待"
         assert snap.comm.text == "通讯等待"
 
     def test_parse_fail_labels(self):
-        snap = StatusBar().on_parse_fail()
+        snap = BarStatus().on_parse_fail()
         assert snap.parse.text == "解析异常"
         assert snap.comm.text == "通讯正常"
 
 
-class TestStatusBarMessage:
+class TestBarStatusMessage:
     def test_abnormal_from_state(self):
-        bar = StatusBar()
+        bar = BarStatus()
         snap = bar.on_stable_frame(
             state=CounterState.ABNORMAL,
             target_edge=False,
@@ -40,7 +40,7 @@ class TestStatusBarMessage:
         assert snap.message.style == Styles.GRAY
 
     def test_target_latch_until_later_add(self):
-        bar = StatusBar()
+        bar = BarStatus()
         bar.on_stable_frame(
             state=CounterState.NORMAL,
             target_edge=True,
@@ -56,7 +56,7 @@ class TestStatusBarMessage:
         assert bar.bar_snapshot().message.text == MSG_NONE
 
     def test_force_overrides_then_falls_back(self):
-        bar = StatusBar()
+        bar = BarStatus()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
             target_edge=False,
@@ -81,7 +81,7 @@ class TestStatusBarMessage:
         assert bar.bar_snapshot().message.text == MSG_ABNORMAL
 
     def test_waiting_cleared_on_stable(self):
-        bar = StatusBar()
+        bar = BarStatus()
         assert bar.on_force_waiting_frame().message.text == MSG_WAIT_STABLE
         snap = bar.on_stable_frame(
             state=CounterState.NORMAL,
@@ -91,7 +91,7 @@ class TestStatusBarMessage:
         assert snap.message.text == MSG_NONE
 
     def test_error_cleared_on_stable(self):
-        bar = StatusBar()
+        bar = BarStatus()
         assert bar.on_csv_error("串口错误").message.text == "串口错误"
         assert bar.on_csv_error("串口错误").message.style == Styles.RED
         snap = bar.on_stable_frame(
@@ -102,7 +102,7 @@ class TestStatusBarMessage:
         assert snap.message.text == MSG_NONE
 
     def test_waiting_over_abnormal(self):
-        bar = StatusBar()
+        bar = BarStatus()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
             target_edge=False,
@@ -111,9 +111,9 @@ class TestStatusBarMessage:
         assert bar.on_force_waiting_frame().message.text == MSG_WAIT_STABLE
 
 
-class TestStatusBarIntegration:
+class TestBarStatusIntegration:
     def test_timeout_preserves_message(self):
-        bar = StatusBar()
+        bar = BarStatus()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
             target_edge=False,
@@ -124,14 +124,14 @@ class TestStatusBarIntegration:
         assert snap.message.text == MSG_ABNORMAL
 
     def test_parse_fail_preserves_message(self):
-        bar = StatusBar()
+        bar = BarStatus()
         bar.on_csv_error("保留")
         snap = bar.on_parse_fail()
         assert snap.parse.text == "解析异常"
         assert snap.message.text == "保留"
 
     def test_force_waiting_then_done_then_target(self):
-        bar = StatusBar()
+        bar = BarStatus()
         assert bar.on_force_waiting_frame().message.text == MSG_WAIT_STABLE
         snap = bar.on_force_done_frame(
             state=CounterState.NORMAL,
@@ -146,7 +146,7 @@ class TestStatusBarIntegration:
         ).message.text == MSG_TARGET
 
     def test_reset(self):
-        bar = StatusBar()
+        bar = BarStatus()
         bar.on_force_waiting_frame()
         bar.on_stable_frame(
             state=CounterState.ABNORMAL,
