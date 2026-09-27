@@ -13,16 +13,31 @@ dependencies = [
 [dependency-groups]
 dev = [
     "mypy>=2.0.0",
-    "pillow>=12.2.0",
     "pyinstaller>=6.19.0",
     "pytest>=9.0.3",
     "pytest-qt>=4.5.0",
+    "ruff>=0.16.3",
     "types-toml>=0.10.8.20260408",
 ]
+
+[tool.ruff]
+# Qt Designer 生成的代码不归手写规范管（重新生成会覆盖）
+exclude = ["app/views/ui_generated"]
+
+[tool.ruff.lint]
+# BLE001  捕获盲异常 —— 这里是应用层兜底（串口/CSV/播放失败不能崩掉 GUI），故意的
+# DTZ011/DTZ005  本地时间 —— 日志按本地日切文件、时间戳给现场看，改 UTC 会错 8 小时
+# SIM115  文件句柄 —— CsvWriter 要跨多次 write 长期持有，不能用 with
+ignore = ["BLE001", "DTZ011", "DTZ005", "SIM115"]
 
 [tool.mypy]
 python_version = "3.13"
 
 [[tool.mypy.overrides]]
 module = "pyqtgraph"
+ignore_missing_imports = true
+
+# winsound 是 Windows 独有标准库；非 Windows 上跑 mypy 时找不到它
+[[tool.mypy.overrides]]
+module = "winsound"
 ignore_missing_imports = true

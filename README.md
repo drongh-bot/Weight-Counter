@@ -13,8 +13,9 @@
   → SerialService         （读写 + 超时；统一 data_received）
   → WeightInputService    （解析 + 双窗口稳重）
   → CounterService        （PieceCounter 状态机 + 上升沿）
-  → UiBridge              （CountSnapshot / 状态栏 / 按钮 / 当前重量信号）
-  → MainWindow            （计件区格式化 + 渲染标签、表、图）
+  → UiBridge              （计件快照 / 状态栏 / 按钮 / 当前重量信号，内容没变不通知）
+  → count_labels          （快照 → 展示文本；格式化与样式规则都在这里）
+  → MainWindow            （贴文本 + 驱动表格、散点图）
 ```
 
 ## 架构
@@ -36,10 +37,10 @@ app/
 
 - **依赖注入** — 对象在 `main.py` 创建并接线
 - **FSM 与门面** — `PieceCounter.on_stable_weight` 改状态；`CounterService.process` 认边沿并产出 `CountFrame`
-- **信号驱动 UI** — `UiBridge` 推送 `CountSnapshot` 等；`MainWindow` 格式化并渲染（勿与 `Ui_MainWindow` 混淆）
+- **信号驱动 UI** — `UiBridge` 推送 `CountSnapshot` 等（内容没变不通知）；**格式化与样式规则在 `presentation/count_labels`**，`MainWindow` 只贴文本、不碰业务（勿与 `Ui_MainWindow` 混淆）
 - **禁止乱穿属性** — Controller 只调服务方法
 - **Model / 计件服务无 Qt** — 可脱离界面单测
-- **参数生效时机** — 多数界面计件参数点 Start 才拷进算法；`target_pieces` 随时跟界面，且不写入配置文件
+- **参数生效时机** — 分三组：`start`（6 项，点 Start 才拷进算法）、`fixed`（19 项，启动时读入，**改配置要重启**）、`target_pieces`（随时生效，不写入配置文件）
 
 ### 核心算法
 
@@ -73,8 +74,10 @@ uv run main.py
 
 唯一配置文件为 `config.toml`，由下列两者配合：
 
-- **`Params`**（`app/models/params.py`）— 纯数据，无 I/O，不夹紧；界面范围由 Designer 控件限定
+- **`Params`**（`app/models/params.py`）— 纯数据，无 I/O，不夹紧；按**生效时机**分三组（`start` / `fixed` / 顶层 `target_pieces`），界面范围由 Designer 控件限定
 - **`ConfigService`**（`app/services/config_service.py`）— 按 `_SECTION_MAP` 读写其中一部分字段；文件损坏则加载失败
+
+> 想知道某字段属于哪组、改了要不要重启，见 `AGENTS.md` 的「配置」一节。
 
 ### 路径（ResourceManager）
 
@@ -139,8 +142,9 @@ splitter_sizes = [140, 199]
 ## 测试
 
 ```bash
-uv run pytest tests/ -v          # 约 155 条
-uv run mypy app                  # 类型检查
+uv run pytest tests/ -v          # 178 条
+uv run mypy app main.py tests    # 类型检查
+uv run ruff check .              # lint
 ```
 
 测试文件分层表见 `AGENTS.md`。
@@ -149,7 +153,9 @@ uv run mypy app                  # 类型检查
 
 ## 硬件
 
-需串口电子秤；`config.toml` 的 `[serial].port` 设为有效 COM 口。无硬件时串口相关操作会失败。
+需串口电子秤；无硬件时串口相关操作会失败。
+
+**界面已无串口设置** —— `port` / `baud_rate` 只能改 `config.toml`，改完需**重启程序**（启动时读入）。`[serial].port` 须为有效 COM 口。
 
 ---
 
@@ -175,6 +181,7 @@ uv run pyinstaller main.spec --clean -y
 | TOML | 配置 |
 | UV | 包管理 |
 | PyInstaller | 打包 |
+| ruff / mypy | lint 与类型检查 |
 
 ---
 

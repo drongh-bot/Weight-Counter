@@ -47,6 +47,7 @@ uv run main.py                   # 运行
 uv run pyinstaller main.spec     # 打包到 dist/WeightCounter/（建议加 --clean -y）
 uv run pytest tests/ -v          # 全部测试
 uv run mypy app                  # 类型检查
+uv run ruff check .              # lint（配置在 pyproject [tool.ruff]）
 ```
 
 ## 测试
@@ -63,6 +64,7 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 | `tests/test_counter_service.py` | service | 19 |
 | `tests/test_config_service.py` | service | 8 |
 | `tests/test_serial_service.py` | service | 5 |
+| `tests/test_sound_player.py` | core | 2 |
 | `tests/test_csv_log_service.py` | service | 3 |
 | `tests/test_bar_status.py` | presentation | 13 |
 | `tests/test_ui_bridge.py` | presentation | 10 |
@@ -70,7 +72,7 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 | `tests/test_piece_chart.py` | view | 6 |
 | `tests/test_controller.py` | controller | 31 |
 
-合计 **176** 条。
+合计 **178** 条。
 
 ## PySide6 QSignalSpy 注意（6.8.3）
 
