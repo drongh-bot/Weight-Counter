@@ -1,6 +1,6 @@
 [project]
 name = "weightCounter"
-version = "1.4.0"  # 运行时版本唯一来源：app/version.py
+version = "1.5.0"  # 运行时版本唯一来源：app/version.py
 description = "工业计件桌面应用：串口电子秤实时稳重判定、自动计件与生产日志"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -16,7 +16,6 @@ dev = [
     "pyinstaller>=6.19.0",
     "pytest>=9.0.3",
     "pytest-qt>=4.5.0",
-    "ruff>=0.16.3",
     "types-toml>=0.10.8.20260408",
 ]
 
