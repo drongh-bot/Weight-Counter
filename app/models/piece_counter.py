@@ -12,12 +12,12 @@ class PieceCounter:
     def __init__(self, params: Params | None = None) -> None:
         """从 Params 拷贝算法字段并初始化辅助对象。"""
         p = Params() if params is None else params
-        self._load_start_fields(p)
+        self._init_from_params(p)
         self._build_helpers(p)
         self.reset()
 
-    def _load_start_fields(self, p: Params) -> None:
-        """拷贝 Start 可同步 / 运行期会读的字段。"""
+    def _init_from_params(self, p: Params) -> None:
+        """开机时拷贝 Params 的字段（之后界面再改不会跟着变；点 Start 走 apply_start_params）。"""
         self.max_batch_pieces = p.max_batch_pieces
         self.initial_single_pieces = p.initial_single_pieces
         self.decimal_places = p.decimal_places
@@ -83,6 +83,8 @@ class PieceCounter:
 
     def on_stable_weight(self, stable_weight: float) -> None:
         """处理一次稳定重量样本（会改变 FSM 状态）。"""
+        # 抖动过滤：还在异常态就不管；否则离上次稳定值不到最小公差的，
+        # 当作秤在原地微抖，刷一下 last_stable_weight 就跳过（不当成加/减件）
         if (
             self.state != CounterState.ABNORMAL
             and abs(stable_weight - self.last_stable_weight) < self.tolerance.min_tol

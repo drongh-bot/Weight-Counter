@@ -59,12 +59,11 @@ def _parse_comm_labels(status: _ParseCommStatus) -> tuple[LabelItem, LabelItem]:
 
 
 def _message_label(text: str, *, info: bool = False) -> LabelItem:
-    """拼消息格：提示类用灰字，报错类用红字。"""
-    if text and text != MSG_NONE:
-        style = Styles.GRAY if info else Styles.RED
-    else:
-        style = ""
-    return LabelItem(text=text or MSG_NONE, style=style)
+    """拼消息格：提示类用灰字，报错类用红字；没消息就显示「无异常」。"""
+    if not text or text == MSG_NONE:
+        return LabelItem(text=MSG_NONE, style="")
+    style = Styles.GRAY if info else Styles.RED
+    return LabelItem(text=text, style=style)
 
 
 class StatusBar:

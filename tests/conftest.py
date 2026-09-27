@@ -7,6 +7,7 @@ from collections.abc import Callable, Iterator
 import pytest
 
 from app.controllers.main_controller import MainController
+from app.core.sound_player import SoundPlayer
 from app.models.count_snapshot import CountSnapshot
 from app.models.counter_state import CounterState
 from app.models.params import Params
@@ -14,7 +15,6 @@ from app.presentation.ui_bridge import UiBridge
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
-from app.core.sound_player import SoundPlayer
 from app.services.weight_input_service import WeightInputService
 
 # 默认稳重：long_maxlen=10 + stable_count=3 → 连续同重约 12 帧可稳定锁定。
@@ -75,7 +75,7 @@ def make_controller(
         ui_bridge = UiBridge()
         controller = MainController(
             ui_bridge=ui_bridge,
-            serial_service=SerialService(2000),
+            serial_service=SerialService(params.timeout_millis, params.encoding),
             counter_service=CounterService(params),
             weight_input_service=WeightInputService(params),
             sound_player=sound_player or SoundPlayer(),

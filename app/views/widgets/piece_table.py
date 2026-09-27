@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
 )
 
+from app.models.formatting import format_weight
+
 
 class PieceTable(QTableWidget):
     """单件重量表格，最新数据在顶部。"""
@@ -67,7 +69,7 @@ class PieceTable(QTableWidget):
     def _fill_rows(self, data: list[float]) -> None:
         """填充格式化重量单元格（最新在顶部）。"""
         for row, weight in enumerate(reversed(data)):
-            item = QTableWidgetItem(f"{weight:.{self._decimal_places}f}")
+            item = QTableWidgetItem(format_weight(weight, self._decimal_places))
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.setItem(row, 0, item)
 

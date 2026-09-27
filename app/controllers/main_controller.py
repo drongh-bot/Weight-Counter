@@ -36,6 +36,7 @@ class MainController:
 
         self._is_running: bool = False
         self._pending_force_pieces: int | None = None
+        self._signals_disconnected: bool = False
         self._bar = StatusBar()
 
         self.serial_service.data_received.connect(self._on_raw_data)
@@ -118,7 +119,7 @@ class MainController:
             return
 
         frame, bar = self._resolve_stable_frame(stable_weight)
-        self._handle_frame(frame, stable_weight)
+        self._handle_frame(frame)
         self.ui_bridge.update_bar(bar)
 
     def _resolve_stable_frame(
@@ -152,9 +153,12 @@ class MainController:
             piece_added=calibrated.piece_added,
         )
 
-    def _handle_frame(self, frame: CountFrame, stable_weight: float) -> None:
-        """刷新件数和当前秤重；刚进异常/刚达目标则播放提示音；有新件则记生产。"""
-        self.ui_bridge.update_actual_weight(stable_weight, frame.decimal_places)
+    def _handle_frame(self, frame: CountFrame) -> None:
+        """刷新件数；刚进异常/刚达目标则播放提示音；有新件则记生产。
+
+        「当前秤重」这里不再刷一次——上面已经用原始读数刷过，
+        稳定帧再用锁定值覆盖会让标签闪一下。
+        """
         self.ui_bridge.update_count(frame)
         self._sync_button_status()
         if frame.abnormal_edge:
@@ -209,10 +213,12 @@ class MainController:
         if self._is_running:
             return False
         self._is_running = True
-        self._reset_all()
-        self.counter_service.apply_start_params()
-        self.weight_input_service.apply_start_params()
         try:
+            # 全部放进 try：中途任何一步失败都得退回「没在跑」，
+            # 否则 _is_running 已置 True，界面会卡在运行中
+            self._reset_all()
+            self.counter_service.apply_start_params()
+            self.weight_input_service.apply_start_params()
             self.serial_service.open(port, baud)
             return True
         except Exception as e:
@@ -235,7 +241,22 @@ class MainController:
         self.sound_player.stop()
 
     def shutdown(self) -> None:
-        """程序退出时关掉串口、生产日志和提示音。"""
+        """程序退出时断开信号、关掉串口、生产日志和提示音。"""
+        self._disconnect_signals()
         self.serial_service.close()
         self.csv_log_service.close()
         self.sound_player.stop()
+
+    def _disconnect_signals(self) -> None:
+        """断开构造时连上的信号（只做一次）。
+
+        这些绑定方法反向引用了 controller，不断开会让两边互相拽着，
+        只能等 gc 收拾引用环；重复断开则会触发 Qt 的警告。
+        """
+        if self._signals_disconnected:
+            return
+        self._signals_disconnected = True
+        self.serial_service.data_received.disconnect(self._on_raw_data)
+        self.serial_service.timeout_detected.disconnect(self._on_timeout)
+        self.serial_service.error_occurred.disconnect(self._on_serial_error)
+        self.csv_log_service.error_occurred.disconnect(self._on_csv_error)

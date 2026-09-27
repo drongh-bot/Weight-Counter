@@ -30,37 +30,34 @@ class WeightInputService:
 
     def parse(self, raw: str) -> float | None:
         """解析串口重量字符串；成功返回 float，失败返回 None。"""
-        try:
-            text = raw.strip().upper()
-            if not text:
-                return None
-
-            # 逗号分隔时取最后一段（秤可能先发状态码，如 "ST,+123.4"）
-            if "," in text:
-                text = text.split(",")[-1].strip()
-            if not text:
-                return None
-
-            # "+  1.234" → "+1.234"；其余词（ST、KG…）float 失败就跳过
-            while "+ " in text:
-                text = text.replace("+ ", "+")
-            while "- " in text:
-                text = text.replace("- ", "-")
-
-            values: list[float] = []
-            for part in text.split():
-                try:
-                    values.append(float(part))
-                except ValueError:
-                    continue
-            if len(values) != 1:
-                logger.warning("解析失败: %s", text)
-                return None
-            return values[0]
-
-        except AttributeError:
-            logger.warning("解析失败: %s", raw)
+        # str() 兜底：万一上游传了非字符串，也不会在这儿抛 AttributeError，
+        # 会一路走到下面的 float() 失败分支，老实返回 None
+        text = str(raw).strip().upper()
+        if not text:
             return None
+
+        # 逗号分隔时取最后一段（秤可能先发状态码，如 "ST,+123.4"）
+        if "," in text:
+            text = text.split(",")[-1].strip()
+        if not text:
+            return None
+
+        # "+  1.234" → "+1.234"；其余词（ST、KG…）float 失败就跳过
+        while "+ " in text:
+            text = text.replace("+ ", "+")
+        while "- " in text:
+            text = text.replace("- ", "-")
+
+        values: list[float] = []
+        for part in text.split():
+            try:
+                values.append(float(part))
+            except ValueError:
+                continue
+        if len(values) != 1:
+            logger.warning("解析失败: %s", text)
+            return None
+        return values[0]
 
     def stabilize(self, weight: float) -> float | None:
         """稳定则返回稳定重量，否则 None。"""

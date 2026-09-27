@@ -378,3 +378,46 @@ class TestControllerPipeline:
         controller._is_running = False
         assert controller.start("COM99", 9600) is True
         assert controller.counter_service.decimal_places == 4
+
+
+class TestStartFailureAndShutdown:
+    def test_apply_params_failure_rolls_back_running(self, make_controller):
+        """套用参数这一步炸了也要退回「没在跑」，串口不该再被打开。"""
+        controller, ui_bridge = make_controller()
+        controller.serial_service.open = MagicMock()
+        controller.counter_service.apply_start_params = MagicMock(
+            side_effect=RuntimeError("参数套用失败")
+        )
+
+        assert controller.start("COM99", 9600) is False
+
+        assert controller._is_running is False
+        assert controller._button_status().start_enabled is True
+        controller.serial_service.open.assert_not_called()
+
+    def test_serial_failure_rolls_back_running(self, make_controller):
+        controller, ui_bridge = make_controller()
+        controller.serial_service.open = MagicMock(side_effect=RuntimeError("打不开"))
+
+        assert controller.start("COM99", 9600) is False
+
+        assert controller._is_running is False
+        assert controller._button_status().start_enabled is True
+
+    def test_shutdown_stops_receiving_serial_data(self, make_controller):
+        """断开信号后，串口再发数据也不该进 controller。"""
+        controller, ui_bridge = make_controller()
+        spy = QSignalSpy(ui_bridge.bar_snapshot_changed)
+
+        controller.serial_service.timeout_detected.emit()
+        assert spy.count() >= 1  # 还连着时收得到
+
+        controller.shutdown()
+        controller.serial_service.timeout_detected.emit()
+        assert spy.count() == 1  # 断开后不再进来
+
+    def test_shutdown_is_idempotent(self, make_controller):
+        """重复 shutdown（本测试 + 夹具收尾）不能抛。"""
+        controller, ui_bridge = make_controller()
+        controller.shutdown()
+        controller.shutdown()

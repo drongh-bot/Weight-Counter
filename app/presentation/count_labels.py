@@ -3,6 +3,7 @@
 
 from app.models.count_snapshot import CountSnapshot
 from app.models.counter_state import CounterState
+from app.models.formatting import format_weight
 from app.presentation.view_models import CountDisplay, Styles
 
 
@@ -18,8 +19,7 @@ def build_count_display(snap: CountSnapshot) -> CountDisplay:
         state_text, state_style = "异常（偏低）", Styles.ABNORMAL_LOW
 
     def weight_text(value: float) -> str:
-        dp = snap.decimal_places
-        return f"{value:.{dp}f}"
+        return format_weight(value, snap.decimal_places)
 
     return CountDisplay(
         delta_text=weight_text(snap.delta),

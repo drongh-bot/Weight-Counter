@@ -30,22 +30,21 @@ logger = logging.getLogger(__name__)
 
 
 class _ParamField(NamedTuple):
-    """界面可调参数：Params 字段 ↔ 控件；lock_on_start 表示跑起来后锁住。"""
+    """界面可调参数：Params 字段 ↔ 控件；lock=True 表示跑起来后锁住不让改。"""
 
     attr: str
     widget: str
-    cast: type
-    lock_on_start: bool
+    lock: bool
 
 
 _PARAM_FIELDS = (
-    _ParamField("initial_min_weight", "dspnInitialMinWeight", float, True),
-    _ParamField("tolerance_percent", "dspnTolerancePercent", float, True),
-    _ParamField("stability_threshold", "dspnStabilityThreshold", float, True),
-    _ParamField("max_batch_pieces", "spnMaxBatchPieces", int, True),
-    _ParamField("initial_single_pieces", "spnInitialSinglePieces", int, True),
-    _ParamField("target_pieces", "spnTargetPieces", int, False),
-    _ParamField("decimal_places", "spnDecimalPlaces", int, True),
+    _ParamField("initial_min_weight", "dspnInitialMinWeight", lock=True),
+    _ParamField("tolerance_percent", "dspnTolerancePercent", lock=True),
+    _ParamField("stability_threshold", "dspnStabilityThreshold", lock=True),
+    _ParamField("max_batch_pieces", "spnMaxBatchPieces", lock=True),
+    _ParamField("initial_single_pieces", "spnInitialSinglePieces", lock=True),
+    _ParamField("target_pieces", "spnTargetPieces", lock=False),
+    _ParamField("decimal_places", "spnDecimalPlaces", lock=True),
 )
 
 
@@ -130,7 +129,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnStop.setEnabled(state.stop_enabled)
         self.btnForce.setEnabled(state.force_enabled)
         for field in _PARAM_FIELDS:
-            if field.lock_on_start:
+            if field.lock:
                 getattr(self, field.widget).setEnabled(state.start_params_enabled)
 
     def _on_count_snapshot_changed(self, snap: CountSnapshot) -> None:
@@ -218,7 +217,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             setattr(
                 self.params,
                 field.attr,
-                field.cast(getattr(self, field.widget).value()),
+                getattr(self, field.widget).value(),
             )
 
     def _init_port_list(self) -> None:

@@ -53,22 +53,24 @@ uv run mypy app                  # 类型检查
 
 Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Controller 测试使用 pytest-qt 的 `qapp`。
 
-| 文件 | 层级 | 约条数 |
+| 文件 | 层级 | 条数 |
 |------|-------|-------|
 | `tests/test_weight_stabilizer.py` | model | 12 |
 | `tests/test_piece_counter.py` | model | 37 |
+| `tests/test_formatting.py` | model | 3 |
 | `tests/test_count_labels.py` | presentation | 5 |
-| `tests/test_weight_input_service.py` | service | 14 |
+| `tests/test_weight_input_service.py` | service | 20 |
 | `tests/test_counter_service.py` | service | 19 |
 | `tests/test_config_service.py` | service | 8 |
 | `tests/test_serial_service.py` | service | 5 |
+| `tests/test_csv_log_service.py` | service | 3 |
 | `tests/test_status_bar.py` | presentation | 13 |
 | `tests/test_ui_bridge.py` | presentation | 10 |
 | `tests/test_piece_table.py` | view | 4 |
 | `tests/test_piece_chart.py` | view | 6 |
-| `tests/test_controller.py` | controller | 27 |
+| `tests/test_controller.py` | controller | 31 |
 
-合计约 **160** 条。
+合计 **176** 条。
 
 ## PySide6 QSignalSpy 注意（6.8.3）
 

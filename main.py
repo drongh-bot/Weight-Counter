@@ -53,12 +53,14 @@ def main():
     controller.init_ui()
     window.show()
 
-    exit_code = app.exec()
-
     try:
-        controller.shutdown()
-    except Exception:
-        logger.exception("退出清理失败")
+        exit_code = app.exec()
+    finally:
+        # 放 finally：主循环抛异常也要收串口、写完日志
+        try:
+            controller.shutdown()
+        except Exception:
+            logger.exception("退出清理失败")
 
     sys.exit(exit_code)
 

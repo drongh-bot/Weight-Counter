@@ -8,11 +8,15 @@ from PySide6.QtCore import QObject, Signal
 
 from app.core.csv_writer import CsvWriter
 from app.core.resource_manager import ResourceManager
+from app.models.formatting import format_weight
 
 logger = logging.getLogger(__name__)
 
 # (时间, 重量, 总件数)；None 表示「可以收工了」
 _ProductionItem = tuple[str, str, str] | None
+
+# 退出时最多等写线程多久；写卡住也不能把进程一起拖死
+_CLOSE_TIMEOUT_SECONDS = 3.0
 
 
 class CsvLogService(QObject):
@@ -73,25 +77,36 @@ class CsvLogService(QObject):
 
         try:
             places = max(0, int(decimal_places))
-            weight_str = f"{weight:.{places}f}"
+            weight_str = format_weight(weight, places)
             self._production_queue.put((self._timestamp(), weight_str, str(total)))
         except Exception as e:
             self.error_occurred.emit(f"生产记录入队失败：{e}")
 
     def close(self) -> None:
-        """退出时调用：等队列写完，通知后台收工，再关日志文件。"""
+        """退出时调用：等后台把队列写完再收工，最多等 ``_CLOSE_TIMEOUT_SECONDS`` 秒。
+
+        哨兵 ``None`` 排在所有记录之后，所以线程退出即代表队列已写空，
+        不必再 ``queue.join()``（那个没有超时，写线程卡住会让退出也一起卡死）。
+        """
         if not self._is_active:
             return
 
         self._is_active = False
         self._production_queue.put_nowait(None)
-        self._production_queue.join()
-        self._writer_thread.join(timeout=3.0)
 
+        self._writer_thread.join(timeout=_CLOSE_TIMEOUT_SECONDS)
+        if self._writer_thread.is_alive():
+            # 线程还在写：不能把文件关掉/置空，否则它下一帧就写到 None 上
+            logger.error(
+                "日志线程 %.0f 秒内没退出，跳过关闭日志文件",
+                _CLOSE_TIMEOUT_SECONDS,
+            )
+            return
+
+        writer, self._production_writer = self._production_writer, None
+        if writer is None:
+            return
         try:
-            if self._production_writer:
-                self._production_writer.close()
+            writer.close()
         except Exception as e:
             logger.error("关闭日志失败: %s", e)
-
-        self._production_writer = None

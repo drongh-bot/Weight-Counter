@@ -2,6 +2,8 @@ import pyqtgraph as pg
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtWidgets import QHBoxLayout, QScrollBar, QVBoxLayout, QWidget
 
+from app.models.formatting import format_weight
+
 
 class FixedAxis(pg.AxisItem):
     """固定小数位数的水平轴。"""
@@ -11,8 +13,7 @@ class FixedAxis(pg.AxisItem):
         self.decimals = 2
 
     def tickStrings(self, values, scale, spacing) -> list[str]:
-        fmt = f"{{:.{self.decimals}f}}"
-        return [fmt.format(v) for v in values]
+        return [format_weight(v, self.decimals) for v in values]
 
 
 class PieceChart(QWidget):
@@ -32,6 +33,7 @@ class PieceChart(QWidget):
         self._hovered_index: int | None = None
         self._follow_latest: bool = True
         self._setting_range: bool = False
+        self._last_ticks: list[tuple[int, str]] = []
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -125,6 +127,7 @@ class PieceChart(QWidget):
         self._piece_weights = []
         self._hovered_index = None
         self._follow_latest = True
+        self._last_ticks = []
         self.scatter.setData([])
         self.hover_point.setData([])
         self.plot.getAxis("left").setTicks([])
@@ -164,17 +167,18 @@ class PieceChart(QWidget):
 
     def _update_scatter_and_ticks(self, count: int) -> None:
         """更新散点数据与左侧序号刻度。"""
-        spots = [
-            {"pos": (weight, i + 1)} for i, weight in enumerate(self._piece_weights)
-        ]
-        self.scatter.setData(spots)
+        # 直接给 x/y 两个序列，比构造一堆 {"pos": ...} 字典省事得多
+        self.scatter.setData(x=self._piece_weights, y=list(range(1, count + 1)))
 
         if count <= self._MAX_Y_TICK_LABELS:
             step = 1
         else:
             step = max(count // self._MAX_Y_TICK_LABELS, 1)
         ticks = [(i + 1, str(i + 1)) for i in range(0, count, step)]
-        self.plot.getAxis("left").setTicks([ticks])
+        if ticks != self._last_ticks:
+            # 刻度没变就不动轴：setTicks 会打掉左侧轴的缓存，逼它整条重绘
+            self._last_ticks = ticks
+            self.plot.getAxis("left").setTicks([ticks])
 
     def _update_x_range(self, count: int) -> None:
         """按可见件重自动调整 X 轴范围。"""
@@ -193,6 +197,13 @@ class PieceChart(QWidget):
             margin = max(abs(x_min) * 0.05, 1.0)
         else:
             margin = max(span * 0.1, 0.05)
+
+        # 范围没变就不 setXRange：它会触发 sigRangeChanged → 滚动条再同步一轮
+        current = self.plot.viewRange()[0]
+        if abs(current[0] - (x_min - margin)) < 1e-9 and abs(
+            current[1] - (x_max + margin)
+        ) < 1e-9:
+            return
         self.plot.setXRange(x_min - margin, x_max + margin, padding=0)
 
     def _on_mouse_moved(self, pos: QPointF) -> None:
@@ -221,7 +232,7 @@ class PieceChart(QWidget):
 
         self.hover_point.setData([{"pos": (weight, closest_y)}])
         self.plot.setToolTip(
-            f"片号：{closest_y}\n重量：{weight:.{self._decimal_places}f}"
+            f"片号：{closest_y}\n重量：{format_weight(weight, self._decimal_places)}"
         )
 
     def _on_scrollbar_moved(self, value: int) -> None:

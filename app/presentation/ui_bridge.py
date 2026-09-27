@@ -4,6 +4,7 @@ from dataclasses import fields
 from PySide6.QtCore import QObject, Signal
 
 from app.models.count_snapshot import CountSnapshot
+from app.models.formatting import format_weight
 from app.presentation.view_models import BarSnapshot, ButtonStatus
 
 
@@ -28,7 +29,11 @@ class UiBridge(QObject):
 
     @staticmethod
     def _display_snapshot(snap: CountSnapshot) -> CountSnapshot:
-        """只留下界面要显示的那些数，方便判断「画面有没有真的变」。"""
+        """换成 CountSnapshot，把 CountFrame 的三个边沿字段甩掉。
+
+        边沿（piece_added 等）每帧都可能翻，留着会让去重永远判定「变了」；
+        展示字段本身一个不少。
+        """
         return CountSnapshot(
             **{f.name: getattr(snap, f.name) for f in fields(CountSnapshot)}
         )
@@ -54,7 +59,7 @@ class UiBridge(QObject):
 
     def update_actual_weight(self, weight: float | None, decimal_places: int) -> None:
         """刷新「当前秤重」；没有有效重量时显示 -----。"""
-        text = f"{weight:.{decimal_places}f}" if weight is not None else "-----"
+        text = format_weight(weight, decimal_places) if weight is not None else "-----"
         if text != self._last_weight:
             self._last_weight = text
             self.actual_weight_text_changed.emit(text)
