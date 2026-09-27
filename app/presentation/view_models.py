@@ -43,8 +43,8 @@ class ButtonStatus:
 class CountDisplay:
     """计件区一帧的完整展示数据：文本全部格式化好，视图只负责贴。"""
 
-    delta_text: str
-    delta_style: str
+    delta_weight_text: str
+    delta_weight_style: str
     state_text: str
     state_style: str
     avg_text: str

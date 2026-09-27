@@ -58,7 +58,7 @@ class CounterService:
             abnormal_high=pc.abnormal_high,
             abnormal_low=pc.abnormal_low,
             state=pc.state,
-            delta=pc.delta,
+            delta_weight=pc.delta_weight,
             avg_weight=pc.avg_weight,
             tolerance_high=tol.high,
             tolerance_low=tol.low,

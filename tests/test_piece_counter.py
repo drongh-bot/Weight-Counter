@@ -29,7 +29,7 @@ class TestWeightLearner:
     def test_first_piece(self):
         """第一件直接返回 piece_weight"""
         learner = WeightLearner()
-        result = learner.update(avg_weight=0.0, piece_weight=10.0, n=1, total_pieces=1)
+        result = learner.update(avg_weight=0.0, piece_weight=10.0, count=1, total_pieces=1)
         assert result == 10.0
 
     def test_early_averaging(self):
@@ -291,7 +291,7 @@ class TestPieceCounterFSM:
         assert counter.state == CounterState.ZERO
         assert counter.total_pieces == 0
         assert counter.avg_weight == 0.0
-        assert counter.delta == 0.0
+        assert counter.delta_weight == 0.0
 
     def test_initial_single_pieces_limit(self):
         counter = _pc(

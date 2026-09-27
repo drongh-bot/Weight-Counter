@@ -11,18 +11,30 @@ class PieceCounter:
 
     def __init__(self, params: Params | None = None) -> None:
         """按 Params 的三组参数初始化算法。"""
-        p = Params() if params is None else params
-        self._copy_start_fields(p.start)
-        self._build_helpers(p.start, p.fixed)
+        if params is None:
+            params = Params()
+        # 先用默认值打底：下面的守卫没放行时字段也得有值，否则属性根本不存在
+        self._copy_start_fields(StartParams())
+        self._copy_start_fields(params.start)
+        self._build_helpers(params.start, params.fixed)
         self.reset()
 
     def _copy_start_fields(self, start: StartParams) -> None:
-        """拷贝「点 Start 才会再更新」的那几个字段（对应 apply_start_params）。"""
-        self.max_batch_pieces = start.max_batch_pieces
-        self.initial_single_pieces = start.initial_single_pieces
-        self.decimal_places = start.decimal_places
-        self.stability_threshold = start.stability_threshold
-        self.tolerance_percent = start.tolerance_percent
+        """拷贝 Start 组的标量字段。
+
+        构造和点 Start 都走这里（见 apply_start_params），**守卫只写一遍** ——
+        合法性守卫不能省：值可能来自手改的 config.toml，界面控件的 min/max 管不到它。
+        """
+        if start.initial_single_pieces > 0:
+            self.initial_single_pieces = start.initial_single_pieces
+        if start.max_batch_pieces > 0:
+            self.max_batch_pieces = start.max_batch_pieces
+        if 0.0 < start.tolerance_percent < 100.0:
+            self.tolerance_percent = start.tolerance_percent
+        if start.decimal_places >= 0:
+            self.decimal_places = start.decimal_places
+        if start.stability_threshold > 0:
+            self.stability_threshold = start.stability_threshold
 
     def _min_tol(self) -> float:
         """由小数位与稳定阈值推导最小公差。"""
@@ -45,29 +57,25 @@ class PieceCounter:
             ema_alpha_min=fixed.ema_alpha_min,
             ema_alpha_max=fixed.ema_alpha_max,
         )
+
+        # initial_min_weight 必须 > 0；手改 config.toml 给了负值/零就退回默认
+        min_weight = start.initial_min_weight
+        if min_weight <= 0:
+            min_weight = StartParams().initial_min_weight
         self.thresholds = Thresholds(
-            initial_min_weight=start.initial_min_weight,
+            initial_min_weight=min_weight,
             dynamic_weight_ratio=fixed.dynamic_weight_ratio,
             initial_min_ratio=fixed.initial_min_ratio,
         )
 
     def apply_start_params(self, start: StartParams) -> None:
-        """点 Start 时拷进「Start 才生效」的那些字段（拷贝值，不跟着界面一直变）。
+        """点 Start：拷 Start 组字段（与构造同一套守卫）+ 更新阈值 + 重算 min_tol。
 
-        合法性守卫保留：值可能来自手改的 config.toml，界面控件的 min/max 管不到它。
+        拷贝值不跟着界面一直变；跑起来中途改这些字段要再点 Start。
         """
-        if start.initial_single_pieces > 0:
-            self.initial_single_pieces = start.initial_single_pieces
-        if start.max_batch_pieces > 0:
-            self.max_batch_pieces = start.max_batch_pieces
-        if 0.0 < start.tolerance_percent < 100.0:
-            self.tolerance_percent = start.tolerance_percent
+        self._copy_start_fields(start)
         if start.initial_min_weight > 0:
             self.thresholds.initial_min_weight = start.initial_min_weight
-        if start.decimal_places >= 0:
-            self.decimal_places = start.decimal_places
-        if start.stability_threshold > 0:
-            self.stability_threshold = start.stability_threshold
         self._recalc_min_tol()
 
     def reset(self) -> None:
@@ -75,7 +83,7 @@ class PieceCounter:
         self.piece_weights: list[float] = []
         self.baseline_weight = 0.0
         self.last_stable_weight = 0.0
-        self.delta = 0.0
+        self.delta_weight = 0.0
         self.state = CounterState.ZERO
         self.abnormal_high = False
         self.abnormal_low = False
@@ -102,7 +110,7 @@ class PieceCounter:
         if self._reset_if_below_min_weight(stable_weight):
             return
 
-        self._update_delta(stable_weight)
+        self._update_delta_weight(stable_weight)
 
         if self.state == CounterState.ZERO:
             self._handle_zero(stable_weight)
@@ -112,14 +120,14 @@ class PieceCounter:
             self._handle_abnormal(stable_weight)
 
     def _handle_zero(self, stable_weight: float) -> None:
-        """ZERO 态：delta 足够大则作为首件入秤（过轻已在全局守卫处理）。"""
-        if abs(self.delta) >= self.thresholds.initial_min_weight:
-            self._add_pieces(1, self.delta, stable_weight)
+        """ZERO 态：重量差足够大则作为首件入秤（过轻已在全局守卫处理）。"""
+        if abs(self.delta_weight) >= self.thresholds.initial_min_weight:
+            self._add_pieces(1, self.delta_weight, stable_weight)
             self.state = CounterState.NORMAL
 
     def _handle_normal(self, stable_weight: float) -> None:
         """NORMAL 态：匹配加/减件或转入 ABNORMAL。"""
-        if abs(self.delta) < self.thresholds.dynamic_min_weight(self.avg_weight):
+        if abs(self.delta_weight) < self.thresholds.dynamic_min_weight(self.avg_weight):
             self.last_stable_weight = stable_weight
             return
 
@@ -129,34 +137,36 @@ class PieceCounter:
             else self.max_batch_pieces
         )
 
-        n = self._try_match_piece_count(self.delta, max_match_pieces)
+        n = self._try_match_piece_count(self.delta_weight, max_match_pieces)
 
         if n is not None:
-            if self.delta > 0:
-                self._add_pieces(n, self.delta, stable_weight)
+            if self.delta_weight > 0:
+                self._add_pieces(n, self.delta_weight, stable_weight)
             else:
                 n_remove = min(n, self.total_pieces)
                 if n_remove > 0:
                     self._remove_pieces(n_remove, stable_weight)
         else:
             self.state = CounterState.ABNORMAL
-            self.abnormal_high = self.delta > 0
-            self.abnormal_low = self.delta < 0
+            self.abnormal_high = self.delta_weight > 0
+            self.abnormal_low = self.delta_weight < 0
             self.abnormal_extreme = stable_weight
 
     def _handle_abnormal(self, stable_weight: float) -> None:
         """ABNORMAL 态：跟踪锚点，满足恢复条件则退出异常。"""
-        current_delta = stable_weight - self.baseline_weight
+        self.delta_weight = stable_weight - self.baseline_weight
 
-        if current_delta > 0 and not self.abnormal_high:
+        # ① 偏差方向变了 → 重置极值锚点（下面几步继续走，不 return）
+        if self.delta_weight > 0 and not self.abnormal_high:
             self.abnormal_high = True
             self.abnormal_low = False
             self.abnormal_extreme = stable_weight
-        elif current_delta < 0 and not self.abnormal_low:
+        elif self.delta_weight < 0 and not self.abnormal_low:
             self.abnormal_low = True
             self.abnormal_high = False
             self.abnormal_extreme = stable_weight
 
+        # ② 还在往更极端走 → 刷新极值，这一帧不判恢复
         if self.abnormal_high and stable_weight > self.abnormal_extreme:
             self.abnormal_extreme = stable_weight
             return
@@ -165,12 +175,14 @@ class PieceCounter:
             self.abnormal_extreme = stable_weight
             return
 
+        # ③ 偏差仍在恢复范围外 → 继续等
         if (
-            abs(current_delta)
+            abs(self.delta_weight)
             > self._recover_limit() * self.abnormal_recover_factor
         ):
             return
 
+        # ④ 已回到恢复范围 → 收工，回 NORMAL
         self._reset_baseline(stable_weight)
 
     def _recover_limit(self) -> float:
@@ -212,16 +224,16 @@ class PieceCounter:
             return True
         return False
 
-    def _update_delta(self, stable_weight: float) -> None:
+    def _update_delta_weight(self, stable_weight: float) -> None:
         """更新相对基准的重量差。"""
-        self.delta = stable_weight - self.baseline_weight
+        self.delta_weight = stable_weight - self.baseline_weight
 
-    def _try_match_piece_count(self, delta: float, limit: int) -> int | None:
-        """尝试把 delta 匹配为 1..limit 件；失败返回 None。"""
+    def _try_match_piece_count(self, delta_weight: float, limit: int) -> int | None:
+        """尝试把重量差匹配为 1..limit 件；失败返回 None。"""
         if self.avg_weight <= 0:
             return None
 
-        n_est = abs(delta) / self.avg_weight
+        n_est = abs(delta_weight) / self.avg_weight
         n = int(round(n_est))
 
         if not (1 <= n <= limit):
@@ -231,27 +243,27 @@ class PieceCounter:
             return None
 
         if not self.tolerance.is_within_tolerance(
-            abs(delta), n, self.avg_weight, self.tolerance_percent
+            abs(delta_weight), n, self.avg_weight, self.tolerance_percent
         ):
             return None
 
         return n
 
-    def _add_pieces(self, n: int, delta: float, stable_weight: float) -> None:
+    def _add_pieces(self, count: int, delta_weight: float, stable_weight: float) -> None:
         """接受加件：写入件重、更新均重与基准。"""
-        piece_weight = delta / n
-        for _ in range(n):
+        piece_weight = delta_weight / count
+        for _ in range(count):
             self.piece_weights.append(piece_weight)
 
         self.avg_weight = self.learner.update(
-            self.avg_weight, piece_weight, n, self.total_pieces
+            self.avg_weight, piece_weight, count, self.total_pieces
         )
         self.baseline_weight = stable_weight
         self.last_stable_weight = stable_weight
 
-    def _remove_pieces(self, n: int, stable_weight: float) -> None:
+    def _remove_pieces(self, count: int, stable_weight: float) -> None:
         """接受减件：删除末尾 n 件并重算均重。"""
-        del self.piece_weights[-n:]
+        del self.piece_weights[-count:]
         if not self.piece_weights:
             # 清空后回到 ZERO，避免 avg=0 的 NORMAL 无法再匹配加件
             self.avg_weight = 0.0

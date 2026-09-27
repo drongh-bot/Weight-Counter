@@ -38,7 +38,7 @@ def make_count_snapshot(**overrides: object) -> CountSnapshot:
         abnormal_high=False,
         abnormal_low=False,
         state=CounterState.ZERO,
-        delta=0.0,
+        delta_weight=0.0,
         avg_weight=0.0,
         tolerance_high=0.0,
         tolerance_low=0.0,

@@ -22,7 +22,7 @@ class TestUi:
         ui.update_count(
             make_count_snapshot(
                 state=CounterState.NORMAL,
-                delta=10.0,
+                delta_weight=10.0,
                 avg_weight=10.0,
                 tolerance_high=11.0,
                 tolerance_low=9.0,
@@ -54,7 +54,7 @@ class TestUi:
         spy = QSignalSpy(ui.count_snapshot_changed)
         base = make_count_snapshot(
             state=CounterState.NORMAL,
-            delta=10.0,
+            delta_weight=10.0,
             avg_weight=10.0,
             total_pieces=1,
             piece_weights=[10.0],
@@ -73,7 +73,7 @@ class TestUi:
         ui.update_count(
             make_count_snapshot(
                 state=CounterState.NORMAL,
-                delta=10.0,
+                delta_weight=10.0,
                 avg_weight=10.0,
                 tolerance_high=11.0,
                 tolerance_low=9.0,

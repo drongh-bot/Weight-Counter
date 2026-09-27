@@ -115,21 +115,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _on_count_snapshot_changed(self, snap: CountSnapshot) -> None:
         """刷新计件标签、表格与散点图。"""
-        d = build_count_display(snap)
+        display = build_count_display(snap)
 
-        self.lblDeltaWeight.setText(d.delta_text)
-        self.lblDeltaWeight.setStyleSheet(d.delta_style)
-        self.lblState.setText(d.state_text)
-        self.lblState.setStyleSheet(d.state_style)
-        self.lblAvgWeight.setText(d.avg_text)
-        self.lblTolHigh.setText(d.tol_high_text)
-        self.lblTolLow.setText(d.tol_low_text)
-        self.lblTotalPieces.setText(d.total_text)
-        self.lblLastStableWeight.setText(d.last_stable_text)
-        self.lblBaselineWeight.setText(d.baseline_text)
+        self.lblDeltaWeight.setText(display.delta_weight_text)
+        self.lblDeltaWeight.setStyleSheet(display.delta_weight_style)
+        self.lblState.setText(display.state_text)
+        self.lblState.setStyleSheet(display.state_style)
+        self.lblAvgWeight.setText(display.avg_text)
+        self.lblTolHigh.setText(display.tol_high_text)
+        self.lblTolLow.setText(display.tol_low_text)
+        self.lblTotalPieces.setText(display.total_text)
+        self.lblLastStableWeight.setText(display.last_stable_text)
+        self.lblBaselineWeight.setText(display.baseline_text)
 
-        self.wgtPieceTable.update_piece_weights(d.piece_weights)
-        self.wgtPieceChart.update_piece_weights(d.piece_weights)
+        self.wgtPieceTable.update_piece_weights(display.piece_weights)
+        self.wgtPieceChart.update_piece_weights(display.piece_weights)
 
     def _apply_bar_label_item(self, item: LabelItem, label: QLabel) -> None:
         """把 LabelItem 的文案与样式应用到 QLabel。"""

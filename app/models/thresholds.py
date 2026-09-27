@@ -16,7 +16,7 @@ class Thresholds:
         self.initial_min_ratio: float = initial_min_ratio
 
     def dynamic_min_weight(self, avg_weight: float) -> float:
-        """计件触发所需的最小 delta 阈值。"""
+        """计件触发所需的最小重量差阈值。"""
         if avg_weight <= 0:
             return self.initial_min_weight
         return max(

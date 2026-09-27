@@ -25,17 +25,17 @@ class WeightLearner:
         self.jump_count = 0
 
     def update(
-        self, avg_weight: float, piece_weight: float, n: int, total_pieces: int
+        self, avg_weight: float, piece_weight: float, count: int, total_pieces: int
     ) -> float:
         """返回更新后的平均单重。"""
         if total_pieces <= 0:
             return piece_weight
 
         if total_pieces <= self.early_learn_pieces:
-            old_count = total_pieces - n
+            old_count = total_pieces - count
             if old_count <= 0:
                 return piece_weight
-            return (avg_weight * old_count + piece_weight * n) / total_pieces
+            return (avg_weight * old_count + piece_weight * count) / total_pieces
 
         # 跳变检测
         if avg_weight > 0:

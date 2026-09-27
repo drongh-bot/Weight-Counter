@@ -154,11 +154,7 @@ class MainController:
         )
 
     def _handle_frame(self, frame: CountFrame) -> None:
-        """刷新件数；刚进异常/刚达目标则播放提示音；有新件则记生产。
-
-        「当前秤重」这里不再刷一次——上面已经用原始读数刷过，
-        稳定帧再用锁定值覆盖会让标签闪一下。
-        """
+        """刷新件数；刚进异常/刚达目标则播放提示音；有新件则记生产。"""
         self.ui_bridge.update_count(frame)
         self._sync_button_status()
         if frame.abnormal_edge:

@@ -12,7 +12,7 @@ class CountSnapshot:
     abnormal_high: bool
     abnormal_low: bool
     state: CounterState
-    delta: float
+    delta_weight: float
     avg_weight: float
     tolerance_high: float
     tolerance_low: float

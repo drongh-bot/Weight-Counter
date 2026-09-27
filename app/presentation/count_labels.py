@@ -22,8 +22,8 @@ def build_count_display(snap: CountSnapshot) -> CountDisplay:
         return format_weight(value, snap.decimal_places)
 
     return CountDisplay(
-        delta_text=weight_text(snap.delta),
-        delta_style=state_style,  # ZERO/NORMAL 时 state_style 为空，恰好符合「Δ 无样式」的规则
+        delta_weight_text=weight_text(snap.delta_weight),
+        delta_weight_style=state_style,  # ZERO/NORMAL 时 state_style 为空，恰好符合「Δ 无样式」的规则
         state_text=state_text,
         state_style=state_style,
         avg_text=weight_text(snap.avg_weight),
