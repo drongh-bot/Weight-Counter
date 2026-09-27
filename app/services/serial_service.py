@@ -45,9 +45,7 @@ class SerialService(QObject):
         self._port.setFlowControl(QSerialPort.FlowControl.NoFlowControl)
 
         if not self._port.open(QIODevice.OpenModeFlag.ReadWrite):
-            raise SerialCommunicationError(
-                f"打开串口失败：{self._port.errorString()}"
-            )
+            raise SerialCommunicationError(f"打开串口失败：{self._port.errorString()}")
 
         self._timer.start(self.timeout_millis)
 

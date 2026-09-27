@@ -40,9 +40,9 @@ class TestCounterServiceProcess:
 
     def test_target_edge_trigger(self):
         svc = self._make_service(target=3)
-        svc.process(10.0)   # 1件
-        svc.process(20.0)   # 2件
-        result = svc.process(30.0)   # 3件，达到目标
+        svc.process(10.0)  # 1件
+        svc.process(20.0)  # 2件
+        result = svc.process(30.0)  # 3件，达到目标
         assert result.target_edge is True
         assert type(svc.snapshot()) is CountSnapshot
 

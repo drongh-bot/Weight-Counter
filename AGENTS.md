@@ -65,6 +65,7 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 | `tests/test_config_service.py` | service | 8 |
 | `tests/test_serial_service.py` | service | 5 |
 | `tests/test_sound_player.py` | core | 2 |
+| `tests/test_resource_manager.py` | core | 11 |
 | `tests/test_csv_log_service.py` | service | 3 |
 | `tests/test_bar_status.py` | presentation | 13 |
 | `tests/test_ui_bridge.py` | presentation | 10 |
@@ -72,7 +73,7 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 | `tests/test_piece_chart.py` | view | 6 |
 | `tests/test_controller.py` | controller | 31 |
 
-合计 **178** 条。
+合计 **189** 条。
 
 ## PySide6 QSignalSpy 注意（6.8.3）
 

@@ -139,11 +139,14 @@ class TestBarStatusIntegration:
             piece_added=False,
         )
         assert snap.message.text == MSG_FORCE_DONE
-        assert bar.on_stable_frame(
-            state=CounterState.NORMAL,
-            target_edge=False,
-            piece_added=False,
-        ).message.text == MSG_TARGET
+        assert (
+            bar.on_stable_frame(
+                state=CounterState.NORMAL,
+                target_edge=False,
+                piece_added=False,
+            ).message.text
+            == MSG_TARGET
+        )
 
     def test_reset(self):
         bar = BarStatus()

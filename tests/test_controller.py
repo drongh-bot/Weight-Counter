@@ -345,7 +345,10 @@ class TestControllerPipeline:
         saw_force_done = False
         for _ in range(STABLE_FRAMES):
             controller._on_raw_data("30.0 kg")
-            if ui_bridge._last_bar and ui_bridge._last_bar.message.text == MSG_FORCE_DONE:
+            if (
+                ui_bridge._last_bar
+                and ui_bridge._last_bar.message.text == MSG_FORCE_DONE
+            ):
                 saw_force_done = True
         assert controller.counter_service.snapshot().total_pieces == 3
         sound.play_alert.assert_called()

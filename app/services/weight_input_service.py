@@ -75,4 +75,3 @@ class WeightInputService:
     def stability_threshold(self) -> float:
         """当前生效的稳定阈值（Start 快照）。"""
         return self._stabilizer.stability_threshold
-

@@ -26,23 +26,28 @@ class PieceCounter:
         default = StartParams()
 
         self.initial_single_pieces = (
-            start.initial_single_pieces if start.initial_single_pieces > 0
+            start.initial_single_pieces
+            if start.initial_single_pieces > 0
             else default.initial_single_pieces
         )
         self.max_batch_pieces = (
-            start.max_batch_pieces if start.max_batch_pieces > 0
+            start.max_batch_pieces
+            if start.max_batch_pieces > 0
             else default.max_batch_pieces
         )
         self.tolerance_percent = (
-            start.tolerance_percent if 0.0 < start.tolerance_percent < 100.0
+            start.tolerance_percent
+            if 0.0 < start.tolerance_percent < 100.0
             else default.tolerance_percent
         )
         self.decimal_places = (
-            start.decimal_places if start.decimal_places >= 0
+            start.decimal_places
+            if start.decimal_places >= 0
             else default.decimal_places
         )
         self.stability_threshold = (
-            start.stability_threshold if start.stability_threshold > 0
+            start.stability_threshold
+            if start.stability_threshold > 0
             else default.stability_threshold
         )
 
@@ -259,7 +264,9 @@ class PieceCounter:
 
         return n
 
-    def _add_pieces(self, count: int, delta_weight: float, stable_weight: float) -> None:
+    def _add_pieces(
+        self, count: int, delta_weight: float, stable_weight: float
+    ) -> None:
         """接受加件：写入件重、更新均重与基准。"""
         piece_weight = delta_weight / count
         for _ in range(count):

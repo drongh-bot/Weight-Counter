@@ -200,9 +200,10 @@ class PieceChart(QWidget):
 
         # 范围没变就不 setXRange：它会触发 sigRangeChanged → 滚动条再同步一轮
         current = self.plot.viewRange()[0]
-        if abs(current[0] - (x_min - margin)) < 1e-9 and abs(
-            current[1] - (x_max + margin)
-        ) < 1e-9:
+        if (
+            abs(current[0] - (x_min - margin)) < 1e-9
+            and abs(current[1] - (x_max + margin)) < 1e-9
+        ):
             return
         self.plot.setXRange(x_min - margin, x_max + margin, padding=0)
 

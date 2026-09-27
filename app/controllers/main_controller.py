@@ -104,9 +104,7 @@ class MainController:
             return
 
         stable_weight = self.weight_input_service.stabilize(weight)
-        self.ui_bridge.update_actual_weight(
-            weight, self.counter_service.decimal_places
-        )
+        self.ui_bridge.update_actual_weight(weight, self.counter_service.decimal_places)
 
         if self._pending_force_pieces is not None:
             if stable_weight is None or self._raw_far_from_stable(

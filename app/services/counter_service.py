@@ -84,9 +84,7 @@ class CounterService:
             target_edge=target_edge,
         )
 
-    def force_calibrate(
-        self, stable_weight: float, pieces: int
-    ) -> CountFrame | None:
+    def force_calibrate(self, stable_weight: float, pieces: int) -> CountFrame | None:
         """按操作员指定的片数重设单重和件数。重量太轻等失败时返回 None。"""
         old_count = self._piece_counter.total_pieces
         if not self._piece_counter.force_calibrate(stable_weight, pieces):

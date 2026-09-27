@@ -29,7 +29,9 @@ class TestWeightLearner:
     def test_first_piece(self):
         """第一件直接返回 piece_weight"""
         learner = WeightLearner()
-        result = learner.update(avg_weight=0.0, piece_weight=10.0, count=1, total_pieces=1)
+        result = learner.update(
+            avg_weight=0.0, piece_weight=10.0, count=1, total_pieces=1
+        )
         assert result == 10.0
 
     def test_early_averaging(self):
@@ -97,7 +99,9 @@ class TestTolerance:
 
     def test_match_single_piece(self):
         tol = Tolerance(min_tol=0.1)
-        assert tol.is_within_tolerance(abs(10.0), 1, avg_weight=10.0, tolerance_percent=10.0)
+        assert tol.is_within_tolerance(
+            abs(10.0), 1, avg_weight=10.0, tolerance_percent=10.0
+        )
 
     def test_match_multi_piece(self):
         tol = Tolerance(min_tol=0.1)
@@ -105,11 +109,15 @@ class TestTolerance:
 
     def test_match_failure(self):
         tol = Tolerance(min_tol=0.1)
-        assert not tol.is_within_tolerance(25.0, 1, avg_weight=10.0, tolerance_percent=10.0)
+        assert not tol.is_within_tolerance(
+            25.0, 1, avg_weight=10.0, tolerance_percent=10.0
+        )
 
     def test_match_zero_avg(self):
         tol = Tolerance(min_tol=0.1)
-        assert not tol.is_within_tolerance(10.0, 1, avg_weight=0.0, tolerance_percent=10.0)
+        assert not tol.is_within_tolerance(
+            10.0, 1, avg_weight=0.0, tolerance_percent=10.0
+        )
 
 
 class TestPieceCounterFSM:

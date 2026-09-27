@@ -68,9 +68,7 @@ class CsvLogService(QObject):
         """当前时间，写成日志里的时间列。"""
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def record_production(
-        self, weight: float, total: int, decimal_places: int
-    ) -> None:
+    def record_production(self, weight: float, total: int, decimal_places: int) -> None:
         """记一笔生产：最新单重 + 当前总件数（只入队，马上返回）。"""
         if not self._is_active:
             return

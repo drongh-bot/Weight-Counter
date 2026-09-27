@@ -1,7 +1,7 @@
 [project]
 name = "weightCounter"
 version = "1.4.0"  # 运行时版本唯一来源：app/version.py
-description = "Add your description here"
+description = "工业计件桌面应用：串口电子秤实时稳重判定、自动计件与生产日志"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
