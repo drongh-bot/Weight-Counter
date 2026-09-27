@@ -133,12 +133,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """把 LabelItem 的文案与样式应用到 QLabel。"""
         label.setText(item.text)
         label.setStyleSheet(item.style)
+
     def _bind_controls(self) -> None:
         """按钮 / 参数旋钮 → 本窗方法。"""
         self.btnStart.clicked.connect(self.start)
         self.btnStop.clicked.connect(self.stop)
         self.btnForce.clicked.connect(self._on_force_clicked)
-        self.btnSaveParams.clicked.connect(self.save_params)
 
         self.dspnInitialMinWeight.valueChanged.connect(self._sync_ui_to_params)
         self.dspnTolerancePercent.valueChanged.connect(self._sync_ui_to_params)
@@ -174,7 +174,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.controller.request_force_calibrate(pieces)
         self.spnForcePieces.setValue(0)
 
-    def save_params(self) -> None:
+    def _save_params(self) -> None:
         """UI → Params 同步，再由 ConfigService 落盘。"""
         self._sync_ui_to_params()
         self.params.fixed.splitter_sizes = self.splitter.sizes()
@@ -217,7 +217,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """关闭窗口前存一次配置；真正的 shutdown 在 main.py 的 finally 里。"""
         self.hide()
         try:
-            self.save_params()
+            self._save_params()
         except Exception:
             logger.exception("关闭时保存配置失败")
         finally:
