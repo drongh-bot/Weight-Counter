@@ -20,7 +20,8 @@ class PieceCounter:
     def _copy_start_fields(self, start: StartParams) -> None:
         """拷贝 Start 组的标量字段，非法值一律用默认值顶上。
 
-        构造和点 Start 都走这里，所以守卫只写一遍。
+        公差百分比不在此列 —— 它归 ``Tolerance.set_percent`` 守卫。
+        构造和点 Start 都走这里，所以**每个字段**的守卫只写一次。
         守卫不能省：值可能来自手改的 config.toml，界面控件的 min/max 管不到它。
         """
         default = StartParams()
@@ -35,11 +36,7 @@ class PieceCounter:
             if start.max_batch_pieces > 0
             else default.max_batch_pieces
         )
-        self.tolerance_percent = (
-            start.tolerance_percent
-            if 0.0 < start.tolerance_percent < 100.0
-            else default.tolerance_percent
-        )
+        # tolerance_percent 不在这里：它归 Tolerance 管（见 set_percent 的守卫）
         self.decimal_places = (
             start.decimal_places
             if start.decimal_places >= 0
@@ -57,14 +54,20 @@ class PieceCounter:
         return max(resolution * 2, self.stability_threshold * 2)
 
     def _build_helpers(self, start: StartParams, fixed: FixedParams) -> None:
-        """用固定参数创建 Tolerance / WeightLearner / Thresholds。
+        """用 Start / Fixed 两组参数创建 Tolerance / WeightLearner / Thresholds。
 
-        这里的字段只在程序启动时读一次，改 config.toml 要重启才生效。
+        其中 fixed 的字段只在程序启动时读一次，改 config.toml 要重启才生效。
         """
         self.count_rounding_tolerance = fixed.count_rounding_tolerance
         self.abnormal_recover_factor = fixed.abnormal_recover_factor
 
-        self.tolerance = Tolerance(min_tol=self._min_tol())
+        self.tolerance = Tolerance(
+            min_tol=self._min_tol(),
+            tolerance_percent=StartParams().tolerance_percent,  # 默认打底
+        )
+        self.tolerance.set_percent(
+            start.tolerance_percent
+        )  # 守卫覆盖，与点 Start 同一处
         self.learner = WeightLearner(
             jump_threshold_ratio=fixed.jump_threshold_ratio,
             jump_confirm_times=fixed.jump_confirm_times,
@@ -89,6 +92,7 @@ class PieceCounter:
         拷贝值不跟着界面一直变；跑起来中途改这些字段要再点 Start。
         """
         self._copy_start_fields(start)
+        self.tolerance.set_percent(start.tolerance_percent)  # 与构造同一处守卫
         if start.initial_min_weight > 0:
             self.thresholds.initial_min_weight = start.initial_min_weight
         self._recalc_min_tol()
@@ -201,11 +205,16 @@ class PieceCounter:
         self._reset_baseline(stable_weight)
 
     def _recover_limit(self) -> float:
-        """异常恢复：相对基准允许的绝对偏差上限（avg×% 与 min_tol 取大）。"""
+        """异常恢复的允许偏差上限（avg×% 与 min_tol 取大）。
+
+        它是本状态机的退出条件，不是计件公差的度量 —— 所以留在这里，
+        两个参数取自 ``tolerance``。注意 avg<=0 时仍返回 min_tol（保证异常能恢复），
+        这与 ``tolerance.band(0)`` 返回 0 是**有意不同**的。
+        """
         if self.avg_weight <= 0:
             return self.tolerance.min_tol
         return max(
-            self.avg_weight * (self.tolerance_percent / 100.0),
+            self.avg_weight * (self.tolerance.tolerance_percent / 100.0),
             self.tolerance.min_tol,
         )
 
@@ -258,7 +267,7 @@ class PieceCounter:
             return None
 
         if not self.tolerance.is_within_tolerance(
-            abs(delta_weight), n, self.avg_weight, self.tolerance_percent
+            abs(delta_weight), n, self.avg_weight
         ):
             return None
 

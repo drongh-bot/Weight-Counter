@@ -87,37 +87,42 @@ class TestWeightLearner:
 
 class TestTolerance:
     def test_band_sets_range(self):
-        tol = Tolerance(min_tol=0.1)
-        band = tol.band(100.0, 10.0)
+        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
+        band = tol.band(100.0)
         assert band.low < 100.0
         assert band.high > 100.0
         assert band.half_range > 0
 
     def test_band_zero_avg(self):
-        tol = Tolerance(min_tol=0.1)
-        assert tol.band(0.0, 10.0) == ToleranceBand(0.0, 0.0, 0.0)
+        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
+        assert tol.band(0.0) == ToleranceBand(0.0, 0.0, 0.0)
 
     def test_match_single_piece(self):
-        tol = Tolerance(min_tol=0.1)
-        assert tol.is_within_tolerance(
-            abs(10.0), 1, avg_weight=10.0, tolerance_percent=10.0
-        )
+        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
+        assert tol.is_within_tolerance(abs(10.0), 1, avg_weight=10.0)
 
     def test_match_multi_piece(self):
-        tol = Tolerance(min_tol=0.1)
-        assert tol.is_within_tolerance(40.0, 4, avg_weight=10.0, tolerance_percent=10.0)
+        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
+        assert tol.is_within_tolerance(40.0, 4, avg_weight=10.0)
 
     def test_match_failure(self):
-        tol = Tolerance(min_tol=0.1)
-        assert not tol.is_within_tolerance(
-            25.0, 1, avg_weight=10.0, tolerance_percent=10.0
-        )
+        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
+        assert not tol.is_within_tolerance(25.0, 1, avg_weight=10.0)
 
     def test_match_zero_avg(self):
-        tol = Tolerance(min_tol=0.1)
-        assert not tol.is_within_tolerance(
-            10.0, 1, avg_weight=0.0, tolerance_percent=10.0
-        )
+        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
+        assert not tol.is_within_tolerance(10.0, 1, avg_weight=0.0)
+
+    def test_set_percent_keeps_valid_value(self):
+        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
+        tol.set_percent(25.0)
+        assert tol.tolerance_percent == 25.0
+
+    def test_set_percent_rejects_illegal_value(self):
+        """非法公差百分比（手改 config.toml 可能给）不得覆盖当前值。"""
+        tol = Tolerance(min_tol=0.1, tolerance_percent=10.0)
+        tol.set_percent(150.0)
+        assert tol.tolerance_percent == 10.0
 
 
 class TestPieceCounterFSM:
@@ -338,6 +343,6 @@ class TestPieceCounterParamUpdate:
         params = params_from(tolerance_percent=20.0)
         counter = PieceCounter(params)
         params.start.tolerance_percent = 5.0
-        assert counter.tolerance_percent == 20.0
+        assert counter.tolerance.tolerance_percent == 20.0
         counter.apply_start_params(params.start)
-        assert counter.tolerance_percent == 5.0
+        assert counter.tolerance.tolerance_percent == 5.0
