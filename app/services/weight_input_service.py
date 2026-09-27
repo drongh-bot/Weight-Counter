@@ -1,7 +1,7 @@
 # app/services/weight_input_service.py
 import logging
 
-from app.models.params import Params, StartParams
+from app.models.params import Params
 from app.models.weight_stabilizer import WeightStabilizer
 
 logger = logging.getLogger(__name__)
