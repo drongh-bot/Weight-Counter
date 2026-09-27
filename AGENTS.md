@@ -48,6 +48,7 @@ uv run pyinstaller main.spec     # 打包到 dist/WeightCounter/（建议加 --c
 uv run pytest tests/ -v          # 全部测试
 uv run mypy app                  # 类型检查
 uv run ruff check .              # lint（配置在 pyproject [tool.ruff]）
+git config core.hooksPath .githooks   # 启用提交前四项检查（克隆后跑一次；临时跳过用 --no-verify）
 ```
 
 ## 测试
@@ -59,6 +60,7 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 | `tests/test_weight_stabilizer.py` | model | 12 |
 | `tests/test_piece_counter.py` | model | 37 |
 | `tests/test_formatting.py` | model | 3 |
+| `tests/test_params.py` | model | 9 |
 | `tests/test_count_display.py` | presentation | 5 |
 | `tests/test_weight_input_service.py` | service | 20 |
 | `tests/test_counter_service.py` | service | 19 |
@@ -66,14 +68,16 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 | `tests/test_serial_service.py` | service | 5 |
 | `tests/test_sound_player.py` | core | 2 |
 | `tests/test_resource_manager.py` | core | 11 |
+| `tests/test_csv_writer.py` | core | 7 |
 | `tests/test_csv_log_service.py` | service | 3 |
 | `tests/test_bar_status.py` | presentation | 13 |
 | `tests/test_ui_bridge.py` | presentation | 10 |
 | `tests/test_piece_table.py` | view | 4 |
 | `tests/test_piece_chart.py` | view | 6 |
+| `tests/test_main_window.py` | view | 11 |
 | `tests/test_controller.py` | controller | 31 |
 
-合计 **189** 条。
+合计 **216** 条。
 
 ## PySide6 QSignalSpy 注意（6.8.3）
 

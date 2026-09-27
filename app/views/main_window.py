@@ -181,14 +181,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.config_service.save(self.params)
 
     def _load_params_to_ui(self) -> None:
-        """把 Params 里可调的字段写到对应控件。"""
-        self.dspnInitialMinWeight.setValue(self.params.start.initial_min_weight)
-        self.dspnTolerancePercent.setValue(self.params.start.tolerance_percent)
-        self.dspnStabilityThreshold.setValue(self.params.start.stability_threshold)
-        self.spnMaxBatchPieces.setValue(self.params.start.max_batch_pieces)
-        self.spnInitialSinglePieces.setValue(self.params.start.initial_single_pieces)
-        self.spnDecimalPlaces.setValue(self.params.start.decimal_places)
-        self.spnTargetPieces.setValue(self.params.target_pieces)
+        """把 Params 里可调的字段写到对应控件。
+
+        每次写入都屏蔽信号：否则 setValue 会触发 _sync_ui_to_params，
+        把**还没轮到的控件的旧值**回写进 Params，冲掉刚设进去的新值。
+        """
+
+        def load(widget, value) -> None:
+            widget.blockSignals(True)
+            widget.setValue(value)
+            widget.blockSignals(False)
+
+        load(self.dspnInitialMinWeight, self.params.start.initial_min_weight)
+        load(self.dspnTolerancePercent, self.params.start.tolerance_percent)
+        load(self.dspnStabilityThreshold, self.params.start.stability_threshold)
+        load(self.spnMaxBatchPieces, self.params.start.max_batch_pieces)
+        load(self.spnInitialSinglePieces, self.params.start.initial_single_pieces)
+        load(self.spnDecimalPlaces, self.params.start.decimal_places)
+        load(self.spnTargetPieces, self.params.target_pieces)
 
     def _sync_ui_to_params(self) -> None:
         """把参数控件当前值写回共享 Params（写字段、不换子对象，否则共享会断）。"""
