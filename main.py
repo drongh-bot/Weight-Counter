@@ -5,7 +5,7 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from app.controllers.main_controller import MainController
-from app.core.log_config import setup_logging
+from app.core import log_config
 from app.core.resource_manager import ResourceManager
 from app.core.sound_player import SoundPlayer
 from app.presentation.ui_bridge import UiBridge
@@ -23,7 +23,7 @@ def main() -> None:
     """应用入口：组装 DI 依赖并启动 Qt 主循环。"""
     app = QApplication(sys.argv)
 
-    setup_logging(ResourceManager.get_external("log"))
+    log_config.setup_logging(ResourceManager.get_external("log"))
 
     config_service = ConfigService()
     params = config_service.load()
