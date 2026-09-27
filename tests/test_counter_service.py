@@ -1,6 +1,6 @@
 from app.models.count_snapshot import CountSnapshot
-from app.models.params import Params, params_from
 from app.models.counter_state import CounterState
+from app.models.params import Params, params_from
 from app.services.counter_service import CounterService
 
 

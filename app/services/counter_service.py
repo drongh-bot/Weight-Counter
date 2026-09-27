@@ -3,8 +3,8 @@
 from dataclasses import asdict
 
 from app.models.count_snapshot import CountFrame, CountSnapshot
-from app.models.params import Params
 from app.models.counter_state import CounterState
+from app.models.params import Params
 from app.models.piece_counter import PieceCounter
 
 

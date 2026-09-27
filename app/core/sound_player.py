@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 import os
 import winsound
-
 from pathlib import Path
 
 from app.core.resource_manager import ResourceManager
