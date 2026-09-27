@@ -17,7 +17,7 @@ from app.models.count_snapshot import CountSnapshot
 from app.models.params import Params
 from app.presentation.count_display import build_count_display
 from app.presentation.ui_bridge import UiBridge
-from app.presentation.view_data import BarSnapshot, ControlStatus, LabelItem
+from app.presentation.view_data import BarSnapshot, ControlStatus, StyledText
 from app.services.config_service import ConfigService
 from app.version import __version__
 from app.views.ui_generated.form import Ui_MainWindow
@@ -129,8 +129,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.wgtPieceTable.update_piece_weights(snap.piece_weights)
         self.wgtPieceChart.update_piece_weights(snap.piece_weights)
 
-    def _apply_label(self, item: LabelItem, label: QLabel) -> None:
-        """把 LabelItem 的文案与样式应用到 QLabel。"""
+    def _apply_label(self, item: StyledText, label: QLabel) -> None:
+        """把 StyledText 的文案与样式应用到 QLabel。"""
         label.setText(item.text)
         label.setStyleSheet(item.style)
 

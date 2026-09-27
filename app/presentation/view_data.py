@@ -13,8 +13,8 @@ class Styles:
 
 
 @dataclass
-class LabelItem:
-    """通用标签项：文本 + 样式。"""
+class StyledText:
+    """要贴到 QLabel 上的一对值：显示什么字、配什么样式。"""
 
     text: str
     style: str
@@ -24,9 +24,9 @@ class LabelItem:
 class BarSnapshot:
     """状态栏三格（解析 / 通讯 / 消息）的一帧快照。"""
 
-    parse: LabelItem
-    comm: LabelItem
-    message: LabelItem
+    parse: StyledText
+    comm: StyledText
+    message: StyledText
 
 
 @dataclass
@@ -43,8 +43,8 @@ class ControlStatus:
 class CountDisplay:
     """计件区一帧的完整展示数据：文本全部格式化好，视图只负责贴。"""
 
-    delta: LabelItem  # Δ值 + 样式（异常时着色）
-    state: LabelItem  # 状态文案 + 样式
+    delta: StyledText  # Δ值 + 样式（异常时着色）
+    state: StyledText  # 状态文案 + 样式
     avg_text: str
     tol_high_text: str
     tol_low_text: str

@@ -19,7 +19,7 @@
 from enum import Enum, auto
 
 from app.models.counter_state import CounterState
-from app.presentation.view_data import BarSnapshot, LabelItem, Styles
+from app.presentation.view_data import BarSnapshot, StyledText, Styles
 
 # 供测试核对文案
 MSG_NONE = "无异常"
@@ -39,31 +39,31 @@ class _ParseCommStatus(Enum):
     FAULT = auto()
 
 
-def _parse_comm_labels(status: _ParseCommStatus) -> tuple[LabelItem, LabelItem]:
+def _parse_comm_labels(status: _ParseCommStatus) -> tuple[StyledText, StyledText]:
     """根据通讯情况拼出「解析」「通讯」两格文字和颜色。"""
     if status is _ParseCommStatus.OK:
         return (
-            LabelItem(text="解析正常", style=Styles.GREEN),
-            LabelItem(text="通讯正常", style=Styles.GREEN),
+            StyledText(text="解析正常", style=Styles.GREEN),
+            StyledText(text="通讯正常", style=Styles.GREEN),
         )
     if status is _ParseCommStatus.PARSE_FAIL:
         return (
-            LabelItem(text="解析异常", style=Styles.RED),
-            LabelItem(text="通讯正常", style=Styles.GREEN),
+            StyledText(text="解析异常", style=Styles.RED),
+            StyledText(text="通讯正常", style=Styles.GREEN),
         )
     # 超时与串口故障都显示「等待」；具体原因由消息格展示
     return (
-        LabelItem(text="解析等待", style=Styles.GRAY),
-        LabelItem(text="通讯等待", style=Styles.GRAY),
+        StyledText(text="解析等待", style=Styles.GRAY),
+        StyledText(text="通讯等待", style=Styles.GRAY),
     )
 
 
-def _message_label(text: str, *, info: bool = False) -> LabelItem:
+def _message_label(text: str, *, info: bool = False) -> StyledText:
     """拼消息格：提示类用灰字，报错类用红字；没消息就显示「无异常」。"""
     if not text or text == MSG_NONE:
-        return LabelItem(text=MSG_NONE, style="")
+        return StyledText(text=MSG_NONE, style="")
     style = Styles.GRAY if info else Styles.RED
-    return LabelItem(text=text, style=style)
+    return StyledText(text=text, style=style)
 
 
 class BarStatus:
