@@ -30,8 +30,8 @@ class BarSnapshot:
 
 
 @dataclass
-class ButtonStatus:
-    """Start / Stop / 强制校准等按钮的可用状态。"""
+class ControlStatus:
+    """Start / Stop / 强制校准 / Spinbox 等控件的可用状态。"""
 
     start_enabled: bool = True
     stop_enabled: bool = False

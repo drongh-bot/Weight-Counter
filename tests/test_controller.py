@@ -245,10 +245,10 @@ class TestControllerPipeline:
 
     def test_ui_button_state_when_running(self, make_controller):
         controller, ui_bridge = make_controller()
-        spy = QSignalSpy(ui_bridge.button_status_changed)
+        spy = QSignalSpy(ui_bridge.control_status_changed)
 
         controller._is_running = True
-        controller._sync_button_status()
+        controller._sync_control_status()
 
         d = spy.at(spy.count() - 1)[0]
         assert d.start_enabled is False
@@ -258,7 +258,7 @@ class TestControllerPipeline:
 
     def test_start_params_enabled_when_stopped(self, make_controller):
         controller, _ui_bridge = make_controller()
-        status = controller._button_status()
+        status = controller._control_status()
         assert status.start_params_enabled is True
         assert status.start_enabled is True
 
@@ -272,7 +272,7 @@ class TestControllerPipeline:
         result = controller.counter_service.snapshot()
         assert result.state == CounterState.ABNORMAL
 
-        status = controller._button_status()
+        status = controller._control_status()
         assert status.force_enabled is True
 
     def test_force_pending_disables_force_button(self, make_controller):
@@ -281,7 +281,7 @@ class TestControllerPipeline:
         feed_stable(controller, "10.0 kg")
 
         controller.request_force_calibrate(3)
-        status = controller._button_status()
+        status = controller._control_status()
         assert status.force_enabled is False
         assert controller._pending_force_pieces == 3
 
@@ -308,7 +308,7 @@ class TestControllerPipeline:
         ui_bridge.update_bar(bar)
         assert ui_bridge._last_bar is not None
         assert ui_bridge._last_bar.message.text == MSG_FORCE_FAIL
-        assert controller._button_status().force_enabled is True
+        assert controller._control_status().force_enabled is True
 
     def test_raw_far_from_stable(self, make_controller):
         controller, _ui_bridge = make_controller()
@@ -358,7 +358,7 @@ class TestControllerPipeline:
             controller._on_raw_data("30.0 kg")
         assert ui_bridge._last_bar is not None
         assert ui_bridge._last_bar.message.text == MSG_TARGET
-        assert controller._button_status().force_enabled is True
+        assert controller._control_status().force_enabled is True
 
     def test_parse_fail_clears_actual_weight(self, make_controller):
         controller, ui_bridge = make_controller()
@@ -395,7 +395,7 @@ class TestStartFailureAndShutdown:
         assert controller.start("COM99", 9600) is False
 
         assert controller._is_running is False
-        assert controller._button_status().start_enabled is True
+        assert controller._control_status().start_enabled is True
         controller.serial_service.open.assert_not_called()
 
     def test_serial_failure_rolls_back_running(self, make_controller):
@@ -405,7 +405,7 @@ class TestStartFailureAndShutdown:
         assert controller.start("COM99", 9600) is False
 
         assert controller._is_running is False
-        assert controller._button_status().start_enabled is True
+        assert controller._control_status().start_enabled is True
 
     def test_shutdown_stops_receiving_serial_data(self, make_controller):
         """断开信号后，串口再发数据也不该进 controller。"""

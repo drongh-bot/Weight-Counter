@@ -17,7 +17,7 @@ from app.models.count_snapshot import CountSnapshot
 from app.models.params import Params
 from app.presentation.count_display import build_count_display
 from app.presentation.ui_bridge import UiBridge
-from app.presentation.view_data import BarSnapshot, ButtonStatus, LabelItem
+from app.presentation.view_data import BarSnapshot, ControlStatus, LabelItem
 from app.services.config_service import ConfigService
 from app.version import __version__
 from app.views.ui_generated.form import Ui_MainWindow
@@ -90,7 +90,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """UiBridge 信号 → 本窗槽。"""
         self.ui_bridge.actual_weight_text_changed.connect(self.lblActWeight.setText)
         self.ui_bridge.bar_snapshot_changed.connect(self._on_bar_snapshot_changed)
-        self.ui_bridge.button_status_changed.connect(self._on_button_status_changed)
+        self.ui_bridge.control_status_changed.connect(self._on_control_status_changed)
         self.ui_bridge.count_snapshot_changed.connect(self._on_count_snapshot_changed)
 
     def _on_bar_snapshot_changed(self, data: BarSnapshot) -> None:
@@ -99,7 +99,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._apply_label(data.comm, self.lblComm)
         self._apply_label(data.message, self.lblMessage)
 
-    def _on_button_status_changed(self, state: ButtonStatus) -> None:
+    def _on_control_status_changed(self, state: ControlStatus) -> None:
         """同步按钮与 Start 参数控件的可用状态（target_pieces 不锁，改了立刻生效）。"""
         self.btnStart.setEnabled(state.start_enabled)
         self.btnStop.setEnabled(state.stop_enabled)

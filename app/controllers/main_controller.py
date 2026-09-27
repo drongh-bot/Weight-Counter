@@ -5,7 +5,7 @@ from app.core.sound_player import SoundPlayer
 from app.models.count_snapshot import CountFrame, CountSnapshot
 from app.presentation.bar_status import BarStatus
 from app.presentation.ui_bridge import UiBridge
-from app.presentation.view_data import BarSnapshot, ButtonStatus
+from app.presentation.view_data import BarSnapshot, ControlStatus
 from app.services.counter_service import CounterService
 from app.services.csv_log_service import CsvLogService
 from app.services.serial_service import SerialService
@@ -49,19 +49,19 @@ class MainController:
         self._sync_ui()
         self.ui_bridge.update_bar(self._bar.reset())
 
-    def _button_status(self) -> ButtonStatus:
+    def _control_status(self) -> ControlStatus:
         """按是否在跑、是否在等强制校准，决定 Start/Stop/强制校准等按钮能不能点。"""
         pending_force = self._pending_force_pieces is not None
-        return ButtonStatus(
+        return ControlStatus(
             start_enabled=not self._is_running,
             stop_enabled=self._is_running,
             force_enabled=self._is_running and not pending_force,
             start_params_enabled=not self._is_running,
         )
 
-    def _sync_button_status(self) -> None:
+    def _sync_control_status(self) -> None:
         """把按钮能不能点告诉界面。"""
-        self.ui_bridge.update_button_status(self._button_status())
+        self.ui_bridge.update_control_status(self._control_status())
 
     def _clear_pending(self) -> None:
         """取消「等重量稳住再强制校准」。"""
@@ -82,7 +82,7 @@ class MainController:
         """用当前状态把界面刷一遍：计件面板 + 按钮可用状态 + 清空当前秤重。"""
         snap = self.counter_service.snapshot()
         self.ui_bridge.update_count_panel(snap)
-        self._sync_button_status()
+        self._sync_control_status()
         self._clear_actual_weight()
 
     def _on_raw_data(self, raw_data: str) -> None:
@@ -154,7 +154,7 @@ class MainController:
     def _handle_frame(self, frame: CountFrame) -> None:
         """刷新件数；刚进异常/刚达目标则播放提示音；有新件则记生产。"""
         self.ui_bridge.update_count_panel(frame)
-        self._sync_button_status()
+        self._sync_control_status()
         if frame.abnormal_edge:
             self.sound_player.play_error()
         if frame.target_edge:
@@ -192,7 +192,7 @@ class MainController:
         if self._pending_force_pieces is not None:
             return
         self._pending_force_pieces = pieces
-        self._sync_button_status()
+        self._sync_control_status()
         self.ui_bridge.update_bar(self._bar.on_force_waiting_frame())
 
     def _reset_all(self) -> None:

@@ -8,7 +8,7 @@ import pytest
 
 from app.models.counter_state import CounterState
 from app.models.params import Params
-from app.presentation.view_data import ButtonStatus
+from app.presentation.view_data import ControlStatus
 from app.services.config_service import ConfigService
 from app.views.main_window import MainWindow
 from tests.conftest import make_count_snapshot
@@ -75,8 +75,8 @@ class TestParamsBinding:
     def test_target_pieces_stays_enabled_when_params_locked(self, window):
         """跑起来后 Start 参数要锁，但 target_pieces 随时可改。"""
         win, _, _ = window
-        win._on_button_status_changed(
-            ButtonStatus(start_enabled=False, start_params_enabled=False)
+        win._on_control_status_changed(
+            ControlStatus(start_enabled=False, start_params_enabled=False)
         )
 
         assert not win.dspnTolerancePercent.isEnabled()  # 锁

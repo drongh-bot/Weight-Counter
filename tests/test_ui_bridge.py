@@ -6,7 +6,7 @@ from app.models.count_snapshot import CountFrame
 from app.models.counter_state import CounterState
 from app.presentation.bar_status import BarStatus
 from app.presentation.ui_bridge import UiBridge
-from app.presentation.view_data import ButtonStatus, Styles
+from app.presentation.view_data import ControlStatus, Styles
 from tests.conftest import make_count_snapshot
 
 
@@ -124,22 +124,22 @@ class TestUi:
         d = self._last(spy)
         assert d == "10.00"
 
-    def test_button_status_emits(self, qapp):
+    def test_control_status_emits(self, qapp):
         ui = UiBridge()
-        spy = QSignalSpy(ui.button_status_changed)
+        spy = QSignalSpy(ui.control_status_changed)
 
-        ui.update_button_status(ButtonStatus(start_enabled=False, stop_enabled=True))
+        ui.update_control_status(ControlStatus(start_enabled=False, stop_enabled=True))
         assert spy.count() == 1
         d = self._last(spy)
         assert d.start_enabled is False
         assert d.stop_enabled is True
 
-    def test_button_status_duplicate_not_emitted(self, qapp):
+    def test_control_status_duplicate_not_emitted(self, qapp):
         ui = UiBridge()
-        spy = QSignalSpy(ui.button_status_changed)
+        spy = QSignalSpy(ui.control_status_changed)
 
-        state = ButtonStatus(start_enabled=False, stop_enabled=True)
-        ui.update_button_status(state)
+        state = ControlStatus(start_enabled=False, stop_enabled=True)
+        ui.update_control_status(state)
         assert spy.count() == 1
-        ui.update_button_status(state)
+        ui.update_control_status(state)
         assert spy.count() == 1

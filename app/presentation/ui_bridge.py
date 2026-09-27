@@ -5,7 +5,7 @@ from PySide6.QtCore import QObject, Signal
 
 from app.models.count_snapshot import CountSnapshot
 from app.models.formatting import format_weight
-from app.presentation.view_data import BarSnapshot, ButtonStatus
+from app.presentation.view_data import BarSnapshot, ControlStatus
 
 
 class UiBridge(QObject):
@@ -17,14 +17,14 @@ class UiBridge(QObject):
 
     count_snapshot_changed = Signal(CountSnapshot)
     bar_snapshot_changed = Signal(BarSnapshot)
-    button_status_changed = Signal(ButtonStatus)
+    control_status_changed = Signal(ControlStatus)
     actual_weight_text_changed = Signal(str)
 
     def __init__(self) -> None:
         super().__init__()
         self._last_count: CountSnapshot | None = None
         self._last_bar: BarSnapshot | None = None
-        self._last_button: ButtonStatus | None = None
+        self._last_control: ControlStatus | None = None
         self._last_weight: str | None = None
 
     @staticmethod
@@ -50,11 +50,11 @@ class UiBridge(QObject):
             self._last_bar = snapshot
             self.bar_snapshot_changed.emit(snapshot)
 
-    def update_button_status(self, state: ButtonStatus) -> None:
+    def update_control_status(self, state: ControlStatus) -> None:
         """Start / Stop / 强制校准等按钮能不能点。"""
-        if state != self._last_button:
-            self._last_button = state
-            self.button_status_changed.emit(state)
+        if state != self._last_control:
+            self._last_control = state
+            self.control_status_changed.emit(state)
 
     def update_actual_weight(self, weight: float | None, decimal_places: int) -> None:
         """刷新「当前秤重」；没有有效重量时显示 -----。"""
