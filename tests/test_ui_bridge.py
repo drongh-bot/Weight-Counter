@@ -6,7 +6,7 @@ from app.models.count_snapshot import CountFrame
 from app.models.counter_state import CounterState
 from app.presentation.bar_status import BarStatus
 from app.presentation.ui_bridge import UiBridge
-from app.presentation.view_models import ButtonStatus, Styles
+from app.presentation.view_data import ButtonStatus, Styles
 from tests.conftest import make_count_snapshot
 
 

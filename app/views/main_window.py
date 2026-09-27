@@ -15,9 +15,9 @@ from app.controllers.main_controller import MainController
 from app.core.resource_manager import ResourceManager
 from app.models.count_snapshot import CountSnapshot
 from app.models.params import Params
-from app.presentation.count_labels import build_count_display
+from app.presentation.count_display import build_count_display
 from app.presentation.ui_bridge import UiBridge
-from app.presentation.view_models import BarSnapshot, ButtonStatus, LabelItem
+from app.presentation.view_data import BarSnapshot, ButtonStatus, LabelItem
 from app.services.config_service import ConfigService
 from app.version import __version__
 from app.views.ui_generated.form import Ui_MainWindow

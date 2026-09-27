@@ -29,9 +29,7 @@ def main() -> None:
     params = config_service.load()
 
     ui_bridge = UiBridge()
-    serial_service = SerialService(
-        params.fixed.timeout_millis, params.fixed.encoding
-    )
+    serial_service = SerialService(params.fixed.timeout_millis, params.fixed.encoding)
     counter_service = CounterService(params)
     weight_input_service = WeightInputService(params)
     sound_player = SoundPlayer()
@@ -58,7 +56,6 @@ def main() -> None:
     try:
         exit_code = app.exec()
     finally:
-        # 放 finally：主循环抛异常也要收串口、写完日志
         try:
             controller.shutdown()
         except Exception:

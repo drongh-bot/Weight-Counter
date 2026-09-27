@@ -5,7 +5,7 @@ from PySide6.QtCore import QObject, Signal
 
 from app.models.count_snapshot import CountSnapshot
 from app.models.formatting import format_weight
-from app.presentation.view_models import BarSnapshot, ButtonStatus
+from app.presentation.view_data import BarSnapshot, ButtonStatus
 
 
 class UiBridge(QObject):

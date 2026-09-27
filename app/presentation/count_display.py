@@ -1,10 +1,10 @@
-# app/presentation/count_labels.py
+# app/presentation/count_display.py
 """计件区展示用纯函数（无 Qt），供 MainWindow 与单测使用。"""
 
 from app.models.count_snapshot import CountSnapshot
 from app.models.counter_state import CounterState
 from app.models.formatting import format_weight
-from app.presentation.view_models import CountDisplay, LabelItem, Styles
+from app.presentation.view_data import CountDisplay, LabelItem, Styles
 
 
 def build_count_display(snap: CountSnapshot) -> CountDisplay:

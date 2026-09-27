@@ -1,6 +1,6 @@
 from app.models.counter_state import CounterState
-from app.presentation.count_labels import build_count_display
-from app.presentation.view_models import Styles
+from app.presentation.count_display import build_count_display
+from app.presentation.view_data import Styles
 from tests.conftest import make_count_snapshot
 
 

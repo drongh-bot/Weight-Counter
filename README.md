@@ -14,7 +14,7 @@
   → WeightInputService    （解析 + 双窗口稳重）
   → CounterService        （PieceCounter 状态机 + 上升沿）
   → UiBridge              （计件快照 / 状态栏 / 按钮 / 当前重量信号，内容没变不通知）
-  → count_labels          （快照 → 展示文本；格式化与样式规则都在这里）
+  → count_display          （快照 → 展示文本；格式化与样式规则都在这里）
   → MainWindow            （贴文本 + 驱动表格、散点图）
 ```
 
@@ -26,7 +26,7 @@ app/
 ├── models/                纯业务（PieceCounter、Params、CountSnapshot、稳重/公差等）
 ├── services/              串口、重量输入、计件、生产 CSV、配置
 ├── controllers/           MainController — 每帧顺序编排
-├── presentation/          UiBridge、BarStatus、count_labels、view_models
+├── presentation/          UiBridge、BarStatus、count_display、view_data
 ├── views/                 MainWindow、PieceTable、PieceChart
 │   ├── widgets/
 │   └── ui_generated/      Qt Designer 生成
@@ -37,7 +37,7 @@ app/
 
 - **依赖注入** — 对象在 `main.py` 创建并接线
 - **FSM 与门面** — `PieceCounter.on_stable_weight` 改状态；`CounterService.process` 认边沿并产出 `CountFrame`
-- **信号驱动 UI** — `UiBridge` 推送 `CountSnapshot` 等（内容没变不通知）；**格式化与样式规则在 `presentation/count_labels`**，`MainWindow` 只贴文本、不碰业务（勿与 `Ui_MainWindow` 混淆）
+- **信号驱动 UI** — `UiBridge` 推送 `CountSnapshot` 等（内容没变不通知）；**格式化与样式规则在 `presentation/count_display`**，`MainWindow` 只贴文本、不碰业务（勿与 `Ui_MainWindow` 混淆）
 - **禁止乱穿属性** — Controller 只调服务方法
 - **Model / 计件服务无 Qt** — 可脱离界面单测
 - **参数生效时机** — 分三组：`start`（6 项，点 Start 才拷进算法）、`fixed`（19 项，启动时读入，**改配置要重启**）、`target_pieces`（随时生效，不写入配置文件）
