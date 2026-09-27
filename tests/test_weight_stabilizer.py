@@ -157,10 +157,10 @@ class TestEdgeCases:
 
     def test_apply_start_params_threshold(self):
         """apply_start_params 将 stability_threshold 复制进实例"""
-        from app.models.params import Params
+        from app.models.params import StartParams
 
         stabilizer = WeightStabilizer(stability_threshold=10.0)
-        stabilizer.apply_start_params(Params(stability_threshold=0.001))
+        stabilizer.apply_start_params(StartParams(stability_threshold=0.001))
         assert stabilizer.stability_threshold == 0.001
 
     def test_stable_count_from_constructor(self):

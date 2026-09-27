@@ -4,7 +4,6 @@ from typing import NamedTuple
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QCloseEvent, QIcon
-from PySide6.QtSerialPort import QSerialPortInfo
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -30,21 +29,19 @@ logger = logging.getLogger(__name__)
 
 
 class _ParamField(NamedTuple):
-    """界面可调参数：Params 字段 ↔ 控件；lock=True 表示跑起来后锁住不让改。"""
+    """点 Start 才生效的参数旋钮：Params.start 字段 ↔ 控件。"""
 
     attr: str
     widget: str
-    lock: bool
 
 
 _PARAM_FIELDS = (
-    _ParamField("initial_min_weight", "dspnInitialMinWeight", lock=True),
-    _ParamField("tolerance_percent", "dspnTolerancePercent", lock=True),
-    _ParamField("stability_threshold", "dspnStabilityThreshold", lock=True),
-    _ParamField("max_batch_pieces", "spnMaxBatchPieces", lock=True),
-    _ParamField("initial_single_pieces", "spnInitialSinglePieces", lock=True),
-    _ParamField("target_pieces", "spnTargetPieces", lock=False),
-    _ParamField("decimal_places", "spnDecimalPlaces", lock=True),
+    _ParamField("initial_min_weight", "dspnInitialMinWeight"),
+    _ParamField("tolerance_percent", "dspnTolerancePercent"),
+    _ParamField("stability_threshold", "dspnStabilityThreshold"),
+    _ParamField("max_batch_pieces", "spnMaxBatchPieces"),
+    _ParamField("initial_single_pieces", "spnInitialSinglePieces"),
+    _ParamField("decimal_places", "spnDecimalPlaces"),
 )
 
 
@@ -72,9 +69,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.params: Params = params
         self.config_service: ConfigService = config_service
 
-        self._init_port_list()
-        self._init_baud_rate_list()
-
         self._init_extra_widgets()
 
         self._load_settings()
@@ -87,8 +81,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _init_extra_widgets(self) -> None:
         """装配件数表、散点图与自定义状态栏标签。"""
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.wgtPieceTable = PieceTable(self.params.decimal_places)
-        self.wgtPieceChart = PieceChart(self.params.decimal_places)
+        self.wgtPieceTable = PieceTable(self.params.start.decimal_places)
+        self.wgtPieceChart = PieceChart(self.params.start.decimal_places)
         self.splitter.addWidget(self.wgtPieceTable)
         self.splitter.addWidget(self.wgtPieceChart)
 
@@ -129,8 +123,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnStop.setEnabled(state.stop_enabled)
         self.btnForce.setEnabled(state.force_enabled)
         for field in _PARAM_FIELDS:
-            if field.lock:
-                getattr(self, field.widget).setEnabled(state.start_params_enabled)
+            getattr(self, field.widget).setEnabled(state.start_params_enabled)
 
     def _on_count_snapshot_changed(self, snap: CountSnapshot) -> None:
         """刷新计件标签、表格与散点图。"""
@@ -164,22 +157,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         for field in _PARAM_FIELDS:
             getattr(self, field.widget).valueChanged.connect(self._sync_ui_to_params)
+        # target_pieces 不进表：它在 Params 顶层，不锁、不落盘、改了立刻生效
+        self.spnTargetPieces.valueChanged.connect(self._sync_ui_to_params)
 
     def start(self) -> None:
-        """Start：打开串口并开始计件。"""
-        port = self.cbPort.currentText()
-        baud_rate = int(self.cbBaudRate.currentText())
-
-        if not port:
-            QMessageBox.warning(self, "提示", "请选择串口")
-            return
-
+        """Start：按 config.toml 里的串口参数打开串口并开始计件。"""
         self._sync_ui_to_params()
-        if not self.controller.start(port, baud_rate):
-            QMessageBox.warning(self, "提示", f"无法打开串口 {port}")
+        if not self.controller.start(
+            self.params.fixed.port, self.params.fixed.baud_rate
+        ):
+            QMessageBox.warning(self, "提示", f"无法打开串口 {self.params.fixed.port}")
             return
 
-        places = self.params.decimal_places
+        places = self.params.start.decimal_places
         self.wgtPieceTable.set_decimal_places(places)
         self.wgtPieceChart.set_decimal_places(places)
 
@@ -197,11 +187,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.spnForcePieces.setValue(0)
 
     def save_params(self) -> None:
-        """UI → Params 同步，并将全部配置持久化到磁盘。"""
+        """UI → Params 同步，并将全部配置持久化到磁盘。
+
+        串口/波特率不再来自界面，读进来是什么就原样写回。
+        """
         self._sync_ui_to_params()
-        self.params.port = self.cbPort.currentText()
-        self.params.baud_rate = int(self.cbBaudRate.currentText())
-        self.params.splitter_sizes = self.splitter.sizes()
+        self.params.fixed.splitter_sizes = self.splitter.sizes()
         self.config_service.save(
             self.params, ResourceManager.get_external("config.toml")
         )
@@ -209,47 +200,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _load_params_to_ui(self) -> None:
         """把 Params 中的可编辑字段写到对应控件。"""
         for field in _PARAM_FIELDS:
-            getattr(self, field.widget).setValue(getattr(self.params, field.attr))
+            getattr(self, field.widget).setValue(getattr(self.params.start, field.attr))
+        self.spnTargetPieces.setValue(self.params.target_pieces)
 
     def _sync_ui_to_params(self) -> None:
-        """把参数控件当前值写回共享 Params。"""
+        """把参数控件当前值写回共享 Params（写字段，不替换子对象，否则共享会断）。"""
         for field in _PARAM_FIELDS:
             setattr(
-                self.params,
+                self.params.start,
                 field.attr,
                 getattr(self, field.widget).value(),
             )
-
-    def _init_port_list(self) -> None:
-        """枚举并填充可用串口列表。"""
-        self.cbPort.clear()
-        ports = QSerialPortInfo.availablePorts()
-        port_names = [port.portName() for port in ports]
-        try:
-            port_names.sort(key=lambda x: int(x.replace("COM", "")))
-        except Exception:
-            logger.warning("COM 端口排序回退")
-            port_names.sort()
-        self.cbPort.addItems(port_names)
-
-    def _init_baud_rate_list(self) -> None:
-        """填充常用波特率列表。"""
-        self.cbBaudRate.clear()
-        baud_rate_list = [
-            "1200",
-            "2400",
-            "4800",
-            "9600",
-            "19200",
-            "38400",
-            "57600",
-            "115200",
-        ]
-        self.cbBaudRate.addItems(baud_rate_list)
+        self.params.target_pieces = int(self.spnTargetPieces.value())
 
     def _load_settings(self) -> None:
-        """恢复分割条尺寸与串口/波特率选择。"""
-        sizes = self.params.splitter_sizes
+        """恢复上次的分割条尺寸。"""
+        sizes = self.params.fixed.splitter_sizes
         if not isinstance(sizes, list):
             sizes = [400, 600]
         else:
@@ -259,9 +225,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 logger.warning("splitter_sizes 格式错误, 使用默认值")
                 sizes = [400, 600]
         self.splitter.setSizes(sizes)
-
-        self.cbPort.setCurrentText(self.params.port)
-        self.cbBaudRate.setCurrentText(str(self.params.baud_rate))
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """关闭前保存配置并 shutdown 控制器。"""

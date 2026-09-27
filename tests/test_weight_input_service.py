@@ -1,4 +1,4 @@
-from app.models.params import Params
+from app.models.params import Params, params_from
 from app.services.weight_input_service import WeightInputService
 
 
@@ -84,10 +84,10 @@ class TestWeightInputServiceParse:
         assert svc.parse("-5.5 G") == -5.5
 
     def test_apply_start_params_syncs_stability_threshold(self):
-        params = Params(stability_threshold=0.02)
+        params = params_from(stability_threshold=0.02)
         svc = WeightInputService(params)
 
-        params.stability_threshold = 0.10
+        params.start.stability_threshold = 0.10
         svc.apply_start_params()
 
         assert svc.stability_threshold == 0.10

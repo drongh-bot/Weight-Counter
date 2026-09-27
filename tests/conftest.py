@@ -68,14 +68,16 @@ def make_controller(
     ) -> tuple[MainController, UiBridge]:
         params = Params()
         params.target_pieces = 10
-        params.max_batch_pieces = 4
+        params.start.max_batch_pieces = 4
         for key, value in param_overrides.items():
             setattr(params, key, value)
 
         ui_bridge = UiBridge()
         controller = MainController(
             ui_bridge=ui_bridge,
-            serial_service=SerialService(params.timeout_millis, params.encoding),
+            serial_service=SerialService(
+                params.fixed.timeout_millis, params.fixed.encoding
+            ),
             counter_service=CounterService(params),
             weight_input_service=WeightInputService(params),
             sound_player=sound_player or SoundPlayer(),

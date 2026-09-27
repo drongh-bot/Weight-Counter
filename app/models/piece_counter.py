@@ -1,6 +1,6 @@
 # app/models/piece_counter.py
 from app.models.counter_state import CounterState
-from app.models.params import Params
+from app.models.params import FixedParams, Params, StartParams
 from app.models.thresholds import Thresholds
 from app.models.tolerance import Tolerance
 from app.models.weight_learner import WeightLearner
@@ -10,57 +10,64 @@ class PieceCounter:
     """计件 FSM。持有算法参数的副本 — 不引用共享 Params。"""
 
     def __init__(self, params: Params | None = None) -> None:
-        """从 Params 拷贝算法字段并初始化辅助对象。"""
+        """按 Params 的三组参数初始化算法。"""
         p = Params() if params is None else params
-        self._init_from_params(p)
-        self._build_helpers(p)
+        self._copy_start_fields(p.start)
+        self._build_helpers(p.start, p.fixed)
         self.reset()
 
-    def _init_from_params(self, p: Params) -> None:
-        """开机时拷贝 Params 的字段（之后界面再改不会跟着变；点 Start 走 apply_start_params）。"""
-        self.max_batch_pieces = p.max_batch_pieces
-        self.initial_single_pieces = p.initial_single_pieces
-        self.decimal_places = p.decimal_places
-        self.count_rounding_tolerance = p.count_rounding_tolerance
-        self.abnormal_recover_factor = p.abnormal_recover_factor
-        self.stability_threshold = p.stability_threshold
-        self.tolerance_percent = p.tolerance_percent
+    def _copy_start_fields(self, start: StartParams) -> None:
+        """拷贝「点 Start 才会再更新」的那几个字段（对应 apply_start_params）。"""
+        self.max_batch_pieces = start.max_batch_pieces
+        self.initial_single_pieces = start.initial_single_pieces
+        self.decimal_places = start.decimal_places
+        self.stability_threshold = start.stability_threshold
+        self.tolerance_percent = start.tolerance_percent
 
     def _min_tol(self) -> float:
         """由小数位与稳定阈值推导最小公差。"""
         resolution = 10 ** (-self.decimal_places)
         return max(resolution * 2, self.stability_threshold * 2)
 
-    def _build_helpers(self, p: Params) -> None:
-        """用 Params 构造期字段创建 Tolerance / WeightLearner / Thresholds。"""
+    def _build_helpers(self, start: StartParams, fixed: FixedParams) -> None:
+        """用固定参数创建 Tolerance / WeightLearner / Thresholds。
+
+        这里的字段只在程序启动时读一次，改 config.toml 要重启才生效。
+        """
+        self.count_rounding_tolerance = fixed.count_rounding_tolerance
+        self.abnormal_recover_factor = fixed.abnormal_recover_factor
+
         self.tolerance = Tolerance(min_tol=self._min_tol())
         self.learner = WeightLearner(
-            jump_threshold_ratio=p.jump_threshold_ratio,
-            jump_confirm_times=p.jump_confirm_times,
-            early_learn_pieces=p.early_learn_pieces,
-            ema_alpha_min=p.ema_alpha_min,
-            ema_alpha_max=p.ema_alpha_max,
+            jump_threshold_ratio=fixed.jump_threshold_ratio,
+            jump_confirm_times=fixed.jump_confirm_times,
+            early_learn_pieces=fixed.early_learn_pieces,
+            ema_alpha_min=fixed.ema_alpha_min,
+            ema_alpha_max=fixed.ema_alpha_max,
         )
         self.thresholds = Thresholds(
-            initial_min_weight=p.initial_min_weight,
-            dynamic_weight_ratio=p.dynamic_weight_ratio,
-            initial_min_ratio=p.initial_min_ratio,
+            initial_min_weight=start.initial_min_weight,
+            dynamic_weight_ratio=fixed.dynamic_weight_ratio,
+            initial_min_ratio=fixed.initial_min_ratio,
         )
 
-    def apply_start_params(self, params: Params) -> None:
-        """从共享 Params 复制「点 Start 才生效」的那些字段（拷贝值，不跟着界面一直变）。"""
-        if params.initial_single_pieces > 0:
-            self.initial_single_pieces = params.initial_single_pieces
-        if params.max_batch_pieces > 0:
-            self.max_batch_pieces = params.max_batch_pieces
-        if 0.0 < params.tolerance_percent < 100.0:
-            self.tolerance_percent = params.tolerance_percent
-        if params.initial_min_weight > 0:
-            self.thresholds.initial_min_weight = params.initial_min_weight
-        if params.decimal_places >= 0:
-            self.decimal_places = params.decimal_places
-        if params.stability_threshold > 0:
-            self.stability_threshold = params.stability_threshold
+    def apply_start_params(self, start: StartParams) -> None:
+        """点 Start 时拷进「Start 才生效」的那些字段（拷贝值，不跟着界面一直变）。
+
+        合法性守卫保留：值可能来自手改的 config.toml，界面控件的 min/max 管不到它。
+        """
+        if start.initial_single_pieces > 0:
+            self.initial_single_pieces = start.initial_single_pieces
+        if start.max_batch_pieces > 0:
+            self.max_batch_pieces = start.max_batch_pieces
+        if 0.0 < start.tolerance_percent < 100.0:
+            self.tolerance_percent = start.tolerance_percent
+        if start.initial_min_weight > 0:
+            self.thresholds.initial_min_weight = start.initial_min_weight
+        if start.decimal_places >= 0:
+            self.decimal_places = start.decimal_places
+        if start.stability_threshold > 0:
+            self.stability_threshold = start.stability_threshold
         self._recalc_min_tol()
 
     def reset(self) -> None:

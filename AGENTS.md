@@ -7,7 +7,7 @@
 ```
 app/
 ├── core/                  驱动（csv_writer、sound_player、log_config、resource_manager）
-├── models/                纯业务（PieceCounter、Thresholds、Tolerance、WeightLearner、WeightStabilizer、Params、CountSnapshot）
+├── models/                纯业务（PieceCounter、Thresholds、Tolerance、WeightLearner、WeightStabilizer、Params(StartParams/FixedParams)、CountSnapshot）
 ├── services/              串口、重量输入、计件、生产 CSV、配置
 ├── controllers/           MainController — 每帧顺序编排
 ├── presentation/          UiBridge、StatusBar、count_labels、view_models（含 Styles）
@@ -83,7 +83,7 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 
 ## 硬件依赖
 
-需要串口电子秤。无硬件时串口操作会失败。`config.toml` 的 `[serial].port` 须为有效 COM 口。
+需要串口电子秤。无硬件时串口操作会失败。`config.toml` 的 `[serial].port` 须为有效 COM 口 —— **界面已无串口设置**，`port` / `baud_rate` 只能改配置文件，改完要重启程序。
 
 ## Qt Designer 生成代码
 
@@ -107,10 +107,21 @@ Model 与 `CounterService` / `WeightInputService` 测试无 Qt；`UiBridge`、Co
 
 `config.toml` 管串口、波特率、计件与稳重等参数。
 
-- **`Params`**（`app/models/params.py`）：纯数据，无 I/O，不夹紧。窗口与服务共享一份（`CounterService` / `WeightInputService` 持有；`MainController` 不持有）。字段旁注释标明：多数界面计件参数点 Start 才拷进算法；`target_pieces` 改了立刻生效且不落盘。界面可调范围由 Designer 控件 min/max 保证；手改 config.toml 不校验，算法层对部分字段有 `>0` 防御（见 `apply_start_params`）。
-- **`ConfigService`**：只读写 `_SECTION_MAP` 里的键（不含 `target_pieces`）。文件损坏则加载抛错。
-- **Start 拷贝**：服务层无参 `apply_start_params()` 从各自持有的共享 `Params` 把界面可调计件/稳定阈值拷进 `PieceCounter` / `WeightStabilizer`（模型层仍显式接收 `params`）。算法不持有共享 `Params` 引用；跑起来中途改这些字段，要再点 Start 才生效。
-- **`target_pieces`**：`CounterService` 每帧稳重后从共享 `Params` 读取；默认 `100`；退出不保存。
+- **`Params`**（`app/models/params.py`）：纯数据，无 I/O，不夹紧。窗口与服务共享一份（`CounterService` / `WeightInputService` 持有；`MainController` 不持有）。按**生效时机**分三组：
+
+| 组 | 何时生效 | 内容 |
+|---|---|---|
+| `target_pieces`（顶层） | 随时，每帧读 | 目标件数；不落盘 |
+| `start`（`StartParams`，6 项） | 点 Start 拷进算法 | 界面可调的计件 / 稳重阈值 |
+| `fixed`（`FixedParams`，19 项） | 启动时读入，**改配置要重启** | 稳重窗口 5、计件算法 9、串口 4、布局 1 |
+
+访问形如 `params.start.tolerance_percent`、`params.fixed.port`。带字段 kwargs 构造用 `params_from(**kwargs)`（`Params()` 则全默认）。界面可调范围由 Designer 控件 min/max 保证；手改 config.toml 不校验，算法层对部分字段有 `>0` 防御（见 `apply_start_params`）。写子对象时**改字段、不换对象**（`params.start.x = 1`），整体替换会切断与其他窗口的共享。
+
+- **`ConfigService`**：只读写 `_SECTION_MAP` 里的键（不含 `target_pieces`）。文件损坏则加载抛错。`_SECTION_MAP` 按 **TOML 节**组织，与三组是多对一（`[stability]` + `[counting]` 都进 `fixed`）；`pick()` 按 dataclass 字段名切分，所以**调分组不用改 toml**。
+
+- **Start 拷贝**：服务层无参 `apply_start_params()` 从共享 `Params` 取 `params.start` 拷进 `PieceCounter` / `WeightStabilizer`（模型层显式接收 `StartParams`）。算法不持有共享 `Params` 引用；跑起来中途改这些字段，要再点 Start 才生效。
+
+- **`target_pieces`**：`CounterService` 每帧稳重后读 `Params.target_pieces`；默认 `100`；退出不保存。
 
 ## 核心算法
 

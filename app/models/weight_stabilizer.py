@@ -2,7 +2,7 @@
 import statistics
 from collections import deque
 
-from app.models.params import Params
+from app.models.params import StartParams
 
 
 class WeightStabilizer:
@@ -35,10 +35,10 @@ class WeightStabilizer:
         self.unlock_counter: int = 0
         self.stability_threshold: float = stability_threshold
 
-    def apply_start_params(self, params: Params) -> None:
-        """从共享 Params 复制稳定阈值（点 Start 才生效）。"""
-        if params.stability_threshold > 0:
-            self.stability_threshold = params.stability_threshold
+    def apply_start_params(self, start: StartParams) -> None:
+        """从 StartParams 复制稳定阈值（点 Start 才生效）。"""
+        if start.stability_threshold > 0:
+            self.stability_threshold = start.stability_threshold
 
     def reset(self) -> None:
         """清空窗口与锁定状态。"""

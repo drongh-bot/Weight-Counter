@@ -1,7 +1,7 @@
 # app/services/weight_input_service.py
 import logging
 
-from app.models.params import Params
+from app.models.params import Params, StartParams
 from app.models.weight_stabilizer import WeightStabilizer
 
 logger = logging.getLogger(__name__)
@@ -20,12 +20,12 @@ class WeightInputService:
         """持有共享 Params，并用其构造稳重器（窗口参数在构造时拷贝）。"""
         self._params = params
         self._stabilizer = WeightStabilizer(
-            short_maxlen=params.stability_short_win,
-            long_maxlen=params.stability_long_win,
-            stable_count=params.stability_stable_count,
-            unlock_confirm=params.stability_unlock_confirm,
-            unlock_factor=params.stability_unlock_factor,
-            stability_threshold=params.stability_threshold,
+            short_maxlen=params.fixed.stability_short_win,
+            long_maxlen=params.fixed.stability_long_win,
+            stable_count=params.fixed.stability_stable_count,
+            unlock_confirm=params.fixed.stability_unlock_confirm,
+            unlock_factor=params.fixed.stability_unlock_factor,
+            stability_threshold=params.start.stability_threshold,
         )
 
     def parse(self, raw: str) -> float | None:
@@ -69,7 +69,7 @@ class WeightInputService:
 
     def apply_start_params(self) -> None:
         """点 Start 时把共享 Params 的稳定阈值拷进稳重器（中途改了要再 Start）。"""
-        self._stabilizer.apply_start_params(self._params)
+        self._stabilizer.apply_start_params(self._params.start)
 
     @property
     def stability_threshold(self) -> float:

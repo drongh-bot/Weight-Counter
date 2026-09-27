@@ -19,7 +19,7 @@ from app.views.main_window import MainWindow
 logger = logging.getLogger(__name__)
 
 
-def main():
+def main() -> None:
     """应用入口：组装 DI 依赖并启动 Qt 主循环。"""
     app = QApplication(sys.argv)
 
@@ -29,7 +29,9 @@ def main():
     params = config_service.load(ResourceManager.get_external("config.toml"))
 
     ui_bridge = UiBridge()
-    serial_service = SerialService(params.timeout_millis, params.encoding)
+    serial_service = SerialService(
+        params.fixed.timeout_millis, params.fixed.encoding
+    )
     counter_service = CounterService(params)
     weight_input_service = WeightInputService(params)
     sound_player = SoundPlayer()

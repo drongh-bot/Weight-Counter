@@ -13,12 +13,12 @@ class TestConfigService:
             encoding="utf-8",
         )
         params = ConfigService().load(path)
-        assert params.initial_min_weight == 1.5
+        assert params.start.initial_min_weight == 1.5
 
     def test_save_writes_initial_min_weight(self, tmp_path: Path):
         path = tmp_path / "config.toml"
         params = ConfigService().load(path)
-        params.initial_min_weight = 0.8
+        params.start.initial_min_weight = 0.8
         ConfigService().save(params, path)
         text = path.read_text(encoding="utf-8")
         assert "initial_min_weight" in text
@@ -55,16 +55,16 @@ class TestConfigService:
             encoding="utf-8",
         )
         params = ConfigService().load(path)
-        assert params.encoding == "gbk"
+        assert params.fixed.encoding == "gbk"
         assert "encoding" in ConfigService.persisted_keys()
 
     def test_save_roundtrip(self, tmp_path: Path):
         path = tmp_path / "config.toml"
         params = ConfigService().load(path)
-        params.initial_min_weight = 1.25
+        params.start.initial_min_weight = 1.25
         ConfigService().save(params, path)
         loaded = ConfigService().load(path)
-        assert loaded.initial_min_weight == 1.25
+        assert loaded.start.initial_min_weight == 1.25
 
     def test_load_corrupt_toml_raises(self, tmp_path: Path):
         path = tmp_path / "config.toml"

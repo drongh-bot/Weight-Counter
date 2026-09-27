@@ -15,11 +15,10 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QComboBox, QDoubleSpinBox,
-    QFormLayout, QFrame, QGroupBox, QHBoxLayout,
-    QLabel, QMainWindow, QPushButton, QSizePolicy,
-    QSpacerItem, QSpinBox, QStatusBar, QVBoxLayout,
-    QWidget)
+from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QDoubleSpinBox, QFormLayout,
+    QFrame, QGroupBox, QHBoxLayout, QLabel,
+    QMainWindow, QPushButton, QSizePolicy, QSpacerItem,
+    QSpinBox, QStatusBar, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -440,50 +439,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.groupBox_3)
 
-        self.groupBox_4 = QGroupBox(self.centralwidget)
-        self.groupBox_4.setObjectName(u"groupBox_4")
-        self.formLayout_5 = QFormLayout(self.groupBox_4)
-        self.formLayout_5.setObjectName(u"formLayout_5")
-        self.cbPort = QComboBox(self.groupBox_4)
-        self.cbPort.setObjectName(u"cbPort")
-        sizePolicy.setHeightForWidth(self.cbPort.sizePolicy().hasHeightForWidth())
-        self.cbPort.setSizePolicy(sizePolicy)
-        self.cbPort.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-
-        self.formLayout_5.setWidget(0, QFormLayout.FieldRole, self.cbPort)
-
-        self.cbBaudRate = QComboBox(self.groupBox_4)
-        self.cbBaudRate.setObjectName(u"cbBaudRate")
-        sizePolicy.setHeightForWidth(self.cbBaudRate.sizePolicy().hasHeightForWidth())
-        self.cbBaudRate.setSizePolicy(sizePolicy)
-        self.cbBaudRate.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-
-        self.formLayout_5.setWidget(1, QFormLayout.FieldRole, self.cbBaudRate)
-
-        self.label_23 = QLabel(self.groupBox_4)
-        self.label_23.setObjectName(u"label_23")
-        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
-        sizePolicy3.setHorizontalStretch(0)
-        sizePolicy3.setVerticalStretch(0)
-        sizePolicy3.setHeightForWidth(self.label_23.sizePolicy().hasHeightForWidth())
-        self.label_23.setSizePolicy(sizePolicy3)
-        self.label_23.setMinimumSize(QSize(75, 0))
-        self.label_23.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-
-        self.formLayout_5.setWidget(0, QFormLayout.LabelRole, self.label_23)
-
-        self.label_24 = QLabel(self.groupBox_4)
-        self.label_24.setObjectName(u"label_24")
-        sizePolicy3.setHeightForWidth(self.label_24.sizePolicy().hasHeightForWidth())
-        self.label_24.setSizePolicy(sizePolicy3)
-        self.label_24.setMinimumSize(QSize(75, 0))
-        self.label_24.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-
-        self.formLayout_5.setWidget(1, QFormLayout.LabelRole, self.label_24)
-
-
-        self.verticalLayout.addWidget(self.groupBox_4)
-
         self.btnSaveParams = QPushButton(self.centralwidget)
         self.btnSaveParams.setObjectName(u"btnSaveParams")
         self.btnSaveParams.setFont(font2)
@@ -550,9 +505,6 @@ class Ui_MainWindow(object):
         self.label_13.setText(QCoreApplication.translate("MainWindow", u"\u6700\u5c0f\u5355\u5f20\u91cd\u91cf:", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", u"\u7a33\u5b9a\u5224\u5b9a\u9608\u503c:", None))
         self.label_19.setText(QCoreApplication.translate("MainWindow", u"\u4eea\u8868\u5c0f\u6570\u4f4d\u6570:", None))
-        self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", u"\u4e32\u53e3\u8bbe\u7f6e", None))
-        self.label_23.setText(QCoreApplication.translate("MainWindow", u"\u7f16\u53f7:", None))
-        self.label_24.setText(QCoreApplication.translate("MainWindow", u"\u6ce2\u7279\u7387:", None))
         self.btnSaveParams.setText(QCoreApplication.translate("MainWindow", u"\u4fdd\u5b58\u914d\u7f6e", None))
     # retranslateUi
 

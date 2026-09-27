@@ -1,7 +1,7 @@
 import pytest
 
 from app.models.counter_state import CounterState
-from app.models.params import Params
+from app.models.params import StartParams, params_from
 from app.models.piece_counter import PieceCounter
 from app.models.thresholds import Thresholds
 from app.models.tolerance import Tolerance, ToleranceBand
@@ -9,7 +9,7 @@ from app.models.weight_learner import WeightLearner
 
 
 def _pc(**kwargs) -> PieceCounter:
-    return PieceCounter(Params(**kwargs))
+    return PieceCounter(params_from(**kwargs))
 
 
 class TestThresholds:
@@ -307,25 +307,29 @@ class TestPieceCounterFSM:
 class TestPieceCounterParamUpdate:
     def test_apply_start_params_updates_min_weight(self):
         counter = _pc(initial_min_weight=0.5)
-        counter.apply_start_params(Params(initial_min_weight=1.0))
+        counter.apply_start_params(StartParams(initial_min_weight=1.0))
         assert counter.thresholds.initial_min_weight == 1.0
 
     def test_apply_start_params_recalcs_min_tol_decimal(self):
         counter = _pc(decimal_places=2, stability_threshold=0.02)
-        counter.apply_start_params(Params(decimal_places=3, stability_threshold=0.02))
+        counter.apply_start_params(
+            StartParams(decimal_places=3, stability_threshold=0.02)
+        )
         assert counter.decimal_places == 3
         assert counter.tolerance.min_tol == max(0.002, 0.04)
 
     def test_apply_start_params_recalcs_min_tol_stability(self):
         counter = _pc(decimal_places=2, stability_threshold=0.02)
-        counter.apply_start_params(Params(decimal_places=2, stability_threshold=0.10))
+        counter.apply_start_params(
+            StartParams(decimal_places=2, stability_threshold=0.10)
+        )
         assert counter.tolerance.min_tol == max(0.02, 0.20)
 
     def test_mid_run_params_mutation_does_not_affect_copy(self):
         """共享 Params 的中途修改在 apply_start_params 前不得泄漏进计件器。"""
-        params = Params(tolerance_percent=20.0)
+        params = params_from(tolerance_percent=20.0)
         counter = PieceCounter(params)
-        params.tolerance_percent = 5.0
+        params.start.tolerance_percent = 5.0
         assert counter.tolerance_percent == 20.0
-        counter.apply_start_params(params)
+        counter.apply_start_params(params.start)
         assert counter.tolerance_percent == 5.0

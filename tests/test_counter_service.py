@@ -1,5 +1,5 @@
 from app.models.count_snapshot import CountSnapshot
-from app.models.params import Params
+from app.models.params import Params, params_from
 from app.models.counter_state import CounterState
 from app.services.counter_service import CounterService
 
@@ -63,8 +63,8 @@ class TestCounterServiceProcess:
         """批量加件跳过精确目标值时仍应触发（上升沿）"""
         params = Params()
         params.target_pieces = 100
-        params.max_batch_pieces = 5
-        params.initial_single_pieces = 1
+        params.start.max_batch_pieces = 5
+        params.start.initial_single_pieces = 1
         svc = CounterService(params)
         svc.apply_start_params()
 
@@ -77,8 +77,8 @@ class TestCounterServiceProcess:
         """已在目标之上继续加件，不应重复触发"""
         params = Params()
         params.target_pieces = 100
-        params.max_batch_pieces = 5
-        params.initial_single_pieces = 1
+        params.start.max_batch_pieces = 5
+        params.start.initial_single_pieces = 1
         svc = CounterService(params)
         svc.apply_start_params()
 
@@ -94,8 +94,8 @@ class TestCounterServiceProcess:
         """减至目标以下再加回，应再次触发"""
         params = Params()
         params.target_pieces = 3
-        params.max_batch_pieces = 4
-        params.tolerance_percent = 25.0
+        params.start.max_batch_pieces = 4
+        params.start.tolerance_percent = 25.0
         svc = CounterService(params)
         svc.apply_start_params()
 
@@ -174,7 +174,7 @@ class TestCounterServiceProcess:
         assert type(result) is CountSnapshot
 
     def test_apply_start_params_syncs_ui_editable_fields(self):
-        params = Params(
+        params = params_from(
             initial_min_weight=0.5,
             tolerance_percent=20.0,
             stability_threshold=0.02,
@@ -184,12 +184,12 @@ class TestCounterServiceProcess:
         )
         svc = CounterService(params)
 
-        params.initial_min_weight = 1.0
-        params.tolerance_percent = 15.0
-        params.stability_threshold = 0.10
-        params.max_batch_pieces = 2
-        params.initial_single_pieces = 8
-        params.decimal_places = 3
+        params.start.initial_min_weight = 1.0
+        params.start.tolerance_percent = 15.0
+        params.start.stability_threshold = 0.10
+        params.start.max_batch_pieces = 2
+        params.start.initial_single_pieces = 8
+        params.start.decimal_places = 3
 
         svc.apply_start_params()
 
