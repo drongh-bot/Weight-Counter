@@ -64,7 +64,9 @@ class TestDailyRotation:
     """跨日切文件 —— 用假日期驱动，不依赖真的等到明天。"""
 
     @staticmethod
-    def _fake_date(monkeypatch, first: dt.date, second: dt.date):
+    def _fake_date(monkeypatch, first: dt.date):
+        """把 csv_writer 里的 datetime.date.today() 换成受控的假日期。"""
+
         class FakeDate(dt.date):
             current = first
 
@@ -76,9 +78,7 @@ class TestDailyRotation:
         return FakeDate
 
     def test_rolls_over_to_new_file_at_midnight(self, tmp_path, monkeypatch):
-        FakeDate = self._fake_date(
-            monkeypatch, dt.date(2026, 1, 1), dt.date(2026, 1, 2)
-        )
+        FakeDate = self._fake_date(monkeypatch, dt.date(2026, 1, 1))
         w = CsvWriter(tmp_path, ("a",))
         w.write("day1")
         FakeDate.current = dt.date(2026, 1, 2)  # 过零点
@@ -91,7 +91,7 @@ class TestDailyRotation:
         assert "day2" in (tmp_path / "log_20260102.csv").read_text(encoding="utf-8-sig")
 
     def test_same_day_appends_to_same_file(self, tmp_path, monkeypatch):
-        self._fake_date(monkeypatch, dt.date(2026, 1, 1), dt.date(2026, 1, 2))
+        self._fake_date(monkeypatch, dt.date(2026, 1, 1))
         w = CsvWriter(tmp_path, ("a",))
         w.write("one")
         w.write("two")

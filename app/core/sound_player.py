@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import sys
 from pathlib import Path
 
@@ -45,13 +44,13 @@ class SoundPlayer:
             return
         import winsound
 
-        path = str(full_path)
-        if not os.path.exists(path):
+        path = Path(full_path)
+        if not path.exists():
             logger.error("播放失败：找不到音效文件 %s", path)
             return
 
         flags = winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT
         try:
-            winsound.PlaySound(path, flags)
+            winsound.PlaySound(str(path), flags)
         except Exception as e:
             logger.error("播放失败：无法播放 %s（%s）", path, e)

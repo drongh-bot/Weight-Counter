@@ -76,7 +76,7 @@ class ConfigService:
         if not self._path.exists():
             return params_from()
 
-        with open(self._path, "r", encoding="utf-8") as f:
+        with self._path.open(encoding="utf-8") as f:
             raw: dict[str, Any] = toml.load(f)
 
         # 按 _SECTION_MAP 挑键，拍平成一份 dict 再交给 params_from 分组
@@ -99,7 +99,7 @@ class ConfigService:
         }
 
         try:
-            with open(self._path, "w", encoding="utf-8") as f:
+            with self._path.open("w", encoding="utf-8") as f:
                 toml.dump(toml_data, f)
         except Exception as e:
             raise RuntimeError(f"保存配置失败: {e}") from e

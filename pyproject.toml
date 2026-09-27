@@ -27,7 +27,19 @@ exclude = ["app/views/ui_generated"]
 # BLE001  捕获盲异常 —— 这里是应用层兜底（串口/CSV/播放失败不能崩掉 GUI），故意的
 # DTZ011/DTZ005  本地时间 —— 日志按本地日切文件、时间戳给现场看，改 UTC 会错 8 小时
 # SIM115  文件句柄 —— CsvWriter 要跨多次 write 长期持有，不能用 with
-ignore = ["BLE001", "DTZ011", "DTZ005", "SIM115"]
+# N802   camelCase 方法名 —— closeEvent/tickStrings/showEvent 是 Qt 与 pyqtgraph 的虚方法，签名必须跟框架
+# N806   函数内的 FakeDate 是**类**（PascalCase 正确），ruff 分不清局部类与变量
+# ARG001/ARG002  pytest fixture —— qapp 声明即用（保证 QApplication 存在），不直接引用
+ignore = [
+    "BLE001",
+    "DTZ011",
+    "DTZ005",
+    "SIM115",
+    "N802",
+    "N806",
+    "ARG001",
+    "ARG002",
+]
 
 [tool.mypy]
 python_version = "3.13"

@@ -29,7 +29,7 @@ class CsvWriter:
         self._filepath = self._folder / f"log_{today.strftime('%Y%m%d')}.csv"
         new_file = not self._filepath.exists()
 
-        self._file = open(self._filepath, "a", newline="", encoding="utf-8-sig")
+        self._file = self._filepath.open("a", newline="", encoding="utf-8-sig")
         self._writer = csv.writer(self._file)
 
         if new_file:
