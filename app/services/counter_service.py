@@ -26,7 +26,7 @@ class CounterService:
         """这一次计件是否刚从「未达目标」变成「达到或超过目标件数」。"""
         target = self._params.target_pieces
         return (
-            0 < target
+            target > 0
             and old_count < target <= new_count
             and state == CounterState.NORMAL
         )
