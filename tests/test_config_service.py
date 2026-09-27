@@ -12,14 +12,15 @@ class TestConfigService:
             "[parameters]\ninitial_min_weight = 1.5\n",
             encoding="utf-8",
         )
-        params = ConfigService().load(path)
+        params = ConfigService(path).load()
         assert params.start.initial_min_weight == 1.5
 
     def test_save_writes_initial_min_weight(self, tmp_path: Path):
         path = tmp_path / "config.toml"
-        params = ConfigService().load(path)
+        svc = ConfigService(path)
+        params = svc.load()
         params.start.initial_min_weight = 0.8
-        ConfigService().save(params, path)
+        svc.save(params)
         text = path.read_text(encoding="utf-8")
         assert "initial_min_weight" in text
         assert "initial_mini_weight" not in text
@@ -29,9 +30,10 @@ class TestConfigService:
 
     def test_save_omits_target_pieces(self, tmp_path: Path):
         path = tmp_path / "config.toml"
-        params = ConfigService().load(path)
+        svc = ConfigService(path)
+        params = svc.load()
         params.target_pieces = 42
-        ConfigService().save(params, path)
+        svc.save(params)
         text = path.read_text(encoding="utf-8")
         assert "target_pieces" not in text
 
@@ -54,20 +56,21 @@ class TestConfigService:
             '[serial]\nencoding = "gbk"\n',
             encoding="utf-8",
         )
-        params = ConfigService().load(path)
+        params = ConfigService(path).load()
         assert params.fixed.encoding == "gbk"
         assert "encoding" in ConfigService.persisted_keys()
 
     def test_save_roundtrip(self, tmp_path: Path):
         path = tmp_path / "config.toml"
-        params = ConfigService().load(path)
+        svc = ConfigService(path)
+        params = svc.load()
         params.start.initial_min_weight = 1.25
-        ConfigService().save(params, path)
-        loaded = ConfigService().load(path)
+        svc.save(params)
+        loaded = svc.load()
         assert loaded.start.initial_min_weight == 1.25
 
     def test_load_corrupt_toml_raises(self, tmp_path: Path):
         path = tmp_path / "config.toml"
         path.write_text("{{{{not toml", encoding="utf-8")
         with pytest.raises(Exception):
-            ConfigService().load(path)
+            ConfigService(path).load()

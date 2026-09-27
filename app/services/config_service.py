@@ -17,15 +17,23 @@ from typing import Any
 
 import toml
 
+from app.core.resource_manager import ResourceManager
 from app.models.params import Params, params_from
 
 
 class ConfigService:
     """config.toml 的读写入口：``load`` 读进来，``save`` 写出去。
 
+    路径默认是外部根目录的 ``config.toml``，构造时传别的 path 可覆盖（测试用）。
     ``_SECTION_MAP`` 只回答两件事：文件里有哪些节、每节读写哪些键。
     文件缺项时用 Params 默认值；文件损坏则抛错。
     """
+
+    def __init__(self, path: Path | None = None) -> None:
+        """默认读写外部根目录的 config.toml；传 path 隔离到别处。"""
+        self._path: Path = (
+            path if path is not None else ResourceManager.get_external("config.toml")
+        )
 
     _SECTION_MAP: dict[str, list[str]] = {
         "parameters": [
@@ -50,12 +58,12 @@ class ConfigService:
         """会写入 config.toml 的字段名（只给测试核对用）。"""
         return frozenset(k for keys in cls._SECTION_MAP.values() for k in keys)
 
-    def load(self, path: Path) -> Params:
+    def load(self) -> Params:
         """读 config.toml → Params；文件不存在就全用默认值。"""
-        if not path.exists():
+        if not self._path.exists():
             return params_from()
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(self._path, "r", encoding="utf-8") as f:
             raw: dict[str, Any] = toml.load(f)
 
         # 按 _SECTION_MAP 挑键，拍平成一份 dict 再交给 params_from 分组
@@ -68,7 +76,7 @@ class ConfigService:
 
         return params_from(**picked)
 
-    def save(self, params: Params, path: Path) -> None:
+    def save(self, params: Params) -> None:
         """把 Params 写回 config.toml，只写 ``_SECTION_MAP`` 列到的键。"""
         # 分组只存在于代码里，写文件前先把 start / fixed 拍平成一份
         flat = {**asdict(params.start), **asdict(params.fixed)}
@@ -78,7 +86,7 @@ class ConfigService:
         }
 
         try:
-            with open(path, "w", encoding="utf-8") as f:
+            with open(self._path, "w", encoding="utf-8") as f:
                 toml.dump(toml_data, f)
         except Exception as e:
             raise RuntimeError(f"保存配置失败: {e}") from e

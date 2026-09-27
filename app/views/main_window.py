@@ -1,6 +1,5 @@
 # app/views/main_window.py
 import logging
-from typing import NamedTuple
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QCloseEvent, QIcon
@@ -28,23 +27,6 @@ from app.views.widgets.piece_table import PieceTable
 logger = logging.getLogger(__name__)
 
 
-class _ParamField(NamedTuple):
-    """点 Start 才生效的参数旋钮：Params.start 字段 ↔ 控件。"""
-
-    attr: str
-    widget: str
-
-
-_PARAM_FIELDS = (
-    _ParamField("initial_min_weight", "dspnInitialMinWeight"),
-    _ParamField("tolerance_percent", "dspnTolerancePercent"),
-    _ParamField("stability_threshold", "dspnStabilityThreshold"),
-    _ParamField("max_batch_pieces", "spnMaxBatchPieces"),
-    _ParamField("initial_single_pieces", "spnInitialSinglePieces"),
-    _ParamField("decimal_places", "spnDecimalPlaces"),
-)
-
-
 class MainWindow(QMainWindow, Ui_MainWindow):
     """主窗口：听 UiBridge 刷新界面；Start/Stop/强制校准/存配置交给控制器，不碰计件算法。"""
 
@@ -69,17 +51,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.params: Params = params
         self.config_service: ConfigService = config_service
 
-        self._init_extra_widgets()
-
+        self._init_central_widgets()
+        self._init_status_labels()
         self._load_settings()
-
         self._load_params_to_ui()
-
         self._connect_bridge()
         self._bind_controls()
 
-    def _init_extra_widgets(self) -> None:
-        """装配件数表、散点图与自定义状态栏标签。"""
+    def _init_central_widgets(self) -> None:
+        """装配中间的件数表与散点图。"""
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.wgtPieceTable = PieceTable(self.params.start.decimal_places)
         self.wgtPieceChart = PieceChart(self.params.start.decimal_places)
@@ -90,6 +70,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         assert isinstance(horizontal_layout, QHBoxLayout)
         horizontal_layout.addWidget(self.splitter, 1)
 
+    def _init_status_labels(self) -> None:
+        """装配底部状态栏的三格标签。"""
         self.lblParse = QLabel()
         self.lblComm = QLabel()
         self.lblMessage = QLabel()
@@ -118,12 +100,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._apply_bar_label_item(data.message, self.lblMessage)
 
     def _on_button_status_changed(self, state: ButtonStatus) -> None:
-        """同步按钮与 Start 参数控件的可用状态。"""
+        """同步按钮与 Start 参数控件的可用状态（target_pieces 不锁，改了立刻生效）。"""
         self.btnStart.setEnabled(state.start_enabled)
         self.btnStop.setEnabled(state.stop_enabled)
         self.btnForce.setEnabled(state.force_enabled)
-        for field in _PARAM_FIELDS:
-            getattr(self, field.widget).setEnabled(state.start_params_enabled)
+
+        enabled = state.start_params_enabled
+        self.dspnInitialMinWeight.setEnabled(enabled)
+        self.dspnTolerancePercent.setEnabled(enabled)
+        self.dspnStabilityThreshold.setEnabled(enabled)
+        self.spnMaxBatchPieces.setEnabled(enabled)
+        self.spnInitialSinglePieces.setEnabled(enabled)
+        self.spnDecimalPlaces.setEnabled(enabled)
 
     def _on_count_snapshot_changed(self, snap: CountSnapshot) -> None:
         """刷新计件标签、表格与散点图。"""
@@ -155,9 +143,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnForce.clicked.connect(self._on_force_clicked)
         self.btnSaveParams.clicked.connect(self.save_params)
 
-        for field in _PARAM_FIELDS:
-            getattr(self, field.widget).valueChanged.connect(self._sync_ui_to_params)
-        # target_pieces 不进表：它在 Params 顶层，不锁、不落盘、改了立刻生效
+        self.dspnInitialMinWeight.valueChanged.connect(self._sync_ui_to_params)
+        self.dspnTolerancePercent.valueChanged.connect(self._sync_ui_to_params)
+        self.dspnStabilityThreshold.valueChanged.connect(self._sync_ui_to_params)
+        self.spnMaxBatchPieces.valueChanged.connect(self._sync_ui_to_params)
+        self.spnInitialSinglePieces.valueChanged.connect(self._sync_ui_to_params)
+        self.spnDecimalPlaces.valueChanged.connect(self._sync_ui_to_params)
         self.spnTargetPieces.valueChanged.connect(self._sync_ui_to_params)
 
     def start(self) -> None:
@@ -179,7 +170,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _on_force_clicked(self) -> None:
         """读取强制片数并提交给控制器。"""
-        pieces = int(self.spnForcePieces.value())
+        pieces = self.spnForcePieces.value()
         if pieces <= 0:
             QMessageBox.warning(self, "提示", "请先输入强制片数")
             return
@@ -187,34 +178,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.spnForcePieces.setValue(0)
 
     def save_params(self) -> None:
-        """UI → Params 同步，并将全部配置持久化到磁盘。
-
-        串口/波特率不再来自界面，读进来是什么就原样写回。
-        """
+        """UI → Params 同步，再由 ConfigService 落盘。"""
         self._sync_ui_to_params()
         self.params.fixed.splitter_sizes = self.splitter.sizes()
-        self.config_service.save(
-            self.params, ResourceManager.get_external("config.toml")
-        )
+        self.config_service.save(self.params)
 
     def _load_params_to_ui(self) -> None:
-        """把 Params 中的可编辑字段写到对应控件。"""
-        for field in _PARAM_FIELDS:
-            getattr(self, field.widget).setValue(getattr(self.params.start, field.attr))
+        """把 Params 里可调的字段写到对应控件。"""
+        self.dspnInitialMinWeight.setValue(self.params.start.initial_min_weight)
+        self.dspnTolerancePercent.setValue(self.params.start.tolerance_percent)
+        self.dspnStabilityThreshold.setValue(self.params.start.stability_threshold)
+        self.spnMaxBatchPieces.setValue(self.params.start.max_batch_pieces)
+        self.spnInitialSinglePieces.setValue(self.params.start.initial_single_pieces)
+        self.spnDecimalPlaces.setValue(self.params.start.decimal_places)
         self.spnTargetPieces.setValue(self.params.target_pieces)
 
     def _sync_ui_to_params(self) -> None:
-        """把参数控件当前值写回共享 Params（写字段，不替换子对象，否则共享会断）。"""
-        for field in _PARAM_FIELDS:
-            setattr(
-                self.params.start,
-                field.attr,
-                getattr(self, field.widget).value(),
-            )
-        self.params.target_pieces = int(self.spnTargetPieces.value())
+        """把参数控件当前值写回共享 Params（写字段、不换子对象，否则共享会断）。"""
+        self.params.start.initial_min_weight = self.dspnInitialMinWeight.value()
+        self.params.start.tolerance_percent = self.dspnTolerancePercent.value()
+        self.params.start.stability_threshold = self.dspnStabilityThreshold.value()
+        self.params.start.max_batch_pieces = self.spnMaxBatchPieces.value()
+        self.params.start.initial_single_pieces = self.spnInitialSinglePieces.value()
+        self.params.start.decimal_places = self.spnDecimalPlaces.value()
+        self.params.target_pieces = self.spnTargetPieces.value()
 
     def _load_settings(self) -> None:
-        """恢复上次的分割条尺寸。"""
+        """恢复上次的分割条尺寸（配置写坏时退回默认）。"""
         sizes = self.params.fixed.splitter_sizes
         if not isinstance(sizes, list):
             sizes = [400, 600]
@@ -227,7 +217,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.splitter.setSizes(sizes)
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        """关闭前保存配置并 shutdown 控制器。"""
+        """关闭窗口前存一次配置；真正的 shutdown 在 main.py 的 finally 里。"""
         self.hide()
         try:
             self.save_params()
