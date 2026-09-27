@@ -46,7 +46,7 @@ class MainController:
 
     def init_ui(self) -> None:
         """窗口连好信号后调用：把件数区、状态栏刷成初始状态。"""
-        self._sync_count_ui()
+        self._sync_ui()
         self.ui_bridge.update_bar(self._bar.reset())
 
     def _button_status(self) -> ButtonStatus:
@@ -78,10 +78,10 @@ class MainController:
         """界面上的「当前秤重」显示成占位符。"""
         self.ui_bridge.update_actual_weight(None, self.counter_service.decimal_places)
 
-    def _sync_count_ui(self) -> None:
-        """按当前件数刷新中间计件区，并清空当前秤重。"""
+    def _sync_ui(self) -> None:
+        """用当前状态把界面刷一遍：计件面板 + 按钮可用状态 + 清空当前秤重。"""
         snap = self.counter_service.snapshot()
-        self.ui_bridge.update_count(snap)
+        self.ui_bridge.update_count_panel(snap)
         self._sync_button_status()
         self._clear_actual_weight()
 
@@ -155,7 +155,7 @@ class MainController:
 
     def _handle_frame(self, frame: CountFrame) -> None:
         """刷新件数；刚进异常/刚达目标则播放提示音；有新件则记生产。"""
-        self.ui_bridge.update_count(frame)
+        self.ui_bridge.update_count_panel(frame)
         self._sync_button_status()
         if frame.abnormal_edge:
             self.sound_player.play_error()
@@ -201,7 +201,7 @@ class MainController:
         """件数清零、稳重状态清空，界面恢复初始。"""
         self.counter_service.reset()
         self.weight_input_service.reset()
-        self._sync_count_ui()
+        self._sync_ui()
         self.ui_bridge.update_bar(self._bar.reset())
 
     def start(self, port: str, baud: int) -> bool:
@@ -224,7 +224,7 @@ class MainController:
     def _handle_start_error(self, error: Exception) -> None:
         """Start 失败（通常是串口打不开）：停下来并在底部显示原因。"""
         self._is_running = False
-        self._sync_count_ui()
+        self._sync_ui()
         self.ui_bridge.update_bar(self._bar.on_start_failed(str(error)))
         logger.exception("串口打开失败")
 

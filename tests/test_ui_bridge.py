@@ -15,11 +15,11 @@ class TestUi:
     def _last(spy):
         return spy.at(spy.count() - 1)[0]
 
-    def test_update_count_emits(self, qapp):
+    def test_update_count_panel_emits(self, qapp):
         ui = UiBridge()
         spy = QSignalSpy(ui.count_snapshot_changed)
 
-        ui.update_count(
+        ui.update_count_panel(
             make_count_snapshot(
                 state=CounterState.NORMAL,
                 delta_weight=10.0,
@@ -42,10 +42,10 @@ class TestUi:
         spy = QSignalSpy(ui.count_snapshot_changed)
 
         result = make_count_snapshot()
-        ui.update_count(result)
+        ui.update_count_panel(result)
         assert spy.count() == 1
 
-        ui.update_count(result)
+        ui.update_count_panel(result)
         assert spy.count() == 1
 
     def test_count_frame_edges_do_not_reemit(self, qapp):
@@ -59,18 +59,18 @@ class TestUi:
             total_pieces=1,
             piece_weights=[10.0],
         )
-        ui.update_count(CountFrame(**asdict(base), piece_added=True))
-        ui.update_count(CountFrame(**asdict(base), piece_added=False))
+        ui.update_count_panel(CountFrame(**asdict(base), piece_added=True))
+        ui.update_count_panel(CountFrame(**asdict(base), piece_added=False))
         assert spy.count() == 1
 
     def test_count_different_data_emits_again(self, qapp):
         ui = UiBridge()
         spy = QSignalSpy(ui.count_snapshot_changed)
 
-        ui.update_count(make_count_snapshot())
+        ui.update_count_panel(make_count_snapshot())
         assert spy.count() == 1
 
-        ui.update_count(
+        ui.update_count_panel(
             make_count_snapshot(
                 state=CounterState.NORMAL,
                 delta_weight=10.0,
