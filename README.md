@@ -142,8 +142,8 @@ splitter_sizes = [140, 199]
 ## 测试
 
 ```bash
-uv run python -m pytest tests/ -q        # 216 条
-uv run python -m mypy app main.py tests # 类型检查
+uv run pytest tests/ -q                # 216 条
+uv run mypy app main.py tests          # 类型检查
 uv run ruff check .              # lint
 ```
 
@@ -162,7 +162,7 @@ uv run ruff check .              # lint
 ## 打包
 
 ```bash
-uv run python -m PyInstaller main.spec --clean -y
+uv run pyinstaller main.spec --clean -y
 ```
 
 产物：`dist/WeightCounter/`。

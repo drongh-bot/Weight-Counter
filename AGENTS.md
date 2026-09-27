@@ -44,12 +44,14 @@ app/
 ```
 uv sync                          # 安装依赖
 uv run main.py                   # 运行
-uv run python -m PyInstaller main.spec --clean -y   # 打包到 dist/WeightCounter/
-uv run python -m pytest tests/ -q     # 全部测试
-uv run python -m mypy app main.py tests   # 类型检查
+uv run pyinstaller main.spec --clean -y   # 打包到 dist/WeightCounter/
+uv run pytest tests/ -q              # 全部测试
+uv run mypy app main.py tests        # 类型检查
 uv run ruff check .                # lint（配置在 pyproject [tool.ruff]）
-git config core.hooksPath .githooks   # 启用提交前四项检查（克隆后跑一次；临时跳过用 --no-verify）
+git config core.hooksPath .githooks # 启用提交前四项检查（克隆后跑一次；临时跳过用 --no-verify）
 ```
+
+> 若 `uv run pytest` 报 `uv trampoline failed to canonicalize script path`：venv 里的跳板 exe 与当前 uv 版本不兼容（`scoop update` 升级 uv 后可能出现）。`uv sync --reinstall` 重新生成即可；临时可用 `uv run python -m pytest` 顶替。
 
 ## 测试
 
