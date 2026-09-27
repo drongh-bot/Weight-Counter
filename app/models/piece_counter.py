@@ -244,7 +244,7 @@ class PieceCounter:
             return None
 
         n_est = abs(delta_weight) / self.avg_weight
-        n = int(round(n_est))
+        n = round(n_est)
 
         if not (1 <= n <= limit):
             return None

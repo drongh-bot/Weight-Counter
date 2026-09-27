@@ -88,13 +88,13 @@ class TestControllerPipeline:
         assert d.message.text == MSG_WAIT_STABLE
 
     def test_force_calibrate_ignored_when_pieces_zero(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller._is_running = True
         controller.request_force_calibrate(0)
         assert controller._pending_force_pieces is None
 
     def test_force_calibrate_executes_on_next_stable(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller._is_running = True
 
         feed_stable(controller, "10.0 kg")
@@ -110,7 +110,7 @@ class TestControllerPipeline:
 
     def test_force_calibrate_from_normal_without_abnormal(self, make_controller):
         """NORMAL 状态下也可强制校准，无需先进入异常"""
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller._is_running = True
 
         feed_stable(controller, "10.0 kg")
@@ -127,7 +127,7 @@ class TestControllerPipeline:
         assert result.baseline_weight == pytest.approx(30.0)
 
     def test_abnormal_auto_recovers_when_weight_returns(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller._is_running = True
 
         feed_stable(controller, "10.0 kg")
@@ -194,14 +194,14 @@ class TestControllerPipeline:
         assert ui_bridge._last_bar.message.text == "无异常"
 
     def test_pending_only_when_running(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller._is_running = False
 
         controller.request_force_calibrate(5)
         assert controller._pending_force_pieces is None
 
     def test_stop_resets_all(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller._is_running = True
 
         feed_stable(controller, "10.0 kg")
@@ -213,7 +213,7 @@ class TestControllerPipeline:
         assert controller._pending_force_pieces is None
 
     def test_start_resets_and_starts_serial(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller._is_running = True
         feed_stable(controller, "10.0 kg")
         assert controller.counter_service.snapshot().total_pieces == 1
@@ -235,7 +235,7 @@ class TestControllerPipeline:
             controller.serial_service.close = original_close
 
     def test_start_ignored_when_already_running(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller._is_running = True
         feed_stable(controller, "10.0 kg")
         controller.serial_service.open = MagicMock()
@@ -257,13 +257,13 @@ class TestControllerPipeline:
         assert d.start_params_enabled is False
 
     def test_start_params_enabled_when_stopped(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         status = controller._button_status()
         assert status.start_params_enabled is True
         assert status.start_enabled is True
 
     def test_ui_button_state_when_abnormal(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller._is_running = True
 
         feed_stable(controller, "10.0 kg")
@@ -276,7 +276,7 @@ class TestControllerPipeline:
         assert status.force_enabled is True
 
     def test_force_pending_disables_force_button(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller._is_running = True
         feed_stable(controller, "10.0 kg")
 
@@ -311,7 +311,7 @@ class TestControllerPipeline:
         assert controller._button_status().force_enabled is True
 
     def test_raw_far_from_stable(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller.counter_service._params.start.stability_threshold = 0.02
         controller.weight_input_service.apply_start_params()
         assert controller._raw_far_from_stable(30.0, 10.0) is True
@@ -366,7 +366,7 @@ class TestControllerPipeline:
         assert spy.at(spy.count() - 1)[0] == "-----"
 
     def test_decimal_places_applies_on_start_only(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller._is_running = True
         controller.counter_service.process(10.0)
         controller.counter_service._params.start.decimal_places = 4
@@ -383,7 +383,7 @@ class TestControllerPipeline:
 class TestStartFailureAndShutdown:
     def test_apply_params_failure_rolls_back_running(self, make_controller):
         """套用参数这一步炸了也要退回「没在跑」，串口不该再被打开。"""
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller.serial_service.open = MagicMock()
         controller.counter_service.apply_start_params = MagicMock(
             side_effect=RuntimeError("参数套用失败")
@@ -396,7 +396,7 @@ class TestStartFailureAndShutdown:
         controller.serial_service.open.assert_not_called()
 
     def test_serial_failure_rolls_back_running(self, make_controller):
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller.serial_service.open = MagicMock(side_effect=RuntimeError("打不开"))
 
         assert controller.start("COM99", 9600) is False
@@ -418,6 +418,6 @@ class TestStartFailureAndShutdown:
 
     def test_shutdown_is_idempotent(self, make_controller):
         """重复 shutdown（本测试 + 夹具收尾）不能抛。"""
-        controller, ui_bridge = make_controller()
+        controller, _ui_bridge = make_controller()
         controller.shutdown()
         controller.shutdown()

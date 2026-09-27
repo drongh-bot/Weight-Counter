@@ -214,7 +214,7 @@ class PieceChart(QWidget):
         view_box = self.plot.getViewBox()
         mouse_point = view_box.mapSceneToView(pos)
 
-        closest_y = int(round(mouse_point.y()))
+        closest_y = round(mouse_point.y())
         index = closest_y - 1
 
         if not (0 <= index < len(self._piece_weights)):

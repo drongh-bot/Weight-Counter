@@ -13,7 +13,7 @@
 
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import toml
 
@@ -35,7 +35,7 @@ class ConfigService:
             path if path is not None else ResourceManager.get_external("config.toml")
         )
 
-    _SECTION_MAP: dict[str, list[str]] = {
+    _SECTION_MAP: ClassVar[dict[str, list[str]]] = {
         "parameters": [
             "initial_min_weight", "tolerance_percent", "stability_threshold",
             "max_batch_pieces", "initial_single_pieces", "decimal_places",

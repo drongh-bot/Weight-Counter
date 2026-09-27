@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+import toml
 
 from app.services.config_service import ConfigService
 
@@ -72,5 +73,5 @@ class TestConfigService:
     def test_load_corrupt_toml_raises(self, tmp_path: Path):
         path = tmp_path / "config.toml"
         path.write_text("{{{{not toml", encoding="utf-8")
-        with pytest.raises(Exception):
+        with pytest.raises(toml.TomlDecodeError):
             ConfigService(path).load()
