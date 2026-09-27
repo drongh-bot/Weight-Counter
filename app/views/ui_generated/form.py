@@ -439,12 +439,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.groupBox_3)
 
-        self.btnSaveParams = QPushButton(self.centralwidget)
-        self.btnSaveParams.setObjectName(u"btnSaveParams")
-        self.btnSaveParams.setFont(font2)
-
-        self.verticalLayout.addWidget(self.btnSaveParams)
-
 
         self.horizontalLayout_5.addLayout(self.verticalLayout)
 
@@ -505,6 +499,5 @@ class Ui_MainWindow(object):
         self.label_13.setText(QCoreApplication.translate("MainWindow", u"\u6700\u5c0f\u5355\u5f20\u91cd\u91cf:", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", u"\u7a33\u5b9a\u5224\u5b9a\u9608\u503c:", None))
         self.label_19.setText(QCoreApplication.translate("MainWindow", u"\u4eea\u8868\u5c0f\u6570\u4f4d\u6570:", None))
-        self.btnSaveParams.setText(QCoreApplication.translate("MainWindow", u"\u4fdd\u5b58\u914d\u7f6e", None))
     # retranslateUi
 
