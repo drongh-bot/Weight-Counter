@@ -13,40 +13,29 @@ class PieceCounter:
         """按 Params 的三组参数初始化算法。"""
         if params is None:
             params = Params()
+        # 先打底再覆盖：构造时守卫没放行的字段也得有值；
+        # 而更新路径（点 Start）是「保留当前值」，两者语义统一为「非法就不用」
+        self._copy_start_fields(StartParams())
         self._copy_start_fields(params.start)
         self._build_helpers(params.start, params.fixed)
         self.reset()
 
     def _copy_start_fields(self, start: StartParams) -> None:
-        """拷贝 Start 组的标量字段，非法值一律用默认值顶上。
+        """拷贝 Start 组的标量字段，**非法值保留当前值**。
 
-        公差百分比不在此列 —— 它归 ``Tolerance.set_percent`` 守卫。
-        构造和点 Start 都走这里，所以**每个字段**的守卫只写一次。
-        守卫不能省：值可能来自手改的 config.toml，界面控件的 min/max 管不到它。
+        构造时「当前值」是刚打的默认值；点 Start 时是上次生效的值 ——
+        手改 config.toml 写错了，不该把用户上次的设置打回出厂默认。
+        公差百分比不在此列，它归 ``Tolerance.set_percent``（同一套 if 语义）。
+        守卫不能省：界面控件的 min/max 管不到从 toml 读进来的值。
         """
-        default = StartParams()
-
-        self.initial_single_pieces = (
-            start.initial_single_pieces
-            if start.initial_single_pieces > 0
-            else default.initial_single_pieces
-        )
-        self.max_batch_pieces = (
-            start.max_batch_pieces
-            if start.max_batch_pieces > 0
-            else default.max_batch_pieces
-        )
-        # tolerance_percent 不在这里：它归 Tolerance 管（见 set_percent 的守卫）
-        self.decimal_places = (
-            start.decimal_places
-            if start.decimal_places >= 0
-            else default.decimal_places
-        )
-        self.stability_threshold = (
-            start.stability_threshold
-            if start.stability_threshold > 0
-            else default.stability_threshold
-        )
+        if start.initial_single_pieces > 0:
+            self.initial_single_pieces = start.initial_single_pieces
+        if start.max_batch_pieces > 0:
+            self.max_batch_pieces = start.max_batch_pieces
+        if start.decimal_places >= 0:
+            self.decimal_places = start.decimal_places
+        if start.stability_threshold > 0:
+            self.stability_threshold = start.stability_threshold
 
     def _min_tol(self) -> float:
         """由小数位与稳定阈值推导最小公差。"""

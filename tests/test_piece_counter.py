@@ -346,3 +346,25 @@ class TestPieceCounterParamUpdate:
         assert counter.tolerance.tolerance_percent == 20.0
         counter.apply_start_params(params.start)
         assert counter.tolerance.tolerance_percent == 5.0
+
+    def test_illegal_start_params_keep_previous_values(self):
+        """手改 config.toml 写了非法值 → 忽略它、保留上次生效的设置。
+
+        不能退回出厂默认，否则用户上次的调参会被一次笔误抹掉。
+        """
+        counter = _pc(
+            max_batch_pieces=4,
+            initial_single_pieces=8,
+            initial_min_weight=2.0,
+        )
+        counter.apply_start_params(
+            StartParams(
+                max_batch_pieces=-7,
+                initial_single_pieces=-3,
+                initial_min_weight=-5.0,
+            )
+        )
+
+        assert counter.max_batch_pieces == 4
+        assert counter.initial_single_pieces == 8
+        assert counter.thresholds.initial_min_weight == 2.0

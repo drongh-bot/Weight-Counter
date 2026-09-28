@@ -71,18 +71,18 @@ class BarState:
 
     def __init__(self) -> None:
         self._parse_comm = _ParseCommStatus.OK
-        self._state = CounterState.ZERO
+        self._counter_state = CounterState.ZERO
         self._target_msg_latched = False
-        self._waiting = False
-        self._error: str | None = None
+        self._force_waiting = False
+        self._error_msg: str | None = None
 
     def reset(self) -> BarSnapshot:
         """清空提示，回到开机空闲样子。"""
         self._parse_comm = _ParseCommStatus.OK
-        self._state = CounterState.ZERO
+        self._counter_state = CounterState.ZERO
         self._target_msg_latched = False
-        self._waiting = False
-        self._error = None
+        self._force_waiting = False
+        self._error_msg = None
         return self.bar_snapshot()
 
     def on_timeout(self) -> BarSnapshot:
@@ -98,24 +98,24 @@ class BarState:
     def on_force_waiting_frame(self) -> BarSnapshot:
         """已点强制校准，等秤上重量稳住。"""
         self._parse_comm = _ParseCommStatus.OK
-        self._waiting = True
+        self._force_waiting = True
         return self.bar_snapshot()
 
     def on_serial_error(self, msg: str) -> BarSnapshot:
         """串口出故障（打不开、读写失败等）。"""
         self._parse_comm = _ParseCommStatus.FAULT
-        self._error = msg
+        self._error_msg = msg
         return self.bar_snapshot()
 
     def on_csv_error(self, msg: str) -> BarSnapshot:
         """生产记录写文件失败。"""
-        self._error = msg
+        self._error_msg = msg
         return self.bar_snapshot()
 
     def on_start_failed(self, msg: str) -> BarSnapshot:
         """点 Start 后串口没打开成功。"""
         self._parse_comm = _ParseCommStatus.FAULT
-        self._error = msg
+        self._error_msg = msg
         return self.bar_snapshot()
 
     def on_stable_frame(
@@ -177,9 +177,9 @@ class BarState:
     ) -> None:
         """重量稳住后的共同更新：通讯恢复正常，清掉等待/报错，并处理「已达目标」提示。"""
         self._parse_comm = _ParseCommStatus.OK
-        self._state = state
-        self._error = None
-        self._waiting = False
+        self._counter_state = state
+        self._error_msg = None
+        self._force_waiting = False
         if target_edge:
             self._target_msg_latched = True
         if piece_added and self._target_msg_latched and not target_edge:
@@ -196,11 +196,11 @@ class BarState:
 
     def _resolve_message(self) -> tuple[str, bool]:
         """按优先级选出当前该显示的消息；第二个返回值 True 表示用灰色提示，False 表示红色报错。"""
-        if self._waiting:
+        if self._force_waiting:
             return MSG_WAIT_STABLE, True
-        if self._error is not None:
-            return self._error, False
-        if self._state == CounterState.ABNORMAL:
+        if self._error_msg is not None:
+            return self._error_msg, False
+        if self._counter_state == CounterState.ABNORMAL:
             return MSG_ABNORMAL, True
         if self._target_msg_latched:
             return MSG_TARGET, True
