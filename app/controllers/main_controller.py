@@ -3,7 +3,7 @@ import logging
 
 from app.core.sound_player import SoundPlayer
 from app.models.count_snapshot import CountFrame, CountSnapshot
-from app.presentation.bar_status import BarStatus
+from app.presentation.bar_state import BarState
 from app.presentation.ui_bridge import UiBridge
 from app.presentation.view_data import BarSnapshot, ControlStatus
 from app.services.counter_service import CounterService
@@ -37,7 +37,7 @@ class MainController:
         self._is_running: bool = False
         self._pending_force_pieces: int | None = None
         self._signals_disconnected: bool = False
-        self._bar = BarStatus()
+        self._bar = BarState()
 
         self.serial_service.data_received.connect(self._on_raw_data)
         self.serial_service.timeout_detected.connect(self._on_timeout)

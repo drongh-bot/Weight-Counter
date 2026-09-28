@@ -4,7 +4,7 @@ from PySide6.QtTest import QSignalSpy
 
 from app.models.count_snapshot import CountFrame
 from app.models.counter_state import CounterState
-from app.presentation.bar_status import BarStatus
+from app.presentation.bar_state import BarState
 from app.presentation.ui_bridge import UiBridge
 from app.presentation.view_data import ControlStatus, Styles
 from tests.conftest import make_count_snapshot
@@ -88,7 +88,7 @@ class TestUi:
         ui = UiBridge()
         spy = QSignalSpy(ui.bar_snapshot_changed)
 
-        ui.update_bar(BarStatus().on_serial_error("测试异常"))
+        ui.update_bar(BarState().on_serial_error("测试异常"))
 
         d = self._last(spy)
         assert d.parse.text == "解析等待"
@@ -101,7 +101,7 @@ class TestUi:
     def test_update_bar_duplicate_not_emitted(self, qapp):
         ui = UiBridge()
         spy = QSignalSpy(ui.bar_snapshot_changed)
-        status = BarStatus().on_force_waiting_frame()
+        status = BarState().on_force_waiting_frame()
         ui.update_bar(status)
         ui.update_bar(status)
         assert spy.count() == 1

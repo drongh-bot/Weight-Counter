@@ -1,4 +1,4 @@
-# app/presentation/bar_status.py
+# app/presentation/bar_state.py
 """界面底部三格提示：解析是否正常、秤是否连上、当前业务消息。
 
 谁用：MainController 在超时、解析失败、计件变化、强制校准等时机调用 on_*，
@@ -66,7 +66,7 @@ def _message_label(text: str, *, info: bool = False) -> StyledText:
     return StyledText(text=text, style=style)
 
 
-class BarStatus:
+class BarState:
     """记住当前该显示什么，每次 on_* 返回三格最新内容给界面。"""
 
     def __init__(self) -> None:

@@ -145,9 +145,9 @@ class TestRendering:
 
     def test_bar_snapshot_updates_status_labels(self, window):
         win, _, _ = window
-        from app.presentation.bar_status import BarStatus
+        from app.presentation.bar_state import BarState
 
-        bar = BarStatus().on_timeout()
+        bar = BarState().on_timeout()
         win._on_bar_snapshot_changed(bar)
 
         assert "等待" in win.lblParse.text()
